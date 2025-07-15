@@ -47,6 +47,167 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Custom CSS for professional styling
+st.markdown("""
+<style>
+/* Main container styling */
+.main .block-container {
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+}
+
+/* Header styling */
+.main-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 2rem;
+    border-radius: 15px;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.main-header h1 {
+    color: white;
+    margin: 0;
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.main-header p {
+    color: #f0f0f0;
+    text-align: center;
+    font-size: 1.2rem;
+    margin: 0.5rem 0 0 0;
+}
+
+/* Card styling */
+.metric-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    border: 1px solid #e6e6e6;
+    margin-bottom: 1rem;
+}
+
+.metric-card h3 {
+    color: #2c3e50;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.metric-card .metric-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #3498db;
+    margin: 0;
+}
+
+/* Status indicators */
+.status-critical { color: #e74c3c; font-weight: 600; }
+.status-high { color: #f39c12; font-weight: 600; }
+.status-medium { color: #f1c40f; font-weight: 600; }
+.status-low { color: #27ae60; font-weight: 600; }
+
+/* Professional buttons */
+.stButton > button {
+    border-radius: 8px;
+    border: none;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.stButton > button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Sidebar styling */
+.sidebar .sidebar-content {
+    background: #f8f9fa;
+}
+
+/* Data containers */
+.data-container {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    border: 1px solid #e6e6e6;
+    margin-bottom: 1.5rem;
+}
+
+/* Table styling */
+.dataframe {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Modal styling */
+.modal-content {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+/* Alert styling */
+.alert {
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1rem 0;
+    border-left: 4px solid #3498db;
+}
+
+.alert-success { border-left-color: #27ae60; background-color: #d4edda; }
+.alert-warning { border-left-color: #f39c12; background-color: #fff3cd; }
+.alert-error { border-left-color: #e74c3c; background-color: #f8d7da; }
+.alert-info { border-left-color: #3498db; background-color: #d1ecf1; }
+
+/* Navigation improvements */
+.nav-section {
+    background: white;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* Charts and visualizations */
+.chart-container {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    margin-bottom: 1.5rem;
+}
+
+/* Loading states */
+.loading-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .main-header h1 {
+        font-size: 2rem;
+    }
+    
+    .main-header p {
+        font-size: 1rem;
+    }
+    
+    .metric-card {
+        padding: 1rem;
+    }
+}
+</style>
+""", unsafe_allow_html=True)
+
 # Initialize session state
 def initialize_session_state():
     """Initialize all session state variables"""
@@ -1862,16 +2023,23 @@ def show_email_details_modal(email):
 
 def data_upload_page():
     """Data Upload & Preprocessing page"""
-    st.title("📁 Data Upload & Preprocessing")
-    
     st.markdown("""
-    Upload CSV files up to 2GB containing email metadata for analysis.
-    The system will validate required fields and process the data for security monitoring.
-    Data is automatically saved to JSON files for persistence across sessions.
-    """)
+    <div class="data-container">
+        <h2 style="color: #2c3e50; margin-bottom: 1rem;">📁 Data Upload & Preprocessing</h2>
+        <p style="color: #7f8c8d; font-size: 1.1rem; margin-bottom: 1.5rem;">
+            Upload CSV files up to 2GB containing email metadata for analysis.
+            The system will validate required fields and process the data for security monitoring.
+            Data is automatically saved to JSON files for persistence across sessions.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    # Data persistence options
-    st.subheader("📅 Daily Data Management")
+    # Data persistence options with professional styling
+    st.markdown("""
+    <div class="data-container">
+        <h3 style="color: #2c3e50; margin-bottom: 1rem;">📅 Daily Data Management</h3>
+    </div>
+    """, unsafe_allow_html=True)
     
     persistence = st.session_state.data_persistence
     available_dates = persistence.get_available_dates()
@@ -2147,10 +2315,22 @@ def data_upload_page():
 
 def security_operations_dashboard():
     """Security Operations Dashboard"""
-    st.title("🛡️ Security Operations Dashboard")
+    st.markdown("""
+    <div class="data-container">
+        <h2 style="color: #2c3e50; margin-bottom: 1rem;">🛡️ Security Operations Dashboard</h2>
+        <p style="color: #7f8c8d; font-size: 1.1rem; margin-bottom: 0;">
+            Monitor, review, and manage email security events with AI-powered assistance
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     
     if not st.session_state.data:
-        st.warning("Please upload data first in the Data Upload & Preprocessing section.")
+        st.markdown("""
+        <div class="alert alert-warning">
+            <strong>⚠️ No Data Available</strong><br>
+            Please upload data first in the Data Upload & Preprocessing section to begin security operations.
+        </div>
+        """, unsafe_allow_html=True)
         return
     
     data = st.session_state.data
@@ -2166,13 +2346,35 @@ def security_operations_dashboard():
         if email_id not in completed_ids and email_id not in escalated_ids:
             active_records.append(email)
     
+    # Professional overview metrics
     st.markdown(f"""
-    **Active Records:** {len(active_records):,} | 
-    **Completed:** {len(completed_ids):,} | 
-    **Escalated:** {len(escalated_ids):,}
-    """)
+    <div class="data-container">
+        <h3 style="color: #2c3e50; margin-bottom: 1rem;">📊 Operation Overview</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+            <div style="text-align: center; padding: 1rem; background: #3498db20; border-radius: 8px;">
+                <div style="font-size: 1.8rem; font-weight: 700; color: #3498db;">{len(active_records):,}</div>
+                <div style="color: #7f8c8d; font-size: 0.9rem;">Active Records</div>
+            </div>
+            <div style="text-align: center; padding: 1rem; background: #27ae6020; border-radius: 8px;">
+                <div style="font-size: 1.8rem; font-weight: 700; color: #27ae60;">{len(completed_ids):,}</div>
+                <div style="color: #7f8c8d; font-size: 0.9rem;">Completed</div>
+            </div>
+            <div style="text-align: center; padding: 1rem; background: #e74c3c20; border-radius: 8px;">
+                <div style="font-size: 1.8rem; font-weight: 700; color: #e74c3c;">{len(escalated_ids):,}</div>
+                <div style="color: #7f8c8d; font-size: 0.9rem;">Escalated</div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     
-    # Filters
+    # Professional filters section
+    st.markdown("""
+    <div class="data-container">
+        <h3 style="color: #2c3e50; margin-bottom: 1rem;">🔍 Filter Options</h3>
+        <p style="color: #7f8c8d; margin-bottom: 1rem;">Filter records by status, domain, or sender to focus your review</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
     col1, col2, col3 = st.columns(3)
     
     with col1:
@@ -2323,33 +2525,75 @@ def security_operations_dashboard():
         else:
             st.info("🎉 No suspicious events detected in the current filtered data!")
     
-    st.subheader(f"Security Review Queue ({len(filtered_records):,} records)")
+    # Professional security review queue section
+    st.markdown("""
+    <div class="data-container">
+        <h3 style="color: #2c3e50; margin-bottom: 1rem;">🛡️ Security Review Queue</h3>
+        <p style="color: #7f8c8d; margin-bottom: 1rem;">Review and manage email security events by risk level</p>
+    </div>
+    """, unsafe_allow_html=True)
     
-    # Risk metrics
+    # Professional risk metrics with cards
+    critical_count = sum(1 for email in filtered_records if email.get('status', '').lower() == 'critical')
+    high_count = sum(1 for email in filtered_records if email.get('status', '').lower() == 'high')
+    medium_count = sum(1 for email in filtered_records if email.get('status', '').lower() == 'medium')
+    low_count = sum(1 for email in filtered_records if email.get('status', '').lower() == 'low')
+    unclassified_count = sum(1 for email in filtered_records if email.get('status', '').lower() == 'unclassified')
+    
     col1, col2, col3, col4, col5 = st.columns(5)
     
     with col1:
-        critical_count = sum(1 for email in filtered_records if email.get('status', '').lower() == 'critical')
-        st.metric("🔴 Critical", f"{critical_count:,}")
+        st.markdown(f"""
+        <div class="metric-card" style="border-left: 4px solid #e74c3c;">
+            <h4 style="color: #e74c3c; margin-bottom: 0.5rem;">🔴 Critical</h4>
+            <p class="metric-value" style="color: #e74c3c;">{critical_count:,}</p>
+            <p style="color: #7f8c8d; margin: 0; font-size: 0.9rem;">Immediate action required</p>
+        </div>
+        """, unsafe_allow_html=True)
     
     with col2:
-        high_count = sum(1 for email in filtered_records if email.get('status', '').lower() == 'high')
-        st.metric("🟠 High", f"{high_count:,}")
+        st.markdown(f"""
+        <div class="metric-card" style="border-left: 4px solid #f39c12;">
+            <h4 style="color: #f39c12; margin-bottom: 0.5rem;">🟠 High</h4>
+            <p class="metric-value" style="color: #f39c12;">{high_count:,}</p>
+            <p style="color: #7f8c8d; margin: 0; font-size: 0.9rem;">Review within 24h</p>
+        </div>
+        """, unsafe_allow_html=True)
     
     with col3:
-        medium_count = sum(1 for email in filtered_records if email.get('status', '').lower() == 'medium')
-        st.metric("🟡 Medium", f"{medium_count:,}")
+        st.markdown(f"""
+        <div class="metric-card" style="border-left: 4px solid #f1c40f;">
+            <h4 style="color: #f1c40f; margin-bottom: 0.5rem;">🟡 Medium</h4>
+            <p class="metric-value" style="color: #f1c40f;">{medium_count:,}</p>
+            <p style="color: #7f8c8d; margin: 0; font-size: 0.9rem;">Review within week</p>
+        </div>
+        """, unsafe_allow_html=True)
     
     with col4:
-        low_count = sum(1 for email in filtered_records if email.get('status', '').lower() == 'low')
-        st.metric("🟢 Low", f"{low_count:,}")
+        st.markdown(f"""
+        <div class="metric-card" style="border-left: 4px solid #27ae60;">
+            <h4 style="color: #27ae60; margin-bottom: 0.5rem;">🟢 Low</h4>
+            <p class="metric-value" style="color: #27ae60;">{low_count:,}</p>
+            <p style="color: #7f8c8d; margin: 0; font-size: 0.9rem;">Monitor as needed</p>
+        </div>
+        """, unsafe_allow_html=True)
     
     with col5:
-        unclassified_count = sum(1 for email in filtered_records if email.get('status', '').lower() == 'unclassified')
-        st.metric("⚪ Unclassified", f"{unclassified_count:,}")
+        st.markdown(f"""
+        <div class="metric-card" style="border-left: 4px solid #95a5a6;">
+            <h4 style="color: #95a5a6; margin-bottom: 0.5rem;">⚪ Unclassified</h4>
+            <p class="metric-value" style="color: #95a5a6;">{unclassified_count:,}</p>
+            <p style="color: #7f8c8d; margin: 0; font-size: 0.9rem;">Needs classification</p>
+        </div>
+        """, unsafe_allow_html=True)
     
-    # Timeline view options
-    st.subheader("Timeline View")
+    # Professional timeline view section
+    st.markdown("""
+    <div class="data-container">
+        <h3 style="color: #2c3e50; margin-bottom: 1rem;">📊 Timeline View</h3>
+        <p style="color: #7f8c8d; margin-bottom: 1rem;">Group and analyze email events by different criteria</p>
+    </div>
+    """, unsafe_allow_html=True)
     
     view_option = st.radio(
         "Group by:",
@@ -3714,9 +3958,21 @@ def main():
     # Initialize auto-save timer
     initialize_auto_save_timer()
     
-    # Sidebar navigation
-    st.sidebar.title("🛡️ ExfilEye DLP")
-    st.sidebar.markdown("Data Loss Prevention Email Monitoring")
+    # Professional header
+    st.markdown("""
+    <div class="main-header">
+        <h1>🛡️ ExfilEye DLP</h1>
+        <p>Data Loss Prevention Email Monitoring System</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Sidebar navigation with professional styling
+    st.sidebar.markdown("""
+    <div class="nav-section">
+        <h2 style="color: #2c3e50; margin-bottom: 1rem;">🛡️ ExfilEye DLP</h2>
+        <p style="color: #7f8c8d; margin-bottom: 1.5rem;">Data Loss Prevention Email Monitoring</p>
+    </div>
+    """, unsafe_allow_html=True)
     
     # Navigation menu
     pages = {
@@ -3728,49 +3984,98 @@ def main():
         "🌐 Domain Classification": domain_classification_page
     }
     
-    selected_page = st.sidebar.radio("Navigate to:", list(pages.keys()))
+    st.sidebar.markdown("### 🧭 Navigation")
+    selected_page = st.sidebar.radio("Select page:", list(pages.keys()), label_visibility="collapsed")
     
-    # Display current data status
+    # Professional data status card
+    st.sidebar.markdown("### 📊 Data Status")
     if st.session_state.data:
-        st.sidebar.success(f"✅ Data loaded: {len(st.session_state.data):,} records")
+        st.sidebar.markdown(f"""
+        <div class="metric-card">
+            <h3>📁 Data Loaded</h3>
+            <p class="metric-value">{len(st.session_state.data):,}</p>
+            <p style="color: #27ae60; margin: 0;">records available</p>
+        </div>
+        """, unsafe_allow_html=True)
     else:
-        st.sidebar.warning("⚠️ No data loaded")
+        st.sidebar.markdown("""
+        <div class="alert alert-warning">
+            <strong>⚠️ No Data</strong><br>
+            Upload data to begin analysis
+        </div>
+        """, unsafe_allow_html=True)
     
-    # System status
-    st.sidebar.subheader("System Status")
-    st.sidebar.write(f"🔍 Active Reviews: {len(st.session_state.data) - len(st.session_state.completed_reviews) - len(st.session_state.escalated_records) if st.session_state.data else 0}")
-    st.sidebar.write(f"✅ Completed: {len(st.session_state.completed_reviews)}")
-    st.sidebar.write(f"📨 Escalated: {len(st.session_state.escalated_records)}")
+    # Professional system status cards
+    st.sidebar.markdown("### 🔍 Review Status")
     
-    # Data persistence controls
-    st.sidebar.subheader("💾 Data Persistence")
+    active_reviews = len(st.session_state.data) - len(st.session_state.completed_reviews) - len(st.session_state.escalated_records) if st.session_state.data else 0
+    completed_reviews = len(st.session_state.completed_reviews)
+    escalated_records = len(st.session_state.escalated_records)
+    
+    # Status metrics in compact cards
+    st.sidebar.markdown(f"""
+    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <div class="metric-card" style="padding: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #3498db; font-weight: 600;">🔍 Active</span>
+                <span style="font-size: 1.5rem; font-weight: 700; color: #3498db;">{active_reviews}</span>
+            </div>
+        </div>
+        <div class="metric-card" style="padding: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #27ae60; font-weight: 600;">✅ Completed</span>
+                <span style="font-size: 1.5rem; font-weight: 700; color: #27ae60;">{completed_reviews}</span>
+            </div>
+        </div>
+        <div class="metric-card" style="padding: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #e74c3c; font-weight: 600;">📨 Escalated</span>
+                <span style="font-size: 1.5rem; font-weight: 700; color: #e74c3c;">{escalated_records}</span>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Professional data persistence section
+    st.sidebar.markdown("### 💾 Data Persistence")
     persistence = st.session_state.data_persistence
     
-    col1, col2 = st.sidebar.columns(2)
+    # Save button with professional styling
+    if st.sidebar.button("💾 Save Work", help="Save current work state", type="primary", use_container_width=True):
+        save_work_state()
+        st.session_state.last_manual_save = datetime.now()
+        # Reset auto-save timer when manually saved
+        st.session_state.last_auto_save_time = datetime.now()
     
-    with col1:
-        if st.button("💾 Save Work", help="Save current work state"):
-            save_work_state()
-            st.session_state.last_manual_save = datetime.now()
-            # Reset auto-save timer when manually saved
-            st.session_state.last_auto_save_time = datetime.now()
+    # Available dates info
+    available_dates = persistence.get_available_dates()
+    if available_dates:
+        st.sidebar.markdown(f"""
+        <div style="background: #f8f9fa; padding: 0.5rem; border-radius: 6px; margin: 0.5rem 0;">
+            <small style="color: #6c757d;">📅 {len(available_dates)} backup dates available</small>
+        </div>
+        """, unsafe_allow_html=True)
     
-    with col2:
-        available_dates = persistence.get_available_dates()
-        if available_dates:
-            st.caption(f"📅 {len(available_dates)} dates available")
-    
-    # Show last saved timestamp
+    # Professional last saved timestamp
     if 'last_manual_save' in st.session_state:
         last_save_time = st.session_state.last_manual_save
         time_diff = datetime.now() - last_save_time
         
         if time_diff.total_seconds() < 60:
-            st.sidebar.success(f"✅ Last saved: {int(time_diff.total_seconds())}s ago")
+            status_color = "#27ae60"
+            status_text = f"✅ Last saved: {int(time_diff.total_seconds())}s ago"
         elif time_diff.total_seconds() < 3600:
-            st.sidebar.info(f"💾 Last saved: {int(time_diff.total_seconds() / 60)}m ago")
+            status_color = "#3498db"
+            status_text = f"💾 Last saved: {int(time_diff.total_seconds() / 60)}m ago"
         else:
-            st.sidebar.info(f"💾 Last saved: {last_save_time.strftime('%H:%M')}")
+            status_color = "#7f8c8d"
+            status_text = f"💾 Last saved: {last_save_time.strftime('%H:%M')}"
+        
+        st.sidebar.markdown(f"""
+        <div style="background: {status_color}20; padding: 0.5rem; border-radius: 6px; border-left: 3px solid {status_color}; margin: 0.5rem 0;">
+            <small style="color: {status_color}; font-weight: 600;">{status_text}</small>
+        </div>
+        """, unsafe_allow_html=True)
     else:
         # Check if there's a saved work state file to show when it was last saved
         work_state_file = os.path.join(persistence.work_state_folder, f"work_state_{datetime.now().strftime('%Y-%m-%d')}.json")
@@ -3779,13 +4084,26 @@ def main():
             time_diff = datetime.now() - file_mtime
             
             if time_diff.total_seconds() < 60:
-                st.sidebar.info(f"💾 Last saved: {int(time_diff.total_seconds())}s ago")
+                status_color = "#3498db"
+                status_text = f"💾 Last saved: {int(time_diff.total_seconds())}s ago"
             elif time_diff.total_seconds() < 3600:
-                st.sidebar.info(f"💾 Last saved: {int(time_diff.total_seconds() / 60)}m ago")
+                status_color = "#3498db"
+                status_text = f"💾 Last saved: {int(time_diff.total_seconds() / 60)}m ago"
             else:
-                st.sidebar.info(f"💾 Last saved: {file_mtime.strftime('%H:%M')}")
+                status_color = "#7f8c8d"
+                status_text = f"💾 Last saved: {file_mtime.strftime('%H:%M')}"
+            
+            st.sidebar.markdown(f"""
+            <div style="background: {status_color}20; padding: 0.5rem; border-radius: 6px; border-left: 3px solid {status_color}; margin: 0.5rem 0;">
+                <small style="color: {status_color}; font-weight: 600;">{status_text}</small>
+            </div>
+            """, unsafe_allow_html=True)
         else:
-            st.sidebar.warning("⚠️ No recent saves found")
+            st.sidebar.markdown("""
+            <div style="background: #f39c1220; padding: 0.5rem; border-radius: 6px; border-left: 3px solid #f39c12; margin: 0.5rem 0;">
+                <small style="color: #f39c12; font-weight: 600;">⚠️ No recent saves found</small>
+            </div>
+            """, unsafe_allow_html=True)
     
     # Run selected page
     pages[selected_page]()
