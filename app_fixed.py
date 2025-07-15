@@ -69,7 +69,7 @@ class CSVProcessor:
     
     def __init__(self):
         self.required_fields = [
-            '_time', 'sender', 'subject', 'attachment', 'recipients',
+            '_time', 'sender', 'subject', 'attachments', 'recipients',
             'recipients_email_domain', 'minecast', 'tessian', 'leaver', 
             'Termination', '_time_month', 'account_type', 'wordlist_attachment',
             'wordlist_subject', 'bunit', 'department', 'status', 
@@ -199,7 +199,7 @@ class AnomalyDetector:
                 feature_vector = [
                     len(email.get('subject', '')),
                     len(email.get('recipients', '').split(',')),
-                    1 if email.get('attachment') else 0,
+                    1 if email.get('attachments') else 0,
                     len(email.get('sender', '')),
                     hash(email.get('recipients_email_domain', '')) % 1000,
                     1 if email.get('wordlist_attachment') else 0,
@@ -314,7 +314,7 @@ class NetworkAnalyzer:
                     metadata['risk_levels'].append(email.get('status', 'unknown'))
                     metadata['departments'].add(email.get('department', 'unknown'))
                     
-                    if email.get('attachment'):
+                    if email.get('attachments'):
                         metadata['attachments'] += 1
                     
                     if email.get('wordlist_subject') or email.get('wordlist_attachment'):
@@ -1246,7 +1246,7 @@ class ReportGenerator:
             risk_indicators = []
             
             # Check for attachment patterns
-            attachment_count = sum(1 for email in data if email.get('attachment'))
+            attachment_count = sum(1 for email in data if email.get('attachments'))
             if attachment_count > 0:
                 risk_indicators.append(f"• {attachment_count:,} emails contain attachments ({attachment_count/len(data)*100:.1f}%)")
             
@@ -1709,7 +1709,7 @@ def show_email_details_modal(email):
             """, unsafe_allow_html=True)
         
         with col2:
-            attachment_value = email.get('attachment', '')
+            attachment_value = email.get('attachments', '')
             if attachment_value and attachment_value not in [True, False, 'True', 'False']:
                 attachment_text = f"📎 {attachment_value}"
             elif attachment_value:
@@ -1729,7 +1729,7 @@ def show_email_details_modal(email):
                         {domain_classification}
                     </span>
                 </p>
-                <p><strong>📎 Attachment:</strong> {attachment_text}</p>
+                <p><strong>📎 Attachments:</strong> {attachment_text}</p>
                 <p><strong>⚠️ Risk Status:</strong> {get_risk_indicator(risk_status)} {risk_status.title()}</p>
                 <p><strong>🚪 Termination:</strong> {termination_text}</p>
             </div>
@@ -1809,7 +1809,7 @@ def show_email_details_modal(email):
         # Get all fields that weren't already displayed
         displayed_fields = {
             'sender', 'recipients', 'subject', '_time', '_time_month', 
-            'recipients_email_domain', 'attachment', 'status', 'minecast', 
+            'recipients_email_domain', 'attachments', 'status', 'minecast', 
             'tessian', 'tessian_status_A', 'tessian_status_B', 'wordlist_attachment', 
             'wordlist_subject', 'leaver', 'Termination', 'department', 'bunit', 
             'account_type'
