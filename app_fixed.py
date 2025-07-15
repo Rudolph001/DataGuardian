@@ -714,8 +714,7 @@ class NetworkAnalyzer:
                 colorscale='RdYlGn_r',  # Red-Yellow-Green reversed (Red for high risk)
                 showscale=True,
                 colorbar=dict(
-                    title="Risk Level",
-                    titleside="right",
+                    title=dict(text="Risk Level", side="right"),
                     tickmode="array",
                     tickvals=[0, 1, 2, 3, 4],
                     ticktext=["Unknown", "Low", "Medium", "High", "Critical"]
