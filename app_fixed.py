@@ -2277,9 +2277,8 @@ def security_operations_dashboard():
                     col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
                     
                     with col1:
-                        if st.button("📋 View Details", key=f"ai_details_{email_id}", use_container_width=True):
-                            with st.popover("📧 Email Details", use_container_width=True):
-                                show_email_details_modal(email)
+                        with st.popover("📋 View Details", use_container_width=True):
+                            show_email_details_modal(email)
                     
                     with col2:
                         # Status change dropdown (matching Timeline View)
@@ -2488,9 +2487,9 @@ def security_operations_dashboard():
                 
                 with col1:
                     if st.button(f"📋 View Details - {subject_preview}", key=f"details_{unique_key}", use_container_width=True):
-                        # Set session state to show modal
-                        st.session_state[f'show_modal_{unique_key}'] = True
-                        st.rerun()
+                        # Show modal directly using popover
+                        with st.popover("📧 Email Details", use_container_width=True):
+                            show_email_details_modal(email)
                 
                 with col2:
                     # Status change dropdown
@@ -2537,14 +2536,7 @@ def security_operations_dashboard():
                         st.success("Email escalated for follow-up!")
                         st.rerun()
                 
-                # Show modal if triggered - use popover instead of dialog to avoid conflicts
-                if st.session_state.get(f'show_modal_{unique_key}', False):
-                    with st.popover("📧 Email Details", use_container_width=True):
-                        show_email_details_modal(email)
-                        
-                        if st.button("❌ Close", key=f"close_modal_{unique_key}", type="secondary"):
-                            st.session_state[f'show_modal_{unique_key}'] = False
-                            st.rerun()
+                
             
             if len(group_emails_sorted) > 15:
                 remaining = len(group_emails_sorted) - 15
