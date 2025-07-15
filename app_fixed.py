@@ -3688,55 +3688,73 @@ def save_work_state():
     """Save current work state to JSON"""
     persistence = st.session_state.data_persistence
     
-    work_state = {
-        # Security Operations Dashboard
-        "completed_reviews": st.session_state.completed_reviews,
-        "escalated_records": st.session_state.escalated_records,
-        "active_filters": st.session_state.active_filters,
-        "review_decisions": st.session_state.review_decisions,
-        "last_reviewed_email": st.session_state.last_reviewed_email,
-        "review_session_start": st.session_state.review_session_start,
-        "total_reviews_this_session": st.session_state.total_reviews_this_session,
-        
-        # Email Check Completed Dashboard
-        "review_notes": st.session_state.review_notes,
-        "reviewer_assignments": st.session_state.reviewer_assignments,
-        "completion_timestamps": st.session_state.completion_timestamps,
-        "review_quality_scores": st.session_state.review_quality_scores,
-        "batch_review_sessions": st.session_state.batch_review_sessions,
-        
-        # Follow-up Center Dashboard
-        "followup_status": st.session_state.followup_status,
-        "followup_notes": st.session_state.followup_notes,
-        "email_templates": st.session_state.email_templates,
-        "followup_assignments": st.session_state.followup_assignments,
-        "escalation_reasons": st.session_state.escalation_reasons,
-        "followup_deadlines": st.session_state.followup_deadlines,
-        "email_sent_status": st.session_state.email_sent_status,
-        "template_drafts": st.session_state.template_drafts,
-        
-        # General system state
-        "follow_up_decisions": st.session_state.follow_up_decisions,
-        "blocked_domains": st.session_state.blocked_domains,
-        "sender_status": st.session_state.sender_status,
-        "domain_classifications": st.session_state.domain_classifications,
-        "user_preferences": st.session_state.user_preferences,
-        "session_statistics": st.session_state.session_statistics,
-        
-        # UI state
-        "selected_filters": st.session_state.selected_filters,
-        "sort_preferences": st.session_state.sort_preferences,
-        "view_modes": st.session_state.view_modes,
-        "expanded_sections": st.session_state.expanded_sections,
-        "modal_states": st.session_state.modal_states
-    }
+    def convert_datetime_objects(obj):
+        """Convert datetime objects to ISO format strings"""
+        if hasattr(obj, 'isoformat'):  # datetime objects
+            return obj.isoformat()
+        elif isinstance(obj, dict):
+            return {k: convert_datetime_objects(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [convert_datetime_objects(item) for item in obj]
+        else:
+            return obj
     
-    saved_path = persistence.save_work_state(work_state)
+    try:
+        work_state = {
+            # Security Operations Dashboard
+            "completed_reviews": convert_datetime_objects(st.session_state.completed_reviews),
+            "escalated_records": convert_datetime_objects(st.session_state.escalated_records),
+            "active_filters": convert_datetime_objects(st.session_state.active_filters),
+            "review_decisions": convert_datetime_objects(st.session_state.review_decisions),
+            "last_reviewed_email": str(st.session_state.last_reviewed_email),
+            "review_session_start": str(st.session_state.review_session_start),
+            "total_reviews_this_session": int(st.session_state.total_reviews_this_session),
+            
+            # Email Check Completed Dashboard
+            "review_notes": convert_datetime_objects(st.session_state.review_notes),
+            "reviewer_assignments": convert_datetime_objects(st.session_state.reviewer_assignments),
+            "completion_timestamps": convert_datetime_objects(st.session_state.completion_timestamps),
+            "review_quality_scores": convert_datetime_objects(st.session_state.review_quality_scores),
+            "batch_review_sessions": convert_datetime_objects(st.session_state.batch_review_sessions),
+            
+            # Follow-up Center Dashboard
+            "followup_status": convert_datetime_objects(st.session_state.followup_status),
+            "followup_notes": convert_datetime_objects(st.session_state.followup_notes),
+            "email_templates": convert_datetime_objects(st.session_state.email_templates),
+            "followup_assignments": convert_datetime_objects(st.session_state.followup_assignments),
+            "escalation_reasons": convert_datetime_objects(st.session_state.escalation_reasons),
+            "followup_deadlines": convert_datetime_objects(st.session_state.followup_deadlines),
+            "email_sent_status": convert_datetime_objects(st.session_state.email_sent_status),
+            "template_drafts": convert_datetime_objects(st.session_state.template_drafts),
+            
+            # General system state
+            "follow_up_decisions": convert_datetime_objects(st.session_state.follow_up_decisions),
+            "blocked_domains": list(st.session_state.blocked_domains),
+            "sender_status": convert_datetime_objects(st.session_state.sender_status),
+            "domain_classifications": convert_datetime_objects(st.session_state.domain_classifications),
+            "user_preferences": convert_datetime_objects(st.session_state.user_preferences),
+            "session_statistics": convert_datetime_objects(st.session_state.session_statistics),
+            
+            # UI state
+            "selected_filters": convert_datetime_objects(st.session_state.selected_filters),
+            "sort_preferences": convert_datetime_objects(st.session_state.sort_preferences),
+            "view_modes": convert_datetime_objects(st.session_state.view_modes),
+            "expanded_sections": convert_datetime_objects(st.session_state.expanded_sections),
+            "modal_states": convert_datetime_objects(st.session_state.modal_states)
+        }
+        
+        saved_path = persistence.save_work_state(work_state)
+        
+        if saved_path:
+            st.sidebar.success("✅ Work state saved!")
+        else:
+            st.sidebar.error("❌ Failed to save work state")
     
-    if saved_path:
-        st.sidebar.success("✅ Work state saved!")
-    else:
-        st.sidebar.error("❌ Failed to save work state")
+    except Exception as e:
+        st.sidebar.error(f"❌ Error saving work state: {str(e)}")
+        print(f"Save work state error: {e}")
+        import traceback
+        traceback.print_exc()
 
 def auto_save_work_state():
     """Auto-save work state periodically"""

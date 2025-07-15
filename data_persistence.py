@@ -77,6 +77,22 @@ class DataPersistence:
         filename = f"work_state_{upload_date}.json"
         filepath = os.path.join(self.work_state_folder, filename)
         
+        # Helper function to make data JSON serializable
+        def make_serializable(obj):
+            """Convert non-serializable objects to serializable format"""
+            if hasattr(obj, 'isoformat'):  # datetime objects
+                return obj.isoformat()
+            elif isinstance(obj, dict):
+                return {k: make_serializable(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [make_serializable(item) for item in obj]
+            elif isinstance(obj, tuple):
+                return list(obj)
+            elif isinstance(obj, set):
+                return list(obj)
+            else:
+                return obj
+        
         # Add metadata and comprehensive dashboard states
         work_state_with_metadata = {
             "save_date": upload_date,
@@ -85,65 +101,67 @@ class DataPersistence:
             
             # Security Operations Dashboard state
             "security_operations": {
-                "completed_reviews": work_state.get("completed_reviews", {}),
-                "escalated_records": work_state.get("escalated_records", {}),
-                "active_filters": work_state.get("active_filters", {}),
-                "review_decisions": work_state.get("review_decisions", {}),
-                "last_reviewed_email": work_state.get("last_reviewed_email", ""),
-                "review_session_start": work_state.get("review_session_start", ""),
-                "total_reviews_this_session": work_state.get("total_reviews_this_session", 0)
+                "completed_reviews": make_serializable(work_state.get("completed_reviews", {})),
+                "escalated_records": make_serializable(work_state.get("escalated_records", {})),
+                "active_filters": make_serializable(work_state.get("active_filters", {})),
+                "review_decisions": make_serializable(work_state.get("review_decisions", {})),
+                "last_reviewed_email": str(work_state.get("last_reviewed_email", "")),
+                "review_session_start": str(work_state.get("review_session_start", "")),
+                "total_reviews_this_session": int(work_state.get("total_reviews_this_session", 0))
             },
             
             # Email Check Completed Dashboard state
             "email_check_completed": {
-                "completed_reviews": work_state.get("completed_reviews", {}),
-                "review_notes": work_state.get("review_notes", {}),
-                "reviewer_assignments": work_state.get("reviewer_assignments", {}),
-                "completion_timestamps": work_state.get("completion_timestamps", {}),
-                "review_quality_scores": work_state.get("review_quality_scores", {}),
-                "batch_review_sessions": work_state.get("batch_review_sessions", [])
+                "completed_reviews": make_serializable(work_state.get("completed_reviews", {})),
+                "review_notes": make_serializable(work_state.get("review_notes", {})),
+                "reviewer_assignments": make_serializable(work_state.get("reviewer_assignments", {})),
+                "completion_timestamps": make_serializable(work_state.get("completion_timestamps", {})),
+                "review_quality_scores": make_serializable(work_state.get("review_quality_scores", {})),
+                "batch_review_sessions": make_serializable(work_state.get("batch_review_sessions", []))
             },
             
             # Follow-up Center Dashboard state
             "followup_center": {
-                "escalated_records": work_state.get("escalated_records", {}),
-                "followup_status": work_state.get("followup_status", {}),
-                "followup_notes": work_state.get("followup_notes", {}),
-                "email_templates": work_state.get("email_templates", {}),
-                "followup_assignments": work_state.get("followup_assignments", {}),
-                "escalation_reasons": work_state.get("escalation_reasons", {}),
-                "followup_deadlines": work_state.get("followup_deadlines", {}),
-                "email_sent_status": work_state.get("email_sent_status", {}),
-                "template_drafts": work_state.get("template_drafts", {})
+                "escalated_records": make_serializable(work_state.get("escalated_records", {})),
+                "followup_status": make_serializable(work_state.get("followup_status", {})),
+                "followup_notes": make_serializable(work_state.get("followup_notes", {})),
+                "email_templates": make_serializable(work_state.get("email_templates", {})),
+                "followup_assignments": make_serializable(work_state.get("followup_assignments", {})),
+                "escalation_reasons": make_serializable(work_state.get("escalation_reasons", {})),
+                "followup_deadlines": make_serializable(work_state.get("followup_deadlines", {})),
+                "email_sent_status": make_serializable(work_state.get("email_sent_status", {})),
+                "template_drafts": make_serializable(work_state.get("template_drafts", {}))
             },
             
             # General system state
             "system_state": {
-                "follow_up_decisions": work_state.get("follow_up_decisions", {}),
-                "blocked_domains": work_state.get("blocked_domains", []),
-                "sender_status": work_state.get("sender_status", {}),
-                "domain_classifications": work_state.get("domain_classifications", {}),
-                "user_preferences": work_state.get("user_preferences", {}),
-                "session_statistics": work_state.get("session_statistics", {})
+                "follow_up_decisions": make_serializable(work_state.get("follow_up_decisions", {})),
+                "blocked_domains": list(work_state.get("blocked_domains", [])),
+                "sender_status": make_serializable(work_state.get("sender_status", {})),
+                "domain_classifications": make_serializable(work_state.get("domain_classifications", {})),
+                "user_preferences": make_serializable(work_state.get("user_preferences", {})),
+                "session_statistics": make_serializable(work_state.get("session_statistics", {}))
             },
             
             # Dashboard interaction state
             "ui_state": {
-                "selected_filters": work_state.get("selected_filters", {}),
-                "sort_preferences": work_state.get("sort_preferences", {}),
-                "view_modes": work_state.get("view_modes", {}),
-                "expanded_sections": work_state.get("expanded_sections", {}),
-                "modal_states": work_state.get("modal_states", {})
+                "selected_filters": make_serializable(work_state.get("selected_filters", {})),
+                "sort_preferences": make_serializable(work_state.get("sort_preferences", {})),
+                "view_modes": make_serializable(work_state.get("view_modes", {})),
+                "expanded_sections": make_serializable(work_state.get("expanded_sections", {})),
+                "modal_states": make_serializable(work_state.get("modal_states", {}))
             }
         }
         
         try:
             with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(work_state_with_metadata, f, indent=2, ensure_ascii=False)
+                json.dump(work_state_with_metadata, f, indent=2, ensure_ascii=False, default=str)
             
             return filepath
         except Exception as e:
             print(f"Error saving work state: {e}")
+            import traceback
+            traceback.print_exc()
             return None
     
     def load_work_state(self, upload_date: str = None) -> Optional[Dict]:
