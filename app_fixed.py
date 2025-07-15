@@ -1716,6 +1716,73 @@ def get_risk_indicator(status):
 
 def show_email_details_modal(email):
     """Show email details in dialog modal format with all fields and domain classification"""
+    # Add custom CSS for larger modal popup
+    st.markdown("""
+    <style>
+    /* Custom CSS for larger, more readable modal popups */
+    .stDialog > div:first-child {
+        width: 90vw !important;
+        max-width: 1200px !important;
+        height: 85vh !important;
+        max-height: none !important;
+    }
+    
+    .stDialog > div:first-child > div {
+        width: 100% !important;
+        height: 100% !important;
+        padding: 2rem !important;
+        overflow-y: auto !important;
+    }
+    
+    .stDialog h1, .stDialog h2, .stDialog h3 {
+        margin-top: 1.5rem !important;
+        margin-bottom: 1rem !important;
+    }
+    
+    .stDialog .stMarkdown {
+        margin-bottom: 1rem !important;
+    }
+    
+    .stDialog .stColumns {
+        gap: 2rem !important;
+    }
+    
+    .stDialog .element-container {
+        margin-bottom: 0.75rem !important;
+    }
+    
+    /* Center the close button and improve styling */
+    .stDialog button[kind="secondary"] {
+        display: block !important;
+        margin: 2rem auto 0 auto !important;
+        min-width: 120px !important;
+        padding: 0.75rem 1.5rem !important;
+        font-size: 1.1rem !important;
+        font-weight: bold !important;
+    }
+    
+    /* Better section separation */
+    .stDialog hr {
+        margin: 2rem 0 !important;
+        border-color: #e0e0e0 !important;
+    }
+    
+    /* Improve readability of content */
+    .stDialog .stInfo, .stDialog .stWarning, .stDialog .stError, .stDialog .stSuccess {
+        padding: 1.25rem !important;
+        margin-bottom: 1rem !important;
+        font-size: 1rem !important;
+        line-height: 1.6 !important;
+    }
+    
+    /* Better spacing for metrics */
+    .stDialog .metric-container {
+        padding: 1rem !important;
+        margin-bottom: 1rem !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    
     # Get domain classification
     domain = email.get('recipients_email_domain', 'Unknown')
     domain_classification = st.session_state.domain_classifier.classify_domain(domain)
