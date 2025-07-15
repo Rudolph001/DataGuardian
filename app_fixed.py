@@ -2539,48 +2539,73 @@ def followup_center_page():
                         
                         # Primary mailto link with enhanced encoding
                         if st.button("🔗 Open in Email Client", key=f"open_email_{record_id}", type="primary", use_container_width=True):
-                            # Create a more reliable mailto link
+                            # Create multiple fallback options for better compatibility
                             import html
-                            # Encode special characters for better compatibility
-                            encoded_subject = html.escape(subject)
-                            encoded_body = html.escape(clean_body)
+                            import webbrowser
                             
-                            # Create JavaScript to handle the mailto more reliably
-                            # Clean the body text for JavaScript
-                            js_safe_body = encoded_body.replace('\n', '\\n').replace('\r', '').replace('"', '\\"').replace("'", "\\'")
-                            js_code = f"""
-                            <script>
-                            function openEmail() {{
-                                const subject = "{encoded_subject}";
-                                const body = "{js_safe_body}";
-                                const recipient = "{sender_email}";
-                                
-                                // Try different approaches for better compatibility
-                                const mailtoUrl = `mailto:${{recipient}}?subject=${{encodeURIComponent(subject)}}&body=${{encodeURIComponent(body)}}`;
-                                
-                                // Try to open with window.open first
-                                const newWindow = window.open(mailtoUrl, '_blank');
-                                
-                                // Fallback: direct navigation
-                                if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {{
-                                    window.location.href = mailtoUrl;
-                                }}
-                            }}
-                            openEmail();
-                            </script>
-                            """
-                            st.markdown(js_code, unsafe_allow_html=True)
-                            st.success("Opening email client... If it doesn't open, try the manual options below.")
+                            # Create the basic mailto link
+                            basic_mailto = f"mailto:{sender_email}?subject={quote(subject)}&body={quote(clean_body)}"
+                            
+                            # Display the action and provide multiple options
+                            st.success("Choose your preferred method to open the email:")
+                            
+                            # Method 1: Direct mailto with JavaScript
+                            st.markdown(f"""
+                            <div style="margin: 10px 0;">
+                                <strong>Method 1: Direct Link (Best for desktop clients)</strong><br>
+                                <a href="{basic_mailto}" style="background: #0078d4; color: white; padding: 8px 16px; text-decoration: none; border-radius: 4px; display: inline-block; margin-top: 5px;">
+                                    📧 Open in Default Email Client
+                                </a>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            # Method 2: Copy the mailto link for manual use
+                            st.markdown(f"""
+                            <div style="margin: 10px 0;">
+                                <strong>Method 2: Copy Link (If button doesn't work)</strong><br>
+                                <code style="background: #f0f0f0; padding: 5px; border-radius: 3px; font-size: 12px; word-break: break-all;">
+                                    {basic_mailto}
+                                </code>
+                                <br><small>Copy this link and paste into your browser's address bar</small>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            # Method 3: Instructions for manual setup
+                            st.info("""
+                            **If the email client still doesn't open:**
+                            1. **Windows**: Go to Settings > Apps > Default apps > Email, and set Outlook as default
+                            2. **Mac**: Go to System Preferences > General > Default email app, and select Outlook
+                            3. **Alternative**: Use the web links below or copy the template manually
+                            """)
                         
                         # Direct links for specific email clients
-                        st.markdown("**Quick Access:**")
+                        st.markdown("**📧 Web-Based Email Clients:**")
+                        
                         # Outlook Web App link
                         outlook_web_url = f"https://outlook.office.com/mail/deeplink/compose?to={sender_email}&subject={quote(subject)}&body={quote(clean_body[:1000])}"
-                        st.markdown(f'<a href="{outlook_web_url}" target="_blank" style="color: #0078d4;">🌐 Outlook Web</a>', unsafe_allow_html=True)
+                        st.markdown(f"""
+                        <a href="{outlook_web_url}" target="_blank" style="background: #0078d4; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; display: inline-block; margin: 2px;">
+                            🌐 Outlook Web
+                        </a>
+                        """, unsafe_allow_html=True)
                         
                         # Gmail web link
                         gmail_url = f"https://mail.google.com/mail/?view=cm&to={sender_email}&su={quote(subject)}&body={quote(clean_body[:1000])}"
-                        st.markdown(f'<a href="{gmail_url}" target="_blank" style="color: #ea4335;">📧 Gmail Web</a>', unsafe_allow_html=True)
+                        st.markdown(f"""
+                        <a href="{gmail_url}" target="_blank" style="background: #ea4335; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; display: inline-block; margin: 2px;">
+                            📧 Gmail Web
+                        </a>
+                        """, unsafe_allow_html=True)
+                        
+                        # Microsoft Outlook desktop protocol (for newer versions)
+                        outlook_desktop_url = f"ms-outlook://compose?to={sender_email}&subject={quote(subject)}&body={quote(clean_body[:500])}"
+                        st.markdown(f"""
+                        <a href="{outlook_desktop_url}" style="background: #0078d4; color: white; padding: 6px 12px; text-decoration: none; border-radius: 3px; display: inline-block; margin: 2px;">
+                            🖥️ Outlook Desktop
+                        </a>
+                        """, unsafe_allow_html=True)
+                        
+                        st.markdown("<small>These links work best when logged into the respective services</small>", unsafe_allow_html=True)
                     
                     with col_b:
                         st.markdown("**📋 Copy Template**")
