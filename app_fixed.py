@@ -2847,24 +2847,7 @@ From:               {email.get('sender', 'Unknown')}
 To:                 {recipient}
 Subject:            {subject}
 Date Sent:          {date_sent}
-Risk Level:         {risk_level}
-Recipient Domain:   {domain}
 ===============================================
-
-REQUIRED ACTIONS:
-===============================================
-This email has been escalated due to potential security concerns. 
-Please review the communication and confirm the following:
-
-   1. Was this email sent intentionally?
-   
-   2. Does the recipient have authorization to receive this information?
-   
-   3. Are there any sensitive data or attachments that should not have been shared?
-
-RESPONSE REQUIRED:
-===============================================
-Please respond to this email within 24 hours with your confirmation and any additional context.
 
 If you have any questions or concerns, please contact the Security Team immediately at security@company.com
 
