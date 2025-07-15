@@ -679,25 +679,80 @@ class ReportGenerator:
         self.title_style = ParagraphStyle(
             'CustomTitle',
             parent=self.styles['Title'],
-            fontSize=18,
+            fontSize=20,
             spaceAfter=30,
+            textColor=colors.darkblue,
+            alignment=1,  # Center alignment
+        )
+        self.header_style = ParagraphStyle(
+            'CustomHeader',
+            parent=self.styles['Heading1'],
+            fontSize=16,
+            spaceAfter=18,
+            textColor=colors.darkblue,
+            borderWidth=1,
+            borderColor=colors.darkblue,
+            borderPadding=8,
+        )
+        self.subheader_style = ParagraphStyle(
+            'CustomSubHeader',
+            parent=self.styles['Heading2'],
+            fontSize=14,
+            spaceAfter=12,
+            textColor=colors.darkred,
+        )
+        self.info_style = ParagraphStyle(
+            'InfoStyle',
+            parent=self.styles['Normal'],
+            fontSize=10,
+            textColor=colors.grey,
+            alignment=1,  # Center alignment
         )
     
     def generate_pdf_report(self, data, report_type='security_review'):
         """Generate PDF report based on data and report type"""
         buffer = io.BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=letter)
+        doc = SimpleDocTemplate(
+            buffer, 
+            pagesize=letter,
+            topMargin=72,
+            bottomMargin=72,
+            leftMargin=72,
+            rightMargin=72
+        )
         story = []
         
-        # Title
-        title = f"ExfilEye Security Report - {report_type.replace('_', ' ').title()}"
-        story.append(Paragraph(title, self.title_style))
+        # Professional header with company info
+        story.append(Paragraph("ExfilEye Data Loss Prevention System", self.title_style))
         story.append(Spacer(1, 12))
         
-        # Report date
-        report_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        story.append(Paragraph(f"Generated: {report_date}", self.styles['Normal']))
-        story.append(Spacer(1, 12))
+        # Report metadata box
+        report_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")
+        report_id = f"RPT-{datetime.now().strftime('%Y%m%d')}-{hash(str(data)) % 10000:04d}"
+        
+        metadata_data = [
+            ['Report Type:', report_type.replace('_', ' ').title()],
+            ['Report ID:', report_id],
+            ['Generated:', report_date],
+            ['Classification:', 'CONFIDENTIAL - INTERNAL USE ONLY'],
+            ['Total Records:', f"{len(data):,}" if data else "0"]
+        ]
+        
+        metadata_table = Table(metadata_data, colWidths=[2*inch, 4*inch])
+        metadata_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+            ('BACKGROUND', (0, 1), (0, -1), colors.lightgrey),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ]))
+        
+        story.append(metadata_table)
+        story.append(Spacer(1, 24))
         
         if report_type == 'security_review':
             story.extend(self._generate_security_review_content(data))
@@ -705,6 +760,10 @@ class ReportGenerator:
             story.extend(self._generate_domain_analysis_content(data))
         elif report_type == 'network_analysis':
             story.extend(self._generate_network_analysis_content(data))
+        
+        # Footer
+        story.append(Spacer(1, 24))
+        story.append(Paragraph("This report contains confidential information. Distribution is restricted to authorized personnel only.", self.info_style))
         
         doc.build(story)
         buffer.seek(0)
@@ -714,30 +773,49 @@ class ReportGenerator:
         """Generate security review report content"""
         story = []
         
-        # Summary section
-        story.append(Paragraph("Executive Summary", self.styles['Heading1']))
+        # Executive Summary
+        story.append(Paragraph("Executive Summary", self.header_style))
         story.append(Spacer(1, 12))
         
         if data:
             total_emails = len(data)
-            critical_count = sum(1 for email in data if email.get('status') == 'critical')
-            high_count = sum(1 for email in data if email.get('status') == 'high')
+            critical_count = sum(1 for email in data if email.get('status', '') == 'critical')
+            high_count = sum(1 for email in data if email.get('status', '') == 'high')
+            medium_count = sum(1 for email in data if email.get('status', '') == 'medium')
+            low_count = sum(1 for email in data if email.get('status', '') == 'low')
+            
+            # Calculate review metrics
+            completed_reviews = len(st.session_state.completed_reviews)
+            escalated_records = len(st.session_state.escalated_records)
+            completion_rate = (completed_reviews / max(total_emails, 1)) * 100
+            escalation_rate = (escalated_records / max(total_emails, 1)) * 100
+            
+            # Calculate time period
+            time_stamps = [email.get('_time', '') for email in data if email.get('_time')]
+            time_period = f"Data covers {len(set(email.get('_time_month', '') for email in data if email.get('_time_month')))} months" if time_stamps else "Time period unknown"
             
             summary_text = f"""
-            Total emails analyzed: {total_emails:,}<br/>
-            Critical risk emails: {critical_count:,}<br/>
-            High risk emails: {high_count:,}<br/>
-            Review completion rate: {len(st.session_state.completed_reviews) / max(total_emails, 1) * 100:.1f}%
+            This security review report analyzes {total_emails:,} email communications processed through the ExfilEye DLP system. 
+            The analysis identifies {critical_count + high_count:,} emails requiring immediate attention ({(critical_count + high_count) / max(total_emails, 1) * 100:.1f}% of total volume).
+            <br/><br/>
+            <b>Key Findings:</b><br/>
+            • Critical risk emails: {critical_count:,} ({critical_count / max(total_emails, 1) * 100:.1f}%)<br/>
+            • High risk emails: {high_count:,} ({high_count / max(total_emails, 1) * 100:.1f}%)<br/>
+            • Medium risk emails: {medium_count:,} ({medium_count / max(total_emails, 1) * 100:.1f}%)<br/>
+            • Low risk emails: {low_count:,} ({low_count / max(total_emails, 1) * 100:.1f}%)<br/>
+            • Review completion rate: {completion_rate:.1f}%<br/>
+            • Escalation rate: {escalation_rate:.1f}%<br/>
+            • {time_period}
             """
             story.append(Paragraph(summary_text, self.styles['Normal']))
         else:
             story.append(Paragraph("No data available for analysis.", self.styles['Normal']))
         
-        story.append(Spacer(1, 12))
+        story.append(Spacer(1, 18))
         
-        # Risk distribution table
+        # Risk Assessment Matrix
         if data:
-            story.append(Paragraph("Risk Distribution", self.styles['Heading2']))
+            story.append(Paragraph("Risk Assessment Matrix", self.header_style))
             story.append(Spacer(1, 12))
             
             risk_counts = {}
@@ -745,23 +823,116 @@ class ReportGenerator:
                 status = email.get('status', 'unknown')
                 risk_counts[status] = risk_counts.get(status, 0) + 1
             
-            table_data = [['Risk Level', 'Count', 'Percentage']]
-            for risk, count in sorted(risk_counts.items()):
-                percentage = (count / len(data)) * 100
-                table_data.append([risk.title(), str(count), f"{percentage:.1f}%"])
+            # Enhanced risk table with recommendations
+            table_data = [['Risk Level', 'Count', 'Percentage', 'Action Required', 'Priority']]
             
-            table = Table(table_data)
+            risk_actions = {
+                'critical': ('Immediate investigation', 'URGENT'),
+                'high': ('Review within 24 hours', 'HIGH'),
+                'medium': ('Review within 72 hours', 'MEDIUM'),
+                'low': ('Routine monitoring', 'LOW'),
+                'unknown': ('Classification needed', 'MEDIUM')
+            }
+            
+            # Sort by risk priority
+            risk_order = ['critical', 'high', 'medium', 'low', 'unknown']
+            for risk in risk_order:
+                if risk in risk_counts:
+                    count = risk_counts[risk]
+                    percentage = (count / len(data)) * 100
+                    action, priority = risk_actions.get(risk, ('Review required', 'MEDIUM'))
+                    table_data.append([
+                        risk.title(), 
+                        f"{count:,}", 
+                        f"{percentage:.1f}%", 
+                        action, 
+                        priority
+                    ])
+            
+            table = Table(table_data, colWidths=[1.2*inch, 0.8*inch, 0.8*inch, 2*inch, 0.8*inch])
             table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 14),
+                ('FONTSIZE', (0, 0), (-1, 0), 12),
                 ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black)
+                ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
+                ('ALTERNATEBACKGROUND', (0, 1), (-1, -1), colors.white),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ]))
             story.append(table)
+            story.append(Spacer(1, 18))
+            
+            # Top Risk Indicators
+            story.append(Paragraph("Top Risk Indicators", self.header_style))
+            story.append(Spacer(1, 12))
+            
+            # Analyze risk patterns
+            risk_indicators = []
+            
+            # Check for attachment patterns
+            attachment_count = sum(1 for email in data if email.get('attachment'))
+            if attachment_count > 0:
+                risk_indicators.append(f"• {attachment_count:,} emails contain attachments ({attachment_count/len(data)*100:.1f}%)")
+            
+            # Check for wordlist matches
+            wordlist_subject = sum(1 for email in data if email.get('wordlist_subject'))
+            wordlist_attachment = sum(1 for email in data if email.get('wordlist_attachment'))
+            if wordlist_subject > 0:
+                risk_indicators.append(f"• {wordlist_subject:,} emails match subject wordlist patterns")
+            if wordlist_attachment > 0:
+                risk_indicators.append(f"• {wordlist_attachment:,} emails match attachment wordlist patterns")
+            
+            # Check for termination/leaver patterns
+            termination_count = sum(1 for email in data if email.get('Termination'))
+            leaver_count = sum(1 for email in data if email.get('leaver'))
+            if termination_count > 0:
+                risk_indicators.append(f"• {termination_count:,} emails from terminated employees")
+            if leaver_count > 0:
+                risk_indicators.append(f"• {leaver_count:,} emails from employees flagged as leavers")
+            
+            # Domain analysis
+            domain_counts = {}
+            for email in data:
+                domain = email.get('recipients_email_domain', '')
+                if domain:
+                    domain_counts[domain] = domain_counts.get(domain, 0) + 1
+            
+            if domain_counts:
+                top_domains = sorted(domain_counts.items(), key=lambda x: x[1], reverse=True)[:5]
+                risk_indicators.append(f"• Top recipient domains: {', '.join([f'{d} ({c})' for d, c in top_domains])}")
+            
+            if risk_indicators:
+                for indicator in risk_indicators:
+                    story.append(Paragraph(indicator, self.styles['Normal']))
+            else:
+                story.append(Paragraph("• No significant risk patterns identified", self.styles['Normal']))
+            
+            story.append(Spacer(1, 18))
+            
+            # Recommendations
+            story.append(Paragraph("Security Recommendations", self.header_style))
+            story.append(Spacer(1, 12))
+            
+            recommendations = [
+                "• Prioritize review of all critical and high-risk emails within 24 hours",
+                "• Implement automated escalation for emails with multiple risk indicators",
+                "• Review and update domain classification policies based on current data",
+                "• Consider implementing real-time monitoring for high-volume senders",
+                "• Establish regular training for employees on data loss prevention policies"
+            ]
+            
+            if critical_count > 0:
+                recommendations.insert(0, f"• URGENT: {critical_count:,} critical emails require immediate investigation")
+            
+            if escalation_rate > 10:
+                recommendations.append("• High escalation rate suggests policy review may be needed")
+            
+            for rec in recommendations:
+                story.append(Paragraph(rec, self.styles['Normal']))
+                story.append(Spacer(1, 6))
         
         return story
     
