@@ -3866,7 +3866,6 @@ def save_work_state():
 
 def initialize_auto_save_timer():
     """Initialize auto-save timer that saves work every minute"""
-    import time
     
     # Initialize auto-save tracking
     if 'auto_save_timer' not in st.session_state:
@@ -3887,26 +3886,29 @@ def initialize_auto_save_timer():
             st.session_state.follow_up_decisions or
             st.session_state.data):
             
-            save_work_state()
-            st.session_state.last_auto_save_time = current_time
-            st.session_state.last_manual_save = current_time
-            
-            # Show brief auto-save notification
-            auto_save_placeholder = st.sidebar.empty()
-            auto_save_placeholder.success("💾 Auto-saved!")
-            
-            # Clear notification after 2 seconds using a timer
-            import time
-            import threading
-            
-            def clear_notification():
-                time.sleep(2)
-                try:
-                    auto_save_placeholder.empty()
-                except:
-                    pass  # Ignore errors if placeholder no longer exists
-            
-            threading.Thread(target=clear_notification, daemon=True).start()
+            try:
+                save_work_state()
+                st.session_state.last_auto_save_time = current_time
+                st.session_state.last_manual_save = current_time
+                
+                # Show brief auto-save notification in sidebar
+                st.sidebar.success("💾 Auto-saved!")
+                
+            except Exception as e:
+                st.sidebar.error(f"❌ Auto-save failed: {str(e)}")
+                print(f"Auto-save error: {e}")
+    
+    # Force a rerun every 30 seconds to check auto-save timer
+    # This ensures the timer keeps running even when user is not interacting
+    if 'force_rerun_timer' not in st.session_state:
+        st.session_state.force_rerun_timer = datetime.now()
+    
+    time_since_force_rerun = current_time - st.session_state.force_rerun_timer
+    if time_since_force_rerun.total_seconds() >= 30:
+        st.session_state.force_rerun_timer = current_time
+        # Only rerun if we have data worth saving
+        if st.session_state.data:
+            st.rerun()
 
 def auto_save_work_state():
     """Auto-save work state periodically (legacy function for compatibility)"""
