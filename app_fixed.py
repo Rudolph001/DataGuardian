@@ -15,10 +15,14 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import DBSCAN
 import scipy.stats as stats
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib import colors
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+import seaborn as sns
+from matplotlib.backends.backend_agg import FigureCanvasAgg
 from openai import OpenAI
 import re
 import webbrowser
@@ -968,42 +972,187 @@ class NetworkAnalyzer:
         }
 
 class ReportGenerator:
-    """PDF report generation for security reviews"""
+    """Enhanced PDF report generation with charts and professional formatting"""
     
     def __init__(self):
         self.styles = getSampleStyleSheet()
+        
+        # Enhanced professional styles
         self.title_style = ParagraphStyle(
             'CustomTitle',
             parent=self.styles['Title'],
-            fontSize=20,
+            fontSize=24,
             spaceAfter=30,
             textColor=colors.darkblue,
             alignment=1,  # Center alignment
+            fontName='Helvetica-Bold'
         )
+        
         self.header_style = ParagraphStyle(
             'CustomHeader',
             parent=self.styles['Heading1'],
-            fontSize=16,
+            fontSize=18,
             spaceAfter=18,
+            spaceBefore=20,
             textColor=colors.darkblue,
-            borderWidth=1,
+            fontName='Helvetica-Bold',
+            borderWidth=2,
             borderColor=colors.darkblue,
-            borderPadding=8,
+            borderPadding=10,
+            backColor=colors.lightgrey
         )
+        
         self.subheader_style = ParagraphStyle(
             'CustomSubHeader',
             parent=self.styles['Heading2'],
             fontSize=14,
             spaceAfter=12,
+            spaceBefore=15,
             textColor=colors.darkred,
+            fontName='Helvetica-Bold'
         )
+        
+        self.summary_style = ParagraphStyle(
+            'SummaryStyle',
+            parent=self.styles['Normal'],
+            fontSize=11,
+            spaceAfter=8,
+            textColor=colors.black,
+            fontName='Helvetica',
+            leading=14
+        )
+        
         self.info_style = ParagraphStyle(
             'InfoStyle',
             parent=self.styles['Normal'],
             fontSize=10,
             textColor=colors.grey,
             alignment=1,  # Center alignment
+            fontName='Helvetica'
         )
+        
+        self.highlight_style = ParagraphStyle(
+            'HighlightStyle',
+            parent=self.styles['Normal'],
+            fontSize=12,
+            textColor=colors.darkred,
+            fontName='Helvetica-Bold',
+            spaceAfter=6,
+            leftIndent=20
+        )
+    
+    def create_pie_chart(self, data_dict, title, colors_palette=None):
+        """Create a professional pie chart and return as reportlab Image"""
+        plt.style.use('default')
+        fig, ax = plt.subplots(figsize=(8, 6))
+        
+        # Define colors if not provided
+        if colors_palette is None:
+            colors_palette = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F']
+        
+        # Filter out zero values
+        filtered_data = {k: v for k, v in data_dict.items() if v > 0}
+        
+        if not filtered_data:
+            plt.close(fig)
+            return None
+            
+        wedges, texts, autotexts = ax.pie(
+            filtered_data.values(), 
+            labels=filtered_data.keys(),
+            autopct='%1.1f%%',
+            colors=colors_palette[:len(filtered_data)],
+            startangle=90,
+            explode=[0.05] * len(filtered_data)
+        )
+        
+        # Enhance text appearance
+        for text in texts:
+            text.set_fontsize(10)
+            text.set_fontweight('bold')
+        for autotext in autotexts:
+            autotext.set_color('white')
+            autotext.set_fontsize(9)
+            autotext.set_fontweight('bold')
+        
+        ax.set_title(title, fontsize=14, fontweight='bold', pad=20)
+        
+        # Save to BytesIO and return as reportlab Image
+        img_buffer = io.BytesIO()
+        plt.savefig(img_buffer, format='png', dpi=300, bbox_inches='tight', 
+                   facecolor='white', edgecolor='none')
+        img_buffer.seek(0)
+        plt.close(fig)
+        
+        return Image(img_buffer, width=4*inch, height=3*inch)
+    
+    def create_bar_chart(self, data_dict, title, xlabel, ylabel):
+        """Create a professional bar chart and return as reportlab Image"""
+        plt.style.use('default')
+        fig, ax = plt.subplots(figsize=(10, 6))
+        
+        # Sort data by values for better visualization
+        sorted_data = dict(sorted(data_dict.items(), key=lambda x: x[1], reverse=True))
+        
+        # Create color gradient
+        colors_list = plt.cm.Blues(np.linspace(0.4, 0.8, len(sorted_data)))
+        
+        bars = ax.bar(sorted_data.keys(), sorted_data.values(), color=colors_list)
+        
+        # Add value labels on bars
+        for bar in bars:
+            height = bar.get_height()
+            ax.text(bar.get_x() + bar.get_width()/2., height + height*0.01,
+                   f'{int(height):,}', ha='center', va='bottom', fontweight='bold')
+        
+        ax.set_title(title, fontsize=14, fontweight='bold', pad=20)
+        ax.set_xlabel(xlabel, fontsize=12, fontweight='bold')
+        ax.set_ylabel(ylabel, fontsize=12, fontweight='bold')
+        
+        # Rotate x-axis labels for better readability
+        plt.xticks(rotation=45, ha='right')
+        ax.grid(axis='y', alpha=0.3)
+        
+        # Save to BytesIO and return as reportlab Image
+        img_buffer = io.BytesIO()
+        plt.tight_layout()
+        plt.savefig(img_buffer, format='png', dpi=300, bbox_inches='tight',
+                   facecolor='white', edgecolor='none')
+        img_buffer.seek(0)
+        plt.close(fig)
+        
+        return Image(img_buffer, width=5*inch, height=3*inch)
+    
+    def create_trend_chart(self, time_data, title):
+        """Create a professional trend line chart"""
+        plt.style.use('default')
+        fig, ax = plt.subplots(figsize=(10, 6))
+        
+        # Sort by time
+        sorted_time_data = dict(sorted(time_data.items()))
+        
+        ax.plot(list(sorted_time_data.keys()), list(sorted_time_data.values()), 
+               marker='o', linewidth=2, markersize=8, color='#2E86AB')
+        
+        ax.fill_between(list(sorted_time_data.keys()), list(sorted_time_data.values()), 
+                       alpha=0.3, color='#2E86AB')
+        
+        ax.set_title(title, fontsize=14, fontweight='bold', pad=20)
+        ax.set_xlabel('Time Period', fontsize=12, fontweight='bold')
+        ax.set_ylabel('Email Count', fontsize=12, fontweight='bold')
+        
+        plt.xticks(rotation=45, ha='right')
+        ax.grid(True, alpha=0.3)
+        
+        # Save to BytesIO and return as reportlab Image
+        img_buffer = io.BytesIO()
+        plt.tight_layout()
+        plt.savefig(img_buffer, format='png', dpi=300, bbox_inches='tight',
+                   facecolor='white', edgecolor='none')
+        img_buffer.seek(0)
+        plt.close(fig)
+        
+        return Image(img_buffer, width=5*inch, height=3*inch)
     
     def generate_pdf_report(self, data, report_type='security_review'):
         """Generate PDF report based on data and report type"""
@@ -1136,377 +1285,230 @@ class ReportGenerator:
         return buffer
     
     def _generate_security_review_content(self, data):
-        """Generate security review report content"""
+        """Generate enhanced security review report content with charts"""
         story = []
         
-        # Executive Summary
-        story.append(Paragraph("Executive Summary", self.header_style))
+        # Executive Summary Section
+        story.append(Paragraph("EXECUTIVE SECURITY SUMMARY", self.header_style))
         story.append(Spacer(1, 12))
         
         if data:
             total_emails = len(data)
-            critical_count = sum(1 for email in data if email.get('status', '') == 'critical')
-            high_count = sum(1 for email in data if email.get('status', '') == 'high')
-            medium_count = sum(1 for email in data if email.get('status', '') == 'medium')
-            low_count = sum(1 for email in data if email.get('status', '') == 'low')
-            
-            # Calculate review metrics
-            completed_reviews = len(st.session_state.completed_reviews)
-            escalated_records = len(st.session_state.escalated_records)
-            completion_rate = (completed_reviews / max(total_emails, 1)) * 100
-            escalation_rate = (escalated_records / max(total_emails, 1)) * 100
-            
-            # Calculate time period
-            time_stamps = [email.get('_time', '') for email in data if email.get('_time')]
-            time_period = f"Data covers {len(set(email.get('time_month', '') for email in data if email.get('time_month')))} months" if time_stamps else "Time period unknown"
-            
-            summary_text = f"""
-            This security review report analyzes {total_emails:,} email communications processed through the ExfilEye DLP system. 
-            The analysis identifies {critical_count + high_count:,} emails requiring immediate attention ({(critical_count + high_count) / max(total_emails, 1) * 100:.1f}% of total volume).
-            <br/><br/>
-            <b>Key Findings:</b><br/>
-            • Critical risk emails: {critical_count:,} ({critical_count / max(total_emails, 1) * 100:.1f}%)<br/>
-            • High risk emails: {high_count:,} ({high_count / max(total_emails, 1) * 100:.1f}%)<br/>
-            • Medium risk emails: {medium_count:,} ({medium_count / max(total_emails, 1) * 100:.1f}%)<br/>
-            • Low risk emails: {low_count:,} ({low_count / max(total_emails, 1) * 100:.1f}%)<br/>
-            • Review completion rate: {completion_rate:.1f}%<br/>
-            • Escalation rate: {escalation_rate:.1f}%<br/>
-            • {time_period}
-            """
-            story.append(Paragraph(summary_text, self.styles['Normal']))
-            
-            # Add visual risk dashboard
-            story.append(Spacer(1, 18))
-            story.append(Paragraph("Risk Dashboard Overview", self.subheader_style))
-            story.append(Spacer(1, 12))
-            
-            # Risk metrics visualization table
-            dashboard_data = [
-                ['Risk Level', 'Count', 'Percentage', 'Status', 'Trend'],
-                ['Critical', f"{critical_count:,}", f"{critical_count / max(total_emails, 1) * 100:.1f}%", 
-                 '🔴 URGENT' if critical_count > 0 else '✅ CLEAR', '↗️' if critical_count > total_emails * 0.05 else '↘️'],
-                ['High', f"{high_count:,}", f"{high_count / max(total_emails, 1) * 100:.1f}%", 
-                 '🟠 HIGH' if high_count > 0 else '✅ CLEAR', '↗️' if high_count > total_emails * 0.1 else '↘️'],
-                ['Medium', f"{medium_count:,}", f"{medium_count / max(total_emails, 1) * 100:.1f}%", 
-                 '🟡 MONITOR' if medium_count > 0 else '✅ CLEAR', '→' if medium_count > 0 else '↘️'],
-                ['Low', f"{low_count:,}", f"{low_count / max(total_emails, 1) * 100:.1f}%", 
-                 '🟢 NORMAL', '→']
-            ]
-            
-            dashboard_table = Table(dashboard_data, colWidths=[1.2*inch, 0.8*inch, 0.8*inch, 1*inch, 0.6*inch])
-            dashboard_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.darkred),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 11),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, 1), colors.lightcoral),  # Critical row
-                ('BACKGROUND', (0, 2), (-1, 2), colors.lightyellow),  # High row
-                ('BACKGROUND', (0, 3), (-1, 3), colors.lightblue),   # Medium row
-                ('BACKGROUND', (0, 4), (-1, 4), colors.lightgreen),  # Low row
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('FONTSIZE', (0, 1), (-1, -1), 10),
-            ]))
-            story.append(dashboard_table)
-            
-            # Security KPIs visualization
-            story.append(Spacer(1, 18))
-            story.append(Paragraph("Key Performance Indicators", self.subheader_style))
-            story.append(Spacer(1, 12))
-            
-            kpi_data = [
-                ['Metric', 'Current Value', 'Target', 'Status', 'Action Required'],
-                ['Review Completion Rate', f"{completion_rate:.1f}%", '95%', 
-                 '✅ GOOD' if completion_rate >= 95 else '⚠️ NEEDS IMPROVEMENT', 
-                 'Continue monitoring' if completion_rate >= 95 else 'Increase review capacity'],
-                ['Escalation Rate', f"{escalation_rate:.1f}%", '<5%', 
-                 '✅ GOOD' if escalation_rate < 5 else '⚠️ HIGH', 
-                 'Maintain current process' if escalation_rate < 5 else 'Review escalation criteria'],
-                ['High-Risk Detection', f"{(critical_count + high_count) / max(total_emails, 1) * 100:.1f}%", '<10%', 
-                 '✅ GOOD' if (critical_count + high_count) / max(total_emails, 1) * 100 < 10 else '⚠️ ELEVATED', 
-                 'Continue monitoring' if (critical_count + high_count) / max(total_emails, 1) * 100 < 10 else 'Investigate patterns'],
-                ['Data Coverage', f"{len(set(email.get('time_month', '') for email in data if email.get('time_month')))} months", 'Ongoing', 
-                 '✅ ACTIVE', 'Maintain data collection']
-            ]
-            
-            kpi_table = Table(kpi_data, colWidths=[1.5*inch, 1*inch, 0.8*inch, 1.2*inch, 1.5*inch])
-            kpi_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
-                ('ALTERNATEBACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('FONTSIZE', (0, 1), (-1, -1), 9),
-                ('ALIGN', (4, 1), (4, -1), 'LEFT'),  # Action column left-aligned
-            ]))
-            story.append(kpi_table)
-            
-        else:
-            story.append(Paragraph("No data available for analysis.", self.styles['Normal']))
-        
-        story.append(Spacer(1, 18))
-        
-        # Risk Assessment Matrix
-        if data:
-            story.append(Paragraph("Risk Assessment Matrix", self.header_style))
-            story.append(Spacer(1, 12))
-            
             risk_counts = {}
             for email in data:
                 status = email.get('status', 'unknown')
                 risk_counts[status] = risk_counts.get(status, 0) + 1
             
-            # Enhanced risk table with recommendations
-            table_data = [['Risk Level', 'Count', 'Percentage', 'Action Required', 'Priority']]
+            critical_count = risk_counts.get('critical', 0)
+            high_count = risk_counts.get('high', 0)
+            medium_count = risk_counts.get('medium', 0)
+            low_count = risk_counts.get('low', 0)
             
-            risk_actions = {
-                'critical': ('Immediate investigation', 'URGENT'),
-                'high': ('Review within 24 hours', 'HIGH'),
-                'medium': ('Review within 72 hours', 'MEDIUM'),
-                'low': ('Routine monitoring', 'LOW'),
-                'unknown': ('Classification needed', 'MEDIUM')
-            }
+            # Calculate review metrics
+            completed_reviews = len(st.session_state.completed_reviews) if 'completed_reviews' in st.session_state else 0
+            escalated_records = len(st.session_state.escalated_records) if 'escalated_records' in st.session_state else 0
+            completion_rate = (completed_reviews / max(total_emails, 1)) * 100
+            escalation_rate = (escalated_records / max(total_emails, 1)) * 100
             
-            # Sort by risk priority
-            risk_order = ['critical', 'high', 'medium', 'low', 'unknown']
-            for risk in risk_order:
-                if risk in risk_counts:
-                    count = risk_counts[risk]
-                    percentage = (count / len(data)) * 100
-                    action, priority = risk_actions.get(risk, ('Review required', 'MEDIUM'))
-                    table_data.append([
-                        risk.title(), 
-                        f"{count:,}", 
-                        f"{percentage:.1f}%", 
-                        action, 
-                        priority
-                    ])
+            # Risk percentage calculations
+            critical_pct = (critical_count / total_emails) * 100 if total_emails > 0 else 0
+            high_pct = (high_count / total_emails) * 100 if total_emails > 0 else 0
             
-            table = Table(table_data, colWidths=[1.2*inch, 0.8*inch, 0.8*inch, 2*inch, 0.8*inch])
-            table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
-                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 12),
-                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
-                ('ALTERNATEBACKGROUND', (0, 1), (-1, -1), colors.white),
-                ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-            ]))
-            story.append(table)
-            story.append(Spacer(1, 18))
+            # Executive summary text
+            summary_text = f"""
+            <b>SECURITY ASSESSMENT OVERVIEW</b><br/><br/>
             
-            # Top Risk Indicators
-            story.append(Paragraph("Top Risk Indicators", self.header_style))
-            story.append(Spacer(1, 12))
+            This comprehensive security review analyzes <b>{total_emails:,}</b> email communications for potential data loss prevention violations.
+            Our automated analysis identified <b>{critical_count + high_count:,}</b> high-priority security events requiring immediate attention.<br/><br/>
             
-            # Analyze risk patterns
-            risk_indicators = []
+            <b>KEY SECURITY FINDINGS:</b><br/>
+            • Critical Risk Events: <b>{critical_count:,}</b> ({critical_pct:.1f}% of total volume)<br/>
+            • High Risk Events: <b>{high_count:,}</b> ({high_pct:.1f}% of total volume)<br/>
+            • Security Review Completion: <b>{((total_emails - critical_count - high_count) / total_emails * 100):.1f}%</b><br/>
+            • Immediate Action Required: <b>{"YES - URGENT RESPONSE NEEDED" if critical_count > 0 else "NO - CONTINUE MONITORING"}</b><br/><br/>
             
-            # Check for attachment patterns
-            attachment_count = sum(1 for email in data if email.get('attachments'))
-            if attachment_count > 0:
-                risk_indicators.append(f"• {attachment_count:,} emails contain attachments ({attachment_count/len(data)*100:.1f}%)")
+            <b>BUSINESS IMPACT ASSESSMENT:</b><br/>
+            {"🔴 <b>HIGH RISK</b> - Immediate escalation and remediation required" if critical_count > 0 else "🟡 <b>MEDIUM RISK</b> - Continued monitoring recommended" if high_count > 0 else "🟢 <b>LOW RISK</b> - Normal security operations"}
+            """
             
-            # Check for wordlist matches
-            wordlist_subject = sum(1 for email in data if email.get('wordlist_subject'))
-            wordlist_attachment = sum(1 for email in data if email.get('wordlist_attachment'))
-            if wordlist_subject > 0:
-                risk_indicators.append(f"• {wordlist_subject:,} emails match subject wordlist patterns")
-            if wordlist_attachment > 0:
-                risk_indicators.append(f"• {wordlist_attachment:,} emails match attachment wordlist patterns")
+            story.append(Paragraph(summary_text, self.summary_style))
+            story.append(Spacer(1, 20))
             
-            # Check for termination/leaver patterns
-            termination_count = sum(1 for email in data if email.get('Termination'))
-            leaver_count = sum(1 for email in data if email.get('leaver'))
-            if termination_count > 0:
-                risk_indicators.append(f"• {termination_count:,} emails from terminated employees")
-            if leaver_count > 0:
-                risk_indicators.append(f"• {leaver_count:,} emails from employees flagged as leavers")
+            # Add Risk Distribution Pie Chart
+            story.append(Paragraph("Risk Distribution Analysis", self.subheader_style))
+            story.append(Spacer(1, 10))
             
-            # Domain analysis
-            domain_counts = {}
-            for email in data:
-                domain = email.get('recipients_email_domain', '')
-                if domain:
-                    domain_counts[domain] = domain_counts.get(domain, 0) + 1
+            # Create pie chart for risk distribution
+            risk_chart_data = {k.title(): v for k, v in risk_counts.items() if v > 0}
+            if risk_chart_data:
+                risk_pie_chart = self.create_pie_chart(
+                    risk_chart_data, 
+                    "Email Risk Level Distribution",
+                    ['#FF4444', '#FF8800', '#FFBB00', '#44AA44', '#888888']
+                )
+                if risk_pie_chart:
+                    story.append(risk_pie_chart)
+                    story.append(Spacer(1, 15))
             
-            if domain_counts:
-                top_domains = sorted(domain_counts.items(), key=lambda x: x[1], reverse=True)[:5]
-                risk_indicators.append(f"• Top recipient domains: {', '.join([f'{d} ({c})' for d, c in top_domains])}")
-            
-            if risk_indicators:
-                for indicator in risk_indicators:
-                    story.append(Paragraph(indicator, self.styles['Normal']))
-            else:
-                story.append(Paragraph("• No significant risk patterns identified", self.styles['Normal']))
-            
-            story.append(Spacer(1, 18))
-            
-            # Threat Intelligence Section
-            story.append(Paragraph("Threat Intelligence Analysis", self.header_style))
-            story.append(Spacer(1, 12))
-            
-            # Domain threat analysis
-            domain_threat_data = [['Domain Category', 'Email Count', 'Risk Level', 'Recommendation']]
+            # Domain Analysis Chart
+            story.append(Paragraph("Top Risk Domains Analysis", self.subheader_style))
+            story.append(Spacer(1, 10))
             
             # Analyze domains
             domain_counts = {}
             for email in data:
                 domain = email.get('recipients_email_domain', 'unknown')
-                if domain:
+                if domain and domain != 'unknown':
                     domain_counts[domain] = domain_counts.get(domain, 0) + 1
             
-            # Categorize top domains
-            top_domains = sorted(domain_counts.items(), key=lambda x: x[1], reverse=True)[:5]
-            for domain, count in top_domains:
-                if any(keyword in domain.lower() for keyword in ['gmail', 'yahoo', 'hotmail', 'outlook']):
-                    category = 'Free Email Provider'
-                    risk = 'Medium'
-                    recommendation = 'Monitor for data exfiltration'
-                elif any(keyword in domain.lower() for keyword in ['suspicious', 'temp', 'guerrilla']):
-                    category = 'Suspicious Domain'
-                    risk = 'High'
-                    recommendation = 'Block and investigate'
-                elif domain.endswith('.gov') or domain.endswith('.edu'):
-                    category = 'Government/Education'
-                    risk = 'Low'
-                    recommendation = 'Standard monitoring'
-                else:
-                    category = 'Business Domain'
-                    risk = 'Low-Medium'
-                    recommendation = 'Verify legitimate business need'
-                
-                domain_threat_data.append([f"{domain} ({count} emails)", category, risk, recommendation])
+            # Get top 10 domains
+            top_domains = dict(sorted(domain_counts.items(), key=lambda x: x[1], reverse=True)[:10])
+            if top_domains:
+                domain_chart = self.create_bar_chart(
+                    top_domains,
+                    "Top 10 Recipient Domains by Email Volume",
+                    "Domain",
+                    "Email Count"
+                )
+                if domain_chart:
+                    story.append(domain_chart)
+                    story.append(Spacer(1, 20))
             
-            if len(domain_threat_data) > 1:
-                threat_table = Table(domain_threat_data, colWidths=[2*inch, 1.5*inch, 1*inch, 2*inch])
-                threat_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.darkgreen),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, 0), 10),
-                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                    ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
-                    ('ALTERNATEBACKGROUND', (0, 1), (-1, -1), colors.white),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                    ('FONTSIZE', (0, 1), (-1, -1), 9),
-                    ('ALIGN', (3, 1), (3, -1), 'LEFT'),  # Recommendation column left-aligned
-                ]))
-                story.append(threat_table)
-                story.append(Spacer(1, 18))
-            
-            # Security trend analysis
-            story.append(Paragraph("Security Trend Analysis", self.subheader_style))
+            # Key Performance Indicators Section
+            story.append(Paragraph("SECURITY KEY PERFORMANCE INDICATORS", self.header_style))
             story.append(Spacer(1, 12))
             
-            # Monthly trend simulation (since we might not have time series data)
-            trend_data = [['Time Period', 'Total Emails', 'High Risk', 'Escalations', 'Trend']]
+            # KPI Dashboard Table
+            kpi_data = [
+                ['Security Metric', 'Current Value', 'Target', 'Status', 'Trend', 'Action Required'],
+                ['Critical Incidents', f'{critical_count:,}', '0', 
+                 '🔴 ALERT' if critical_count > 0 else '🟢 GOOD', 
+                 '⬆️' if critical_count > 0 else '➡️',
+                 'Immediate investigation' if critical_count > 0 else 'Continue monitoring'],
+                ['High Risk Detection', f'{((critical_count + high_count) / total_emails * 100):.1f}%', '<5%',
+                 '🔴 HIGH' if ((critical_count + high_count) / total_emails * 100) > 5 else '🟢 GOOD',
+                 '⬆️' if ((critical_count + high_count) / total_emails * 100) > 5 else '⬇️',
+                 'Enhanced monitoring' if ((critical_count + high_count) / total_emails * 100) > 5 else 'Maintain current controls'],
+                ['Review Completion', f'{completion_rate:.1f}%', '>95%',
+                 '🟢 GOOD' if completion_rate > 95 else '🟡 MONITOR',
+                 '⬆️' if completion_rate > 95 else '➡️',
+                 'Continue current process' if completion_rate > 95 else 'Increase review capacity'],
+                ['Domain Coverage', f'{len(domain_counts)} domains', 'Ongoing',
+                 '🟢 ACTIVE', '➡️', 'Maintain classification'],
+                ['Data Quality', f'{((total_emails - risk_counts.get("unknown", 0)) / total_emails * 100):.1f}%', '>98%',
+                 '🟢 GOOD' if ((total_emails - risk_counts.get("unknown", 0)) / total_emails * 100) > 98 else '🟡 IMPROVE',
+                 '➡️', 'Continue data validation']
+            ]
             
-            # Group by month if available
-            monthly_data = {}
-            for email in data:
-                month = email.get('time_month', 'Unknown')
-                if month not in monthly_data:
-                    monthly_data[month] = {'total': 0, 'high_risk': 0}
-                monthly_data[month]['total'] += 1
-                if email.get('status', '').lower() in ['critical', 'high']:
-                    monthly_data[month]['high_risk'] += 1
+            kpi_table = Table(kpi_data, colWidths=[1.5*inch, 1*inch, 0.8*inch, 0.8*inch, 0.6*inch, 1.8*inch])
+            kpi_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
+                ('ALTERNATEBACKGROUND', (0, 1), (-1, -1), colors.white),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('FONTSIZE', (0, 1), (-1, -1), 8),
+                ('ALIGN', (5, 1), (5, -1), 'LEFT'),  # Action column left-aligned
+            ]))
+            story.append(kpi_table)
+            story.append(Spacer(1, 20))
             
-            # Add trend data (limit to last 6 months/periods)
-            months = sorted(monthly_data.keys())[-6:] if monthly_data else ['Current Period']
-            for month in months:
-                if month in monthly_data:
-                    month_data = monthly_data[month]
-                    total = month_data['total']
-                    high_risk = month_data['high_risk']
-                    escalations = int(high_risk * 0.3)  # Estimate escalations
-                    
-                    # Simple trend calculation
-                    risk_rate = (high_risk / max(total, 1)) * 100
-                    if risk_rate > 15:
-                        trend = '↗️ Increasing'
-                    elif risk_rate < 5:
-                        trend = '↘️ Decreasing'
-                    else:
-                        trend = '→ Stable'
-                    
-                    trend_data.append([month, f"{total:,}", f"{high_risk:,}", f"{escalations:,}", trend])
-                else:
-                    trend_data.append([month, '0', '0', '0', '→ Stable'])
-            
-            if len(trend_data) > 1:
-                trend_table = Table(trend_data, colWidths=[1.5*inch, 1*inch, 1*inch, 1*inch, 1.5*inch])
-                trend_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (-1, 0), colors.purple),
-                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                    ('FONTSIZE', (0, 0), (-1, 0), 10),
-                    ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                    ('BACKGROUND', (0, 1), (-1, -1), colors.lavender),
-                    ('ALTERNATEBACKGROUND', (0, 1), (-1, -1), colors.white),
-                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                    ('FONTSIZE', (0, 1), (-1, -1), 9),
-                ]))
-                story.append(trend_table)
-                story.append(Spacer(1, 18))
-            
-            # Recommendations with priority matrix
-            story.append(Paragraph("Security Recommendations & Action Plan", self.header_style))
+            # Risk Assessment Matrix
+            story.append(Paragraph("DETAILED RISK ASSESSMENT MATRIX", self.header_style))
             story.append(Spacer(1, 12))
             
-            # Priority recommendation matrix
-            rec_data = [['Priority', 'Recommendation', 'Timeline', 'Owner', 'Impact']]
+            # Enhanced risk table with actionable insights
+            risk_data = [['Risk Level', 'Count', 'Percentage', 'Business Impact', 'Response Time', 'Recommended Action']]
             
+            risk_details = {
+                'critical': ('Immediate business disruption', '< 1 hour', 'Escalate to CISO immediately'),
+                'high': ('Potential data exposure', '< 4 hours', 'Security team investigation'),
+                'medium': ('Policy violation detected', '< 24 hours', 'Automated review process'),
+                'low': ('Routine monitoring alert', '< 72 hours', 'Standard compliance check'),
+                'unknown': ('Classification pending', '< 12 hours', 'Manual classification required')
+            }
+            
+            for risk_level, count in risk_counts.items():
+                if count > 0:
+                    percentage = (count / total_emails) * 100
+                    impact, response_time, action = risk_details.get(risk_level, ('Review required', '< 24 hours', 'Manual assessment'))
+                    risk_data.append([
+                        risk_level.title(),
+                        f'{count:,}',
+                        f'{percentage:.1f}%',
+                        impact,
+                        response_time,
+                        action
+                    ])
+            
+            risk_table = Table(risk_data, colWidths=[1*inch, 0.8*inch, 0.8*inch, 1.5*inch, 1*inch, 1.4*inch])
+            risk_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.darkred),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
+                ('ALTERNATEBACKGROUND', (0, 1), (-1, -1), colors.white),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('FONTSIZE', (0, 1), (-1, -1), 8),
+                ('ALIGN', (3, 1), (3, -1), 'LEFT'),  # Business Impact left-aligned
+                ('ALIGN', (5, 1), (5, -1), 'LEFT'),  # Action left-aligned
+            ]))
+            story.append(risk_table)
+            story.append(Spacer(1, 20))
+            
+            # Security Recommendations Section
+            story.append(Paragraph("SECURITY RECOMMENDATIONS & ACTION PLAN", self.header_style))
+            story.append(Spacer(1, 12))
+            
+            # Generate context-aware recommendations
             recommendations = []
             if critical_count > 0:
-                recommendations.append(['URGENT', f"Investigate {critical_count:,} critical emails immediately", '24 hours', 'Security Team', 'High'])
-            
+                recommendations.append(['URGENT', f'Investigate {critical_count:,} critical security incidents', '24 hours', 'CISO/Security Team', 'Business Critical'])
             if high_count > 0:
-                recommendations.append(['HIGH', f"Review {high_count:,} high-risk emails", '72 hours', 'Security Team', 'Medium'])
-            
+                recommendations.append(['HIGH', f'Review {high_count:,} high-risk email patterns', '72 hours', 'Security Analysts', 'High Priority'])
+            if len(domain_counts) > 50:
+                recommendations.append(['MEDIUM', 'Audit domain classification for accuracy', '1 week', 'Compliance Team', 'Operational'])
             if escalation_rate > 10:
-                recommendations.append(['MEDIUM', 'Review escalation criteria and policies', '1 week', 'Policy Team', 'Medium'])
+                recommendations.append(['MEDIUM', 'Review and optimize escalation criteria', '2 weeks', 'Security Management', 'Process Improvement'])
             
+            # Add standard recommendations
             recommendations.extend([
-                ['MEDIUM', 'Implement automated monitoring for top domains', '2 weeks', 'IT Team', 'Medium'],
-                ['LOW', 'Conduct user awareness training', '1 month', 'HR Team', 'Low'],
-                ['LOW', 'Review and update domain classification', '1 month', 'Security Team', 'Low']
+                ['LOW', 'Conduct quarterly security awareness training', '1 month', 'HR/Training Team', 'Preventive'],
+                ['LOW', 'Update DLP policies based on current threats', '1 month', 'Policy Team', 'Preventive'],
+                ['LOW', 'Performance review of detection algorithms', '3 months', 'Technical Team', 'Optimization']
             ])
             
-            # Add recommendations to table
-            for rec in recommendations:
-                rec_data.append(rec)
+            rec_data = [['Priority', 'Recommendation', 'Timeline', 'Owner', 'Category']]
+            rec_data.extend(recommendations)
             
-            rec_table = Table(rec_data, colWidths=[1*inch, 2.5*inch, 1*inch, 1*inch, 0.8*inch])
+            rec_table = Table(rec_data, colWidths=[0.8*inch, 2.5*inch, 0.8*inch, 1.2*inch, 1.2*inch])
             rec_table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.darkorange),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                 ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('FONTSIZE', (0, 0), (-1, 0), 9),
                 ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-                ('ALTERNATEBACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.lightgrey),
+                ('ALTERNATEBACKGROUND', (0, 1), (-1, -1), colors.white),
                 ('GRID', (0, 0), (-1, -1), 1, colors.black),
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                ('FONTSIZE', (0, 1), (-1, -1), 9),
+                ('FONTSIZE', (0, 1), (-1, -1), 8),
                 ('ALIGN', (1, 1), (1, -1), 'LEFT'),  # Recommendation column left-aligned
             ]))
             story.append(rec_table)
+        
+        else:
+            story.append(Paragraph("No data available for security analysis.", self.summary_style))
         
         return story
     

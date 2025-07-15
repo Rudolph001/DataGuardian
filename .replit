@@ -2,7 +2,7 @@ modules = ["python-3.11", "bash"]
 
 [nix]
 channel = "stable-24_05"
-packages = ["fontconfig", "freetype", "ghostscript", "glib", "glibcLocales", "harfbuzz", "libxcrypt", "pango", "pkg-config", "xsimd"]
+packages = ["cairo", "ffmpeg-full", "fontconfig", "freetype", "ghostscript", "glib", "glibcLocales", "gobject-introspection", "gtk3", "harfbuzz", "libxcrypt", "pango", "pkg-config", "qhull", "tcl", "tk", "xsimd"]
 
 [deployment]
 deploymentTarget = "autoscale"
