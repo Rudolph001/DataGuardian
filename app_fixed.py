@@ -2576,42 +2576,26 @@ def followup_center_page():
                         col_send1, col_send2, col_send3 = st.columns([2, 1, 1])
                         
                         with col_send1:
-                            if st.button("📧 Send via Outlook", key=f"send_outlook_{record_id}", type="primary", use_container_width=True):
-                                # Create the mailto link for desktop Outlook
-                                basic_mailto = f"mailto:{sender_email}?subject={quote(subject)}&body={quote(clean_body)}"
-                                
-                                # Try multiple protocols for better Outlook compatibility
-                                st.markdown(f"""
-                                <script>
-                                // Try to open Outlook using different methods
-                                function openOutlook() {{
-                                    // Method 1: Try ms-outlook protocol first (works with newer Outlook versions)
-                                    const outlookUrl = "ms-outlook://compose?to={sender_email}&subject={quote(subject)}&body={quote(clean_body[:500])}";
-                                    let opened = false;
-                                    
-                                    try {{
-                                        window.open(outlookUrl, '_self');
-                                        opened = true;
-                                    }} catch (e) {{
-                                        console.log('ms-outlook protocol failed, trying mailto');
-                                    }}
-                                    
-                                    // Method 2: Fallback to standard mailto if ms-outlook fails
-                                    if (!opened) {{
-                                        setTimeout(function() {{
-                                            window.location.href = "{basic_mailto}";
-                                        }}, 100);
-                                    }}
-                                }}
-                                
-                                openOutlook();
-                                </script>
-                                
-                                <div style="background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 10px; border-radius: 4px; margin: 10px 0;">
-                                    <strong>Opening Outlook with your email...</strong><br>
-                                    The email should open in Outlook with all your edits included.
-                                </div>
-                                """, unsafe_allow_html=True)
+                            # Create the mailto link for desktop Outlook
+                            basic_mailto = f"mailto:{sender_email}?subject={quote(subject)}&body={quote(clean_body)}"
+                            outlook_protocol = f"ms-outlook://compose?to={sender_email}&subject={quote(subject)}&body={quote(clean_body[:500])}"
+                            
+                            # Display the send button as a direct link
+                            st.markdown(f"""
+                            <div style="margin: 10px 0;">
+                                <strong>📧 Send Email via Outlook</strong><br>
+                                <a href="{basic_mailto}" 
+                                   style="background: #dc3545; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; margin: 5px 0; font-weight: bold;">
+                                    📧 Open in Outlook (Method 1)
+                                </a><br>
+                                <a href="{outlook_protocol}" 
+                                   style="background: #0078d4; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; margin: 5px 0; font-weight: bold;">
+                                    🖥️ Open in Outlook (Method 2)
+                                </a>
+                            </div>
+                            """, unsafe_allow_html=True)
+                            
+                            st.info("Click either button above to open Outlook with your email. If neither works, check that Outlook is set as your default email client in Windows Settings.")
                         
                         with col_send2:
                             # Reset/regenerate template
