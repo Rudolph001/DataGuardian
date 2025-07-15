@@ -1,0 +1,186 @@
+{
+  "Suspicious": [],
+  "Free Email": [
+    {
+      "domain": "gmail.com",
+      "added_date": "2025-07-15T13:02:29.565903"
+    },
+    {
+      "domain": "yahoo.com",
+      "added_date": "2025-07-15T13:02:29.565908"
+    },
+    {
+      "domain": "hotmail.com",
+      "added_date": "2025-07-15T13:02:29.565910"
+    },
+    {
+      "domain": "outlook.com",
+      "added_date": "2025-07-15T13:02:29.565913"
+    },
+    {
+      "domain": "aol.com",
+      "added_date": "2025-07-15T13:02:29.565916"
+    },
+    {
+      "domain": "icloud.com",
+      "added_date": "2025-07-15T13:02:29.565919"
+    },
+    {
+      "domain": "protonmail.com",
+      "added_date": "2025-07-15T13:02:29.565923"
+    },
+    {
+      "domain": "tutanota.com",
+      "added_date": "2025-07-15T13:02:29.565926"
+    },
+    {
+      "domain": "yandex.com",
+      "added_date": "2025-07-15T13:02:29.565929"
+    },
+    {
+      "domain": "mail.com",
+      "added_date": "2025-07-15T13:02:29.565932"
+    },
+    {
+      "domain": "zoho.com",
+      "added_date": "2025-07-15T13:02:29.565935"
+    },
+    {
+      "domain": "gmx.com",
+      "added_date": "2025-07-15T13:02:29.565938"
+    }
+  ],
+  "Business": [
+    {
+      "domain": "rdcomputers.co.za",
+      "added_date": "2025-07-15T13:02:29.565868",
+      "added_by": "user"
+    }
+  ],
+  "Government": [
+    {
+      "domain": "gov",
+      "added_date": "2025-07-15T13:02:29.565942"
+    },
+    {
+      "domain": "mil",
+      "added_date": "2025-07-15T13:02:29.565944"
+    },
+    {
+      "domain": "edu",
+      "added_date": "2025-07-15T13:02:29.565947"
+    },
+    {
+      "domain": "state.gov",
+      "added_date": "2025-07-15T13:02:29.565949"
+    },
+    {
+      "domain": "usa.gov",
+      "added_date": "2025-07-15T13:02:29.565952"
+    },
+    {
+      "domain": "nih.gov",
+      "added_date": "2025-07-15T13:02:29.565955"
+    },
+    {
+      "domain": "fda.gov",
+      "added_date": "2025-07-15T13:02:29.565958"
+    },
+    {
+      "domain": "cdc.gov",
+      "added_date": "2025-07-15T13:02:29.565960"
+    },
+    {
+      "domain": "nist.gov",
+      "added_date": "2025-07-15T13:02:29.565963"
+    }
+  ],
+  "Financial": [
+    {
+      "domain": "jpmorgan.com",
+      "added_date": "2025-07-15T13:02:29.565965"
+    },
+    {
+      "domain": "bankofamerica.com",
+      "added_date": "2025-07-15T13:02:29.565968"
+    },
+    {
+      "domain": "wellsfargo.com",
+      "added_date": "2025-07-15T13:02:29.565970"
+    },
+    {
+      "domain": "citi.com",
+      "added_date": "2025-07-15T13:02:29.565973"
+    },
+    {
+      "domain": "goldmansachs.com",
+      "added_date": "2025-07-15T13:02:29.565975"
+    },
+    {
+      "domain": "morganstanley.com",
+      "added_date": "2025-07-15T13:02:29.565978"
+    },
+    {
+      "domain": "amex.com",
+      "added_date": "2025-07-15T13:02:29.565980"
+    },
+    {
+      "domain": "visa.com",
+      "added_date": "2025-07-15T13:02:29.565982"
+    },
+    {
+      "domain": "mastercard.com",
+      "added_date": "2025-07-15T13:02:29.565985"
+    },
+    {
+      "domain": "paypal.com",
+      "added_date": "2025-07-15T13:02:29.565987"
+    }
+  ],
+  "Cloud Providers": [
+    {
+      "domain": "amazon.com",
+      "added_date": "2025-07-15T13:02:29.565990"
+    },
+    {
+      "domain": "aws.com",
+      "added_date": "2025-07-15T13:02:29.565993"
+    },
+    {
+      "domain": "microsoft.com",
+      "added_date": "2025-07-15T13:02:29.565995"
+    },
+    {
+      "domain": "google.com",
+      "added_date": "2025-07-15T13:02:29.565997"
+    },
+    {
+      "domain": "azure.com",
+      "added_date": "2025-07-15T13:02:29.565999"
+    },
+    {
+      "domain": "salesforce.com",
+      "added_date": "2025-07-15T13:02:29.566002"
+    },
+    {
+      "domain": "dropbox.com",
+      "added_date": "2025-07-15T13:02:29.566004"
+    },
+    {
+      "domain": "box.com",
+      "added_date": "2025-07-15T13:02:29.566007"
+    },
+    {
+      "domain": "slack.com",
+      "added_date": "2025-07-15T13:02:29.566010"
+    },
+    {
+      "domain": "zoom.us",
+      "added_date": "2025-07-15T13:02:29.566013"
+    },
+    {
+      "domain": "atlassian.com",
+      "added_date": "2025-07-15T13:02:29.566016"
+    }
+  ]
+}

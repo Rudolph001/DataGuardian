@@ -59,7 +59,7 @@ Preferred communication style: Simple, everyday language.
 
 ### 5. Domain Classification System
 - **Purpose**: Categorize recipient domains for security assessment
-- **Categories**: Suspicious, Free Email, Business, Government, Financial, Cloud Providers
+- **Categories**: Suspicious, Free Email, Business, Government, Financial, Cloud Providers, Social Media, News Media, Educational, Healthcare, Legal, Technology, Non-Profit, Personal, Unknown, Blocked
 - **Features**: Auto-classification, manual overrides, bulk operations
 
 ### 6. Follow-up Center

@@ -29,7 +29,45 @@ class DomainClassifier:
                 'amazon.com', 'aws.com', 'microsoft.com', 'google.com',
                 'azure.com', 'salesforce.com', 'dropbox.com', 'box.com',
                 'slack.com', 'zoom.us', 'atlassian.com'
-            ]
+            ],
+            'Social Media': [
+                'facebook.com', 'twitter.com', 'linkedin.com', 'instagram.com',
+                'tiktok.com', 'snapchat.com', 'reddit.com', 'youtube.com',
+                'discord.com', 'telegram.org', 'whatsapp.com'
+            ],
+            'News Media': [
+                'cnn.com', 'bbc.com', 'reuters.com', 'bloomberg.com',
+                'wsj.com', 'nytimes.com', 'washingtonpost.com', 'forbes.com',
+                'techcrunch.com', 'theverge.com', 'wired.com'
+            ],
+            'Educational': [
+                'harvard.edu', 'mit.edu', 'stanford.edu', 'berkeley.edu',
+                'oxford.ac.uk', 'cambridge.ac.uk', 'coursera.org',
+                'edx.org', 'udemy.com', 'khanacademy.org'
+            ],
+            'Healthcare': [
+                'mayo.edu', 'clevelandclinic.org', 'johnshopkins.edu',
+                'cdc.gov', 'who.int', 'nih.gov', 'fda.gov',
+                'webmd.com', 'healthline.com', 'medlineplus.gov'
+            ],
+            'Legal': [
+                'courts.gov', 'justice.gov', 'sec.gov', 'irs.gov',
+                'copyright.gov', 'patent.gov', 'ftc.gov',
+                'aclu.org', 'eff.org', 'law.com'
+            ],
+            'Technology': [
+                'apple.com', 'microsoft.com', 'google.com', 'amazon.com',
+                'meta.com', 'tesla.com', 'netflix.com', 'uber.com',
+                'airbnb.com', 'github.com', 'stackoverflow.com'
+            ],
+            'Non-Profit': [
+                'redcross.org', 'unicef.org', 'oxfam.org', 'savethechildren.org',
+                'greenpeace.org', 'amnesty.org', 'doctors-without-borders.org',
+                'habitat.org', 'unitedway.org', 'cancer.org'
+            ],
+            'Personal': [],
+            'Unknown': [],
+            'Blocked': []
         }
         
         self.load_domains()
