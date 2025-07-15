@@ -2835,6 +2835,15 @@ def generate_followup_email(email):
     risk_level = email.get('status', 'Unknown').title()
     date_sent = email.get('_time', 'Unknown')
     
+    # Format attachment information
+    attachment_info = email.get('attachments', '')
+    if attachment_info and attachment_info not in [True, False, 'True', 'False']:
+        attachment_text = f"Yes - {attachment_info}"
+    elif attachment_info:
+        attachment_text = "Yes"
+    else:
+        attachment_text = "No"
+    
     template = f"""SECURITY ALERT - Email Review Required
 
 Dear {sender_name},
@@ -2855,6 +2864,7 @@ From:               {email.get('sender', 'Unknown')}
 To:                 {recipient}
 Subject:            {subject}
 Date Sent:          {date_sent}
+Attachments:        {attachment_text}
 ==============================================="""
     
     return template
