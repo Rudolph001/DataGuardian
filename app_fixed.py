@@ -409,7 +409,7 @@ class NetworkAnalyzer:
             node_text.append(f'{node}<br>In: {in_degree} | Out: {out_degree}')
             node_info.append(f'Node: {node}<br>Emails Received: {in_degree}<br>Emails Sent: {out_degree}<br>Total: {total_degree}')
         
-        # Main node trace
+        # Main node trace with individual dragging enabled
         node_trace = go.Scatter(
             x=node_x, y=node_y,
             mode='markers+text',
@@ -428,7 +428,10 @@ class NetworkAnalyzer:
             ),
             name='nodes',
             textposition="middle center",
-            textfont=dict(size=8, color='white')
+            textfont=dict(size=8, color='white'),
+            # Enable individual node dragging
+            dragmode=None,
+            hoverlabel=dict(bgcolor="white", font_size=12)
         )
         
         # Highlighted nodes trace (initially empty)
@@ -459,7 +462,7 @@ class NetworkAnalyzer:
             font=dict(color="#888", size=12)
         )]
         
-        # Create figure with all traces
+        # Create figure with all traces and proper interaction settings
         fig = go.Figure(
             data=[edge_trace, highlighted_edge_trace, node_trace, highlighted_node_trace],
             layout=go.Layout(
@@ -468,44 +471,42 @@ class NetworkAnalyzer:
                 hovermode='closest',
                 margin=dict(b=20,l=5,r=5,t=40),
                 annotations=all_annotations,
-                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                dragmode='pan'
+                xaxis=dict(
+                    showgrid=False, 
+                    zeroline=False, 
+                    showticklabels=False,
+                    fixedrange=False  # Allow zooming
+                ),
+                yaxis=dict(
+                    showgrid=False, 
+                    zeroline=False, 
+                    showticklabels=False,
+                    fixedrange=False  # Allow zooming
+                ),
+                dragmode='pan',
+                selectdirection='any'
             )
         )
         
-        # Store graph data in the figure for JavaScript access
+        # Configure for better interactivity
         fig.update_layout(
-            uirevision=True,  # Preserve UI state
-            clickmode='event+select'
+            uirevision='network_graph',  # Preserve UI state with consistent key
+            clickmode='event',
+            modebar=dict(
+                remove=['autoScale2d', 'resetScale2d'],
+                add=['select2d', 'lasso2d']
+            )
         )
         
-        # Add interaction controls
-        fig.update_layout(
-            updatemenus=[
-                dict(
-                    type="buttons",
-                    direction="left",
-                    buttons=list([
-                        dict(
-                            args=[{"dragmode": "pan"}],
-                            label="Pan Mode",
-                            method="relayout"
-                        ),
-                        dict(
-                            args=[{"dragmode": "select"}],
-                            label="Select Mode",
-                            method="relayout"
-                        )
-                    ]),
-                    pad={"r": 10, "t": 10},
-                    showactive=True,
-                    x=0.01,
-                    xanchor="left",
-                    y=1.02,
-                    yanchor="top"
-                ),
-            ]
+        # Enable individual node dragging by updating traces
+        fig.update_traces(
+            selector=dict(name='nodes'),
+            marker=dict(
+                size=15,
+                line=dict(width=2, color='white'),
+                opacity=0.9,
+                sizemode='diameter'
+            )
         )
         
         # Store metadata for interactivity
@@ -600,6 +601,77 @@ class NetworkAnalyzer:
             'Emails Received From': incoming,
             'Emails Sent To': outgoing
         }
+    
+    def _create_highlighted_graph(self, original_fig, selected_node, graph_data):
+        """Create a new graph with highlighted connections for selected node"""
+        import copy
+        
+        # Create a copy of the original figure
+        fig = copy.deepcopy(original_fig)
+        
+        if not graph_data or 'graph' not in graph_data:
+            return fig
+        
+        G = graph_data['graph']
+        pos = graph_data['positions']
+        
+        # Find connected nodes and edges
+        connected_nodes = set([selected_node])
+        highlighted_edges = []
+        
+        for edge in G.edges():
+            if edge[0] == selected_node or edge[1] == selected_node:
+                connected_nodes.add(edge[0])
+                connected_nodes.add(edge[1])
+                highlighted_edges.append(edge)
+        
+        # Update edge highlighting
+        highlighted_edge_x = []
+        highlighted_edge_y = []
+        
+        for edge in highlighted_edges:
+            if edge[0] in pos and edge[1] in pos:
+                x0, y0 = pos[edge[0]]
+                x1, y1 = pos[edge[1]]
+                highlighted_edge_x.extend([x0, x1, None])
+                highlighted_edge_y.extend([y0, y1, None])
+        
+        # Update highlighted edges trace (index 1)
+        fig.data[1].x = highlighted_edge_x
+        fig.data[1].y = highlighted_edge_y
+        
+        # Update highlighted nodes
+        highlighted_node_x = []
+        highlighted_node_y = []
+        highlighted_node_text = []
+        
+        for node in connected_nodes:
+            if node in pos:
+                x, y = pos[node]
+                highlighted_node_x.append(x)
+                highlighted_node_y.append(y)
+                
+                if node == selected_node:
+                    highlighted_node_text.append(f'{node}<br>SELECTED')
+                else:
+                    in_degree = G.in_degree(node)
+                    out_degree = G.out_degree(node)
+                    highlighted_node_text.append(f'{node}<br>In: {in_degree} | Out: {out_degree}')
+        
+        # Update highlighted nodes trace (index 3)
+        fig.data[3].x = highlighted_node_x
+        fig.data[3].y = highlighted_node_y
+        fig.data[3].text = highlighted_node_text
+        
+        # Update title to show selection
+        fig.update_layout(
+            title=dict(
+                text=f'Email Communication Network - {selected_node} Selected', 
+                font=dict(size=16)
+            )
+        )
+        
+        return fig
 
 class ReportGenerator:
     """PDF report generation for security reviews"""
@@ -1887,68 +1959,80 @@ def network_analysis_page():
                 fig = analyzer.create_network_graph(filtered_data, source_field, target_field, config)
                 
                 if fig:
-                    # Initialize session state for node selection
-                    if 'selected_node' not in st.session_state:
-                        st.session_state.selected_node = None
-                    
-                    # Store graph data in session state for interaction
-                    st.session_state.graph_data = getattr(fig, '_graph_data', None)
-                    
                     st.subheader("Interactive Network Graph")
                     st.markdown("""
                     **How to interact:**
-                    - **Click a node** to highlight its connections
-                    - **Drag nodes** to rearrange the layout
-                    - **Use Pan/Select modes** with the buttons above the graph
+                    - **Double-click a node** to highlight its connections
+                    - **Drag nodes** to rearrange the layout (use the drag mode)
+                    - **Zoom and pan** to explore different areas
                     - **Hover over nodes** to see detailed information
                     """)
                     
-                    # Display the interactive plot with click events
-                    clicked_data = st.plotly_chart(
+                    # Add mode selection
+                    col1, col2, col3 = st.columns([1, 1, 2])
+                    with col1:
+                        interaction_mode = st.radio(
+                            "Interaction Mode",
+                            ["Pan & Zoom", "Drag Nodes"],
+                            key="interaction_mode"
+                        )
+                    with col2:
+                        if st.button("Reset View", key="reset_view"):
+                            st.rerun()
+                    
+                    # Set dragmode based on selection
+                    if interaction_mode == "Drag Nodes":
+                        fig.update_layout(dragmode='select')
+                    else:
+                        fig.update_layout(dragmode='pan')
+                    
+                    # Display the network graph
+                    event = st.plotly_chart(
                         fig, 
                         use_container_width=True, 
-                        key="network_graph",
-                        on_select="rerun",
-                        selection_mode="points"
+                        key="main_network_graph",
+                        on_select="ignore"  # Don't rerun on selection
                     )
                     
-                    # Handle node selection and highlighting
-                    if clicked_data and 'selection' in clicked_data and clicked_data['selection']['points']:
-                        selected_point = clicked_data['selection']['points'][0]
-                        if 'customdata' in selected_point:
-                            selected_node_idx = selected_point['customdata']
-                            graph_data = st.session_state.get('graph_data')
+                    # Node selection interface
+                    st.subheader("Node Analysis")
+                    graph_data = getattr(fig, '_graph_data', None)
+                    
+                    if graph_data and 'nodes' in graph_data:
+                        # Node selector dropdown
+                        selected_node = st.selectbox(
+                            "Select a node to analyze its connections:",
+                            options=["None"] + graph_data['nodes'],
+                            key="node_selector"
+                        )
+                        
+                        if selected_node and selected_node != "None":
+                            # Show selected node connections
+                            connections = analyzer._get_node_connections(selected_node, graph_data)
                             
-                            if graph_data and selected_node_idx < len(graph_data['nodes']):
-                                selected_node = graph_data['nodes'][selected_node_idx]
-                                st.session_state.selected_node = selected_node
+                            if connections:
+                                st.success(f"**Selected Node:** {selected_node}")
                                 
-                                # Update the graph to highlight connections
-                                highlighted_fig = analyzer._highlight_node_connections(
+                                # Create a highlighted version of the graph
+                                highlighted_fig = analyzer._create_highlighted_graph(
                                     fig, selected_node, graph_data
                                 )
                                 
                                 st.plotly_chart(
                                     highlighted_fig,
                                     use_container_width=True,
-                                    key="highlighted_network"
+                                    key=f"highlighted_{selected_node}",
+                                    on_select="ignore"
                                 )
                                 
-                                # Show node details
-                                st.info(f"Selected node: **{selected_node}**")
-                                
                                 # Display connection details
-                                connections = analyzer._get_node_connections(selected_node, graph_data)
-                                if connections:
-                                    st.subheader(f"Connections for {selected_node}")
-                                    for conn_type, nodes in connections.items():
-                                        if nodes:
-                                            st.write(f"**{conn_type}:** {', '.join(nodes)}")
-                    
-                    # Clear selection button
-                    if st.button("Clear Selection"):
-                        st.session_state.selected_node = None
-                        st.rerun()
+                                for conn_type, nodes in connections.items():
+                                    if nodes:
+                                        st.write(f"**{conn_type}:** {', '.join(nodes[:10])}")
+                                        if len(nodes) > 10:
+                                            st.write(f"... and {len(nodes) - 10} more")
+                            else:
+                                st.info(f"No connections found for {selected_node}")
                     
                     # Network statistics
                     st.subheader("Network Statistics")
