@@ -319,17 +319,26 @@ class NetworkAnalyzer:
             return nx.spring_layout(G)
     
     def _create_plotly_network(self, G, pos, config):
-        """Create Plotly network visualization with directional arrows"""
-        # Extract node and edge information with arrow support
-        edge_x = []
-        edge_y = []
+        """Create Plotly network visualization with directional arrows and interactivity"""
+        # Store graph data for interactivity
+        graph_edges = list(G.edges())
+        graph_nodes = list(G.nodes())
+        
+        # Create edge traces with unique identifiers
+        edge_traces = []
         arrow_annotations = []
         
-        for edge in G.edges():
+        # Normal edges
+        edge_x = []
+        edge_y = []
+        edge_ids = []
+        
+        for i, edge in enumerate(graph_edges):
             x0, y0 = pos[edge[0]]
             x1, y1 = pos[edge[1]]
             edge_x.extend([x0, x1, None])
             edge_y.extend([y0, y1, None])
+            edge_ids.extend([i, i, None])
             
             # Calculate arrow position (80% along the edge)
             arrow_x = x0 + 0.8 * (x1 - x0)
@@ -341,7 +350,7 @@ class NetworkAnalyzer:
             length = np.sqrt(dx**2 + dy**2)
             
             if length > 0:
-                # Normalize and create arrow annotation
+                # Create arrow annotation with edge info
                 arrow_annotations.append(
                     dict(
                         x=arrow_x, y=arrow_y,
@@ -353,55 +362,96 @@ class NetworkAnalyzer:
                         arrowsize=1.5,
                         arrowwidth=2,
                         arrowcolor='#666',
-                        standoff=5
+                        standoff=5,
+                        name=f"arrow_{i}"
                     )
                 )
         
-        # Create edge trace (without arrows, arrows are handled by annotations)
+        # Create main edge trace
         edge_trace = go.Scatter(
             x=edge_x, y=edge_y,
             line=dict(width=1, color='#888'),
             hoverinfo='none',
-            mode='lines'
+            mode='lines',
+            name='edges',
+            customdata=edge_ids
         )
         
-        # Create node trace
+        # Create highlighted edge trace (initially empty)
+        highlighted_edge_trace = go.Scatter(
+            x=[], y=[],
+            line=dict(width=3, color='#ff6b6b'),
+            hoverinfo='none',
+            mode='lines',
+            name='highlighted_edges'
+        )
+        
+        # Create node trace with interactivity
         node_x = []
         node_y = []
         node_text = []
         node_info = []
+        node_ids = []
+        node_colors = []
         
-        for node in G.nodes():
+        for i, node in enumerate(graph_nodes):
             x, y = pos[node]
             node_x.append(x)
             node_y.append(y)
+            node_ids.append(i)
             
             # Node information for directed graph
             in_degree = G.in_degree(node)
             out_degree = G.out_degree(node)
             total_degree = in_degree + out_degree
+            node_colors.append(total_degree)
             
             node_text.append(f'{node}<br>In: {in_degree} | Out: {out_degree}')
             node_info.append(f'Node: {node}<br>Emails Received: {in_degree}<br>Emails Sent: {out_degree}<br>Total: {total_degree}')
         
+        # Main node trace
         node_trace = go.Scatter(
             x=node_x, y=node_y,
             mode='markers+text',
             hoverinfo='text',
             text=node_text,
             hovertext=node_info,
+            customdata=node_ids,
             marker=dict(
-                size=10,
-                color=[G.in_degree(node) + G.out_degree(node) for node in G.nodes()],
+                size=15,
+                color=node_colors,
                 colorscale='Viridis',
                 showscale=True,
-                colorbar=dict(title="Total Email Traffic")
-            )
+                colorbar=dict(title="Total Email Traffic"),
+                line=dict(width=2, color='white'),
+                opacity=0.8
+            ),
+            name='nodes',
+            textposition="middle center",
+            textfont=dict(size=8, color='white')
+        )
+        
+        # Highlighted nodes trace (initially empty)
+        highlighted_node_trace = go.Scatter(
+            x=[], y=[],
+            mode='markers+text',
+            hoverinfo='text',
+            text=[],
+            hovertext=[],
+            marker=dict(
+                size=20,
+                color='#ff6b6b',
+                line=dict(width=3, color='white'),
+                opacity=1.0
+            ),
+            name='highlighted_nodes',
+            textposition="middle center",
+            textfont=dict(size=10, color='white')
         )
         
         # Combine arrow annotations with info annotation
         all_annotations = arrow_annotations + [dict(
-            text="Arrows show email direction: Sender → Recipient",
+            text="Interactive Network: Click nodes to highlight connections | Drag to move nodes",
             showarrow=False,
             xref="paper", yref="paper",
             x=0.005, y=-0.002,
@@ -409,19 +459,147 @@ class NetworkAnalyzer:
             font=dict(color="#888", size=12)
         )]
         
-        # Create figure with directional arrows
-        fig = go.Figure(data=[edge_trace, node_trace],
-                       layout=go.Layout(
-                           title=dict(text='Email Communication Network (Directional)', font=dict(size=16)),
-                           showlegend=False,
-                           hovermode='closest',
-                           margin=dict(b=20,l=5,r=5,t=40),
-                           annotations=all_annotations,
-                           xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-                           yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
-                       ))
+        # Create figure with all traces
+        fig = go.Figure(
+            data=[edge_trace, highlighted_edge_trace, node_trace, highlighted_node_trace],
+            layout=go.Layout(
+                title=dict(text='Email Communication Network (Interactive)', font=dict(size=16)),
+                showlegend=False,
+                hovermode='closest',
+                margin=dict(b=20,l=5,r=5,t=40),
+                annotations=all_annotations,
+                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                dragmode='pan'
+            )
+        )
+        
+        # Store graph data in the figure for JavaScript access
+        fig.update_layout(
+            uirevision=True,  # Preserve UI state
+            clickmode='event+select'
+        )
+        
+        # Add interaction controls
+        fig.update_layout(
+            updatemenus=[
+                dict(
+                    type="buttons",
+                    direction="left",
+                    buttons=list([
+                        dict(
+                            args=[{"dragmode": "pan"}],
+                            label="Pan Mode",
+                            method="relayout"
+                        ),
+                        dict(
+                            args=[{"dragmode": "select"}],
+                            label="Select Mode",
+                            method="relayout"
+                        )
+                    ]),
+                    pad={"r": 10, "t": 10},
+                    showactive=True,
+                    x=0.01,
+                    xanchor="left",
+                    y=1.02,
+                    yanchor="top"
+                ),
+            ]
+        )
+        
+        # Store metadata for interactivity
+        fig._graph_data = {
+            'nodes': graph_nodes,
+            'edges': graph_edges,
+            'positions': pos,
+            'graph': G
+        }
         
         return fig
+    
+    def _highlight_node_connections(self, fig, selected_node, graph_data):
+        """Highlight connections for selected node"""
+        if not graph_data or 'graph' not in graph_data:
+            return fig
+        
+        G = graph_data['graph']
+        pos = graph_data['positions']
+        
+        # Find connected nodes
+        connected_nodes = set()
+        highlighted_edges = []
+        
+        # Get incoming and outgoing connections
+        for edge in G.edges():
+            if edge[0] == selected_node:
+                connected_nodes.add(edge[1])
+                highlighted_edges.append(edge)
+            elif edge[1] == selected_node:
+                connected_nodes.add(edge[0])
+                highlighted_edges.append(edge)
+        
+        # Update highlighted edge trace
+        highlighted_edge_x = []
+        highlighted_edge_y = []
+        
+        for edge in highlighted_edges:
+            x0, y0 = pos[edge[0]]
+            x1, y1 = pos[edge[1]]
+            highlighted_edge_x.extend([x0, x1, None])
+            highlighted_edge_y.extend([y0, y1, None])
+        
+        # Update highlighted node trace
+        highlighted_node_x = []
+        highlighted_node_y = []
+        highlighted_node_text = []
+        
+        # Add selected node
+        if selected_node in pos:
+            x, y = pos[selected_node]
+            highlighted_node_x.append(x)
+            highlighted_node_y.append(y)
+            highlighted_node_text.append(f'{selected_node}<br>SELECTED')
+        
+        # Add connected nodes
+        for node in connected_nodes:
+            if node in pos:
+                x, y = pos[node]
+                highlighted_node_x.append(x)
+                highlighted_node_y.append(y)
+                in_degree = G.in_degree(node)
+                out_degree = G.out_degree(node)
+                highlighted_node_text.append(f'{node}<br>In: {in_degree} | Out: {out_degree}')
+        
+        # Update figure data
+        fig.data[1].x = highlighted_edge_x
+        fig.data[1].y = highlighted_edge_y
+        fig.data[3].x = highlighted_node_x
+        fig.data[3].y = highlighted_node_y
+        fig.data[3].text = highlighted_node_text
+        
+        return fig
+    
+    def _get_node_connections(self, selected_node, graph_data):
+        """Get connection details for selected node"""
+        if not graph_data or 'graph' not in graph_data:
+            return {}
+        
+        G = graph_data['graph']
+        
+        incoming = []
+        outgoing = []
+        
+        for edge in G.edges():
+            if edge[0] == selected_node:
+                outgoing.append(edge[1])
+            elif edge[1] == selected_node:
+                incoming.append(edge[0])
+        
+        return {
+            'Emails Received From': incoming,
+            'Emails Sent To': outgoing
+        }
 
 class ReportGenerator:
     """PDF report generation for security reviews"""
@@ -1709,7 +1887,68 @@ def network_analysis_page():
                 fig = analyzer.create_network_graph(filtered_data, source_field, target_field, config)
                 
                 if fig:
-                    st.plotly_chart(fig, use_container_width=True)
+                    # Initialize session state for node selection
+                    if 'selected_node' not in st.session_state:
+                        st.session_state.selected_node = None
+                    
+                    # Store graph data in session state for interaction
+                    st.session_state.graph_data = getattr(fig, '_graph_data', None)
+                    
+                    st.subheader("Interactive Network Graph")
+                    st.markdown("""
+                    **How to interact:**
+                    - **Click a node** to highlight its connections
+                    - **Drag nodes** to rearrange the layout
+                    - **Use Pan/Select modes** with the buttons above the graph
+                    - **Hover over nodes** to see detailed information
+                    """)
+                    
+                    # Display the interactive plot with click events
+                    clicked_data = st.plotly_chart(
+                        fig, 
+                        use_container_width=True, 
+                        key="network_graph",
+                        on_select="rerun",
+                        selection_mode="points"
+                    )
+                    
+                    # Handle node selection and highlighting
+                    if clicked_data and 'selection' in clicked_data and clicked_data['selection']['points']:
+                        selected_point = clicked_data['selection']['points'][0]
+                        if 'customdata' in selected_point:
+                            selected_node_idx = selected_point['customdata']
+                            graph_data = st.session_state.get('graph_data')
+                            
+                            if graph_data and selected_node_idx < len(graph_data['nodes']):
+                                selected_node = graph_data['nodes'][selected_node_idx]
+                                st.session_state.selected_node = selected_node
+                                
+                                # Update the graph to highlight connections
+                                highlighted_fig = analyzer._highlight_node_connections(
+                                    fig, selected_node, graph_data
+                                )
+                                
+                                st.plotly_chart(
+                                    highlighted_fig,
+                                    use_container_width=True,
+                                    key="highlighted_network"
+                                )
+                                
+                                # Show node details
+                                st.info(f"Selected node: **{selected_node}**")
+                                
+                                # Display connection details
+                                connections = analyzer._get_node_connections(selected_node, graph_data)
+                                if connections:
+                                    st.subheader(f"Connections for {selected_node}")
+                                    for conn_type, nodes in connections.items():
+                                        if nodes:
+                                            st.write(f"**{conn_type}:** {', '.join(nodes)}")
+                    
+                    # Clear selection button
+                    if st.button("Clear Selection"):
+                        st.session_state.selected_node = None
+                        st.rerun()
                     
                     # Network statistics
                     st.subheader("Network Statistics")
