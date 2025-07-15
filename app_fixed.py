@@ -1143,19 +1143,26 @@ def ai_insights_page():
     with col2:
         # Fix slider value issue when data is small
         data_len = len(data)
-        if data_len <= 100:
+        if data_len < 100:
             sample_size = data_len
-            st.info(f"Using all {data_len} records for analysis")
+            st.info(f"Using all {data_len} records for analysis (minimum 100 not available)")
+        elif data_len == 100:
+            sample_size = 100
+            st.info("Using all 100 records for analysis")
         else:
             max_samples = min(5000, data_len)
             default_value = min(1000, data_len)
-            sample_size = st.slider(
-                "Sample Size",
-                min_value=100,
-                max_value=max_samples,
-                value=default_value,
-                help="Number of records to analyze (more records = better insights but slower processing)"
-            )
+            if max_samples > 100:  # Ensure max is greater than min
+                sample_size = st.slider(
+                    "Sample Size",
+                    min_value=100,
+                    max_value=max_samples,
+                    value=default_value,
+                    help="Number of records to analyze (more records = better insights but slower processing)"
+                )
+            else:
+                sample_size = max_samples
+                st.info(f"Using all {max_samples} records for analysis")
     
     # Run analysis
     if st.button("Generate AI Insights", type="primary"):
