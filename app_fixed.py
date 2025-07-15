@@ -1953,8 +1953,12 @@ def network_analysis_page():
                     'max_nodes': max_nodes
                 }
                 
-                # Create network graph
-                fig = analyzer.create_network_graph(filtered_data, source_field, target_field, config)
+                # Create network graph and store in session state
+                if 'current_network_graph' not in st.session_state or st.button("Regenerate Graph"):
+                    fig = analyzer.create_network_graph(filtered_data, source_field, target_field, config)
+                    st.session_state.current_network_graph = fig
+                else:
+                    fig = st.session_state.current_network_graph
                 
                 if fig:
                     st.subheader("Interactive Network Graph")
@@ -1966,30 +1970,47 @@ def network_analysis_page():
                     - **Hover over nodes** to see detailed information
                     """)
                     
-                    # Add mode selection
+                    # Add mode selection with session state
                     col1, col2, col3 = st.columns([1, 1, 2])
                     with col1:
+                        # Initialize interaction mode in session state
+                        if 'interaction_mode' not in st.session_state:
+                            st.session_state.interaction_mode = "Pan & Zoom"
+                        
                         interaction_mode = st.radio(
                             "Interaction Mode",
                             ["Pan & Zoom", "Drag Nodes"],
-                            key="interaction_mode"
+                            index=0 if st.session_state.interaction_mode == "Pan & Zoom" else 1,
+                            key="mode_selector"
                         )
+                        
+                        # Update session state when mode changes
+                        st.session_state.interaction_mode = interaction_mode
+                    
                     with col2:
                         if st.button("Reset View", key="reset_view"):
+                            if 'current_network_graph' in st.session_state:
+                                del st.session_state.current_network_graph
                             st.rerun()
+                    
+                    # Create a copy of the figure for mode-specific updates
+                    import copy
+                    display_fig = copy.deepcopy(fig)
                     
                     # Set dragmode based on selection
                     if interaction_mode == "Drag Nodes":
-                        fig.update_layout(dragmode='select')
+                        display_fig.update_layout(dragmode='select')
+                        st.info("🔧 **Drag Nodes Mode**: Click and drag individual nodes to rearrange the network layout")
                     else:
-                        fig.update_layout(dragmode='pan')
+                        display_fig.update_layout(dragmode='pan')
+                        st.info("🔍 **Pan & Zoom Mode**: Click and drag to pan, use mouse wheel to zoom")
                     
-                    # Display the network graph
-                    event = st.plotly_chart(
-                        fig, 
+                    # Display the network graph with proper key management
+                    st.plotly_chart(
+                        display_fig, 
                         use_container_width=True, 
-                        key="main_network_graph",
-                        on_select="ignore"  # Don't rerun on selection
+                        key=f"network_graph_{interaction_mode.replace(' ', '_').lower()}",
+                        on_select="ignore"
                     )
                     
                     # Node selection interface
