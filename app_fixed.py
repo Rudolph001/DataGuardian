@@ -1842,7 +1842,7 @@ def show_email_details_modal(email):
         col1, col2, col3 = st.columns([1, 1, 1])
         
         with col1:
-            if st.button("✅ Clear", key=f"clear_{hash(str(email))}", type="secondary", use_container_width=True):
+            if st.button("✅ Clear", key=f"modal_clear_{hash(str(email))}", type="secondary", use_container_width=True):
                 email_id = str(hash(str(email)))
                 st.session_state.completed_reviews[email_id] = {
                     'email': email,
@@ -1853,7 +1853,7 @@ def show_email_details_modal(email):
                 st.rerun()
         
         with col2:
-            if st.button("🚨 Escalate", key=f"escalate_{hash(str(email))}", type="primary", use_container_width=True):
+            if st.button("🚨 Escalate", key=f"modal_escalate_{hash(str(email))}", type="primary", use_container_width=True):
                 email_id = str(hash(str(email)))
                 st.session_state.escalated_records[email_id] = {
                     'email': email,
@@ -1864,7 +1864,7 @@ def show_email_details_modal(email):
                 st.rerun()
         
         with col3:
-            if st.button("🌐 Update Domain", key=f"domain_{hash(str(email))}", use_container_width=True):
+            if st.button("🌐 Update Domain", key=f"modal_domain_{hash(str(email))}", use_container_width=True):
                 st.info("Domain classification update feature - coming soon!")
         
         # Close the main container
@@ -2206,7 +2206,7 @@ def security_operations_dashboard():
                         st.rerun()
                 
                 with col2:
-                    if st.button("✅ Clear", key=f"clear_{hash(str(email))}", type="secondary", use_container_width=True):
+                    if st.button("✅ Clear", key=f"dashboard_clear_{hash(str(email))}", type="secondary", use_container_width=True):
                         email_id = str(hash(str(email)))
                         st.session_state.completed_reviews[email_id] = {
                             'email': email,
@@ -2217,7 +2217,7 @@ def security_operations_dashboard():
                         st.rerun()
                 
                 with col3:
-                    if st.button("🚨 Escalate", key=f"escalate_{hash(str(email))}", type="primary", use_container_width=True):
+                    if st.button("🚨 Escalate", key=f"dashboard_escalate_{hash(str(email))}", type="primary", use_container_width=True):
                         email_id = str(hash(str(email)))
                         st.session_state.escalated_records[email_id] = {
                             'email': email,
