@@ -2515,10 +2515,13 @@ def security_operations_dashboard():
                 # Pop-out window button for details
                 col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
                 
+                # Create unique key using group name and email index
+                unique_key = f"{group_name}_{i}_{hash(str(email))}"
+                
                 with col1:
-                    if st.button(f"📋 View Details - {subject_preview}", key=f"details_{hash(str(email))}", use_container_width=True):
+                    if st.button(f"📋 View Details - {subject_preview}", key=f"details_{unique_key}", use_container_width=True):
                         # Set session state to show modal
-                        st.session_state[f'show_modal_{hash(str(email))}'] = True
+                        st.session_state[f'show_modal_{unique_key}'] = True
                         st.rerun()
                 
                 with col2:
@@ -2528,11 +2531,11 @@ def security_operations_dashboard():
                         "Status:",
                         ["critical", "high", "medium", "low", "unclassified"],
                         index=["critical", "high", "medium", "low", "unclassified"].index(current_status.lower() if current_status.lower() in ["critical", "high", "medium", "low", "unclassified"] else "unclassified"),
-                        key=f"reg_status_{hash(str(email))}"
+                        key=f"reg_status_{unique_key}"
                     )
                     
                     if new_status != current_status.lower():
-                        if st.button("Update", key=f"reg_update_{hash(str(email))}", use_container_width=True):
+                        if st.button("Update", key=f"reg_update_{unique_key}", use_container_width=True):
                             # Update the email status in the data
                             for idx, data_email in enumerate(st.session_state.data):
                                 if str(hash(str(data_email))) == str(hash(str(email))):
@@ -2545,7 +2548,7 @@ def security_operations_dashboard():
                                     break
                 
                 with col3:
-                    if st.button("✅ Clear", key=f"dashboard_clear_{hash(str(email))}", type="secondary", use_container_width=True):
+                    if st.button("✅ Clear", key=f"dashboard_clear_{unique_key}", type="secondary", use_container_width=True):
                         email_id = str(hash(str(email)))
                         st.session_state.completed_reviews[email_id] = {
                             'email': email,
@@ -2556,7 +2559,7 @@ def security_operations_dashboard():
                         st.rerun()
                 
                 with col4:
-                    if st.button("🚨 Escalate", key=f"dashboard_escalate_{hash(str(email))}", type="primary", use_container_width=True):
+                    if st.button("🚨 Escalate", key=f"dashboard_escalate_{unique_key}", type="primary", use_container_width=True):
                         email_id = str(hash(str(email)))
                         st.session_state.escalated_records[email_id] = {
                             'email': email,
@@ -2567,12 +2570,12 @@ def security_operations_dashboard():
                         st.rerun()
                 
                 # Show modal if triggered
-                if st.session_state.get(f'show_modal_{hash(str(email))}', False):
+                if st.session_state.get(f'show_modal_{unique_key}', False):
                     # Create modal overlay
                     with st.container():
                         # Close button
-                        if st.button("❌ Close Details", key=f"close_{hash(str(email))}", type="secondary"):
-                            st.session_state[f'show_modal_{hash(str(email))}'] = False
+                        if st.button("❌ Close Details", key=f"close_{unique_key}", type="secondary"):
+                            st.session_state[f'show_modal_{unique_key}'] = False
                             st.rerun()
                         
                         # Show email details in modal format
@@ -3793,11 +3796,39 @@ def main():
     with col1:
         if st.button("💾 Save Work", help="Save current work state"):
             save_work_state()
+            st.session_state.last_manual_save = datetime.now()
     
     with col2:
         available_dates = persistence.get_available_dates()
         if available_dates:
             st.caption(f"📅 {len(available_dates)} dates available")
+    
+    # Show last saved timestamp
+    if 'last_manual_save' in st.session_state:
+        last_save_time = st.session_state.last_manual_save
+        time_diff = datetime.now() - last_save_time
+        
+        if time_diff.total_seconds() < 60:
+            st.sidebar.success(f"✅ Last saved: {int(time_diff.total_seconds())}s ago")
+        elif time_diff.total_seconds() < 3600:
+            st.sidebar.info(f"💾 Last saved: {int(time_diff.total_seconds() / 60)}m ago")
+        else:
+            st.sidebar.info(f"💾 Last saved: {last_save_time.strftime('%H:%M')}")
+    else:
+        # Check if there's a saved work state file to show when it was last saved
+        work_state_file = os.path.join(persistence.work_state_folder, f"work_state_{datetime.now().strftime('%Y-%m-%d')}.json")
+        if os.path.exists(work_state_file):
+            file_mtime = datetime.fromtimestamp(os.path.getmtime(work_state_file))
+            time_diff = datetime.now() - file_mtime
+            
+            if time_diff.total_seconds() < 60:
+                st.sidebar.info(f"💾 Last saved: {int(time_diff.total_seconds())}s ago")
+            elif time_diff.total_seconds() < 3600:
+                st.sidebar.info(f"💾 Last saved: {int(time_diff.total_seconds() / 60)}m ago")
+            else:
+                st.sidebar.info(f"💾 Last saved: {file_mtime.strftime('%H:%M')}")
+        else:
+            st.sidebar.warning("⚠️ No recent saves found")
     
     # Run selected page
     pages[selected_page]()
@@ -3892,6 +3923,7 @@ def auto_save_work_state():
         if current_count > 0 and current_count % 5 == 0 and current_count != st.session_state.last_auto_save:
             save_work_state()
             st.session_state.last_auto_save = current_count
+            st.session_state.last_manual_save = datetime.now()  # Track auto-save time too
 
 if __name__ == "__main__":
     main()
