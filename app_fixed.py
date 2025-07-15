@@ -1896,7 +1896,7 @@ def main():
         "🌐 Domain Classification": domain_classification_page
     }
     
-    selected_page = st.sidebar.selectbox("Navigate to:", list(pages.keys()))
+    selected_page = st.sidebar.radio("Navigate to:", list(pages.keys()))
     
     # Display current data status
     if st.session_state.data:
