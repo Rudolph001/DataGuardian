@@ -27,6 +27,7 @@ from urllib.parse import quote
 # Import custom modules
 from domain_classifier import DomainClassifier
 from security_config import SecurityConfig
+from data_persistence import DataPersistence
 
 # Initialize OpenAI client
 # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
@@ -61,6 +62,8 @@ def initialize_session_state():
         st.session_state.domain_classifier = DomainClassifier()
     if 'security_config' not in st.session_state:
         st.session_state.security_config = SecurityConfig()
+    if 'data_persistence' not in st.session_state:
+        st.session_state.data_persistence = DataPersistence()
 
 initialize_session_state()
 
@@ -1881,9 +1884,118 @@ def data_upload_page():
     st.markdown("""
     Upload CSV files up to 2GB containing email metadata for analysis.
     The system will validate required fields and process the data for security monitoring.
+    Data is automatically saved to JSON files for persistence across sessions.
     """)
     
-    st.subheader("Upload Your Data")
+    # Data persistence options
+    st.subheader("📅 Daily Data Management")
+    
+    persistence = st.session_state.data_persistence
+    available_dates = persistence.get_available_dates()
+    
+    if available_dates:
+        st.success(f"Found data for {len(available_dates)} dates")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            selected_date = st.selectbox(
+                "Load Previous Data",
+                ["None"] + available_dates,
+                help="Select a date to load previously uploaded data"
+            )
+            
+            if selected_date != "None":
+                if st.button("📂 Load Data", type="primary"):
+                    loaded_data = persistence.load_daily_data(selected_date)
+                    loaded_work_state = persistence.load_work_state(selected_date)
+                    
+                    if loaded_data:
+                        st.session_state.data = loaded_data
+                        st.success(f"✅ Loaded {len(loaded_data):,} records from {selected_date}")
+                        
+                        # Load work state if available
+                        if loaded_work_state:
+                            st.session_state.completed_reviews = loaded_work_state.get("completed_reviews", {})
+                            st.session_state.escalated_records = loaded_work_state.get("escalated_records", {})
+                            st.session_state.follow_up_decisions = loaded_work_state.get("follow_up_decisions", {})
+                            st.session_state.blocked_domains = loaded_work_state.get("blocked_domains", [])
+                            st.session_state.sender_status = loaded_work_state.get("sender_status", {})
+                            
+                            completed_count = len(st.session_state.completed_reviews)
+                            escalated_count = len(st.session_state.escalated_records)
+                            st.info(f"📊 Restored work state: {completed_count} completed reviews, {escalated_count} escalated records")
+                        
+                        st.rerun()
+                    else:
+                        st.error("Failed to load data")
+        
+        with col2:
+            st.markdown("**📊 Available Data Summary:**")
+            for date in available_dates[:5]:  # Show first 5
+                summary = persistence.get_data_summary(date)
+                if summary:
+                    st.write(f"**{date}:** {summary['total_records']:,} records")
+                    
+                    # Show risk distribution
+                    risk_dist = summary['risk_distribution']
+                    risk_text = []
+                    for risk, count in risk_dist.items():
+                        if count > 0:
+                            risk_text.append(f"{risk}: {count}")
+                    
+                    if risk_text:
+                        st.caption(f"   Risk: {', '.join(risk_text)}")
+        
+        # Data management tools
+        st.subheader("🔧 Data Management Tools")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            merge_dates = st.multiselect(
+                "Merge Multiple Days",
+                available_dates,
+                help="Select dates to merge into current session"
+            )
+            
+            if merge_dates and st.button("🔄 Merge Data"):
+                merged_data = persistence.merge_daily_data(merge_dates)
+                if merged_data:
+                    st.session_state.data = merged_data
+                    st.success(f"✅ Merged {len(merged_data):,} records from {len(merge_dates)} dates")
+                    st.rerun()
+        
+        with col2:
+            if st.button("📁 Export All Data"):
+                export_file = persistence.export_all_data()
+                if export_file:
+                    st.success(f"✅ Exported all data to {export_file}")
+                    
+                    # Provide download link
+                    with open(export_file, 'r', encoding='utf-8') as f:
+                        st.download_button(
+                            "📥 Download Export",
+                            data=f.read(),
+                            file_name=export_file,
+                            mime="application/json"
+                        )
+        
+        with col3:
+            delete_date = st.selectbox(
+                "Delete Data",
+                ["Select date..."] + available_dates,
+                key="delete_date"
+            )
+            
+            if delete_date != "Select date..." and st.button("🗑️ Delete", type="secondary"):
+                if persistence.delete_daily_data(delete_date):
+                    st.success(f"✅ Deleted data for {delete_date}")
+                    st.rerun()
+                else:
+                    st.error("Failed to delete data")
+    
+    st.subheader("📤 Upload New Data")
     
     # File upload
     uploaded_file = st.file_uploader(
@@ -1905,6 +2017,33 @@ def data_upload_page():
             
             if processed_data:
                 st.session_state.data = processed_data
+                
+                # Save to JSON with persistence
+                persistence = st.session_state.data_persistence
+                
+                # Option to specify date
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    save_date = st.date_input(
+                        "Save Date",
+                        value=datetime.now().date(),
+                        help="Date to associate with this data"
+                    )
+                
+                with col2:
+                    st.write("") # spacing
+                    st.write("") # spacing
+                    if st.button("💾 Save to JSON", type="primary"):
+                        date_str = save_date.strftime("%Y-%m-%d")
+                        saved_path = persistence.save_daily_data(processed_data, date_str)
+                        
+                        if saved_path:
+                            st.success(f"✅ Data saved to JSON for {date_str}")
+                            st.info(f"📁 Saved to: {saved_path}")
+                        else:
+                            st.error("Failed to save data to JSON")
+                
                 st.success(f"Successfully processed {len(processed_data):,} records!")
                 
                 # Show data summary
@@ -3408,6 +3547,9 @@ def domain_classification_page():
 
 def main():
     """Main application function"""
+    # Auto-save work state periodically
+    auto_save_work_state()
+    
     # Sidebar navigation
     st.sidebar.title("🛡️ ExfilEye DLP")
     st.sidebar.markdown("Data Loss Prevention Email Monitoring")
@@ -3436,10 +3578,61 @@ def main():
     st.sidebar.write(f"✅ Completed: {len(st.session_state.completed_reviews)}")
     st.sidebar.write(f"📨 Escalated: {len(st.session_state.escalated_records)}")
     
+    # Data persistence controls
+    st.sidebar.subheader("💾 Data Persistence")
+    persistence = st.session_state.data_persistence
     
+    col1, col2 = st.sidebar.columns(2)
+    
+    with col1:
+        if st.button("💾 Save Work", help="Save current work state"):
+            save_work_state()
+    
+    with col2:
+        available_dates = persistence.get_available_dates()
+        if available_dates:
+            st.caption(f"📅 {len(available_dates)} dates available")
     
     # Run selected page
     pages[selected_page]()
+
+def save_work_state():
+    """Save current work state to JSON"""
+    persistence = st.session_state.data_persistence
+    
+    work_state = {
+        "completed_reviews": st.session_state.completed_reviews,
+        "escalated_records": st.session_state.escalated_records,
+        "follow_up_decisions": st.session_state.follow_up_decisions,
+        "blocked_domains": st.session_state.blocked_domains,
+        "sender_status": st.session_state.sender_status
+    }
+    
+    saved_path = persistence.save_work_state(work_state)
+    
+    if saved_path:
+        st.sidebar.success("✅ Work state saved!")
+    else:
+        st.sidebar.error("❌ Failed to save work state")
+
+def auto_save_work_state():
+    """Auto-save work state periodically"""
+    # Check if we have any work to save
+    if (st.session_state.completed_reviews or 
+        st.session_state.escalated_records or 
+        st.session_state.follow_up_decisions):
+        
+        # Save every few interactions (simple approach)
+        if 'last_auto_save' not in st.session_state:
+            st.session_state.last_auto_save = 0
+        
+        current_count = (len(st.session_state.completed_reviews) + 
+                        len(st.session_state.escalated_records))
+        
+        # Auto-save every 5 actions
+        if current_count > 0 and current_count % 5 == 0 and current_count != st.session_state.last_auto_save:
+            save_work_state()
+            st.session_state.last_auto_save = current_count
 
 if __name__ == "__main__":
     main()
