@@ -409,7 +409,7 @@ class NetworkAnalyzer:
             node_text.append(f'{node}<br>In: {in_degree} | Out: {out_degree}')
             node_info.append(f'Node: {node}<br>Emails Received: {in_degree}<br>Emails Sent: {out_degree}<br>Total: {total_degree}')
         
-        # Main node trace with individual dragging enabled
+        # Main node trace
         node_trace = go.Scatter(
             x=node_x, y=node_y,
             mode='markers+text',
@@ -429,8 +429,6 @@ class NetworkAnalyzer:
             name='nodes',
             textposition="middle center",
             textfont=dict(size=8, color='white'),
-            # Enable individual node dragging
-            dragmode=None,
             hoverlabel=dict(bgcolor="white", font_size=12)
         )
         
