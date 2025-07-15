@@ -1501,7 +1501,8 @@ def get_risk_indicator(status):
         'critical': '🔴',
         'high': '🟠',
         'medium': '🟡',
-        'low': '🟢'
+        'low': '🟢',
+        'unclassified': '⚪'
     }
     return indicators.get(status.lower(), '⚪')
 
@@ -2092,7 +2093,7 @@ def security_operations_dashboard():
     st.subheader(f"Security Review Queue ({len(filtered_records):,} records)")
     
     # Risk metrics
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     
     with col1:
         critical_count = sum(1 for email in filtered_records if email.get('status', '').lower() == 'critical')
@@ -2109,6 +2110,10 @@ def security_operations_dashboard():
     with col4:
         low_count = sum(1 for email in filtered_records if email.get('status', '').lower() == 'low')
         st.metric("🟢 Low", f"{low_count:,}")
+    
+    with col5:
+        unclassified_count = sum(1 for email in filtered_records if email.get('status', '').lower() == 'unclassified')
+        st.metric("⚪ Unclassified", f"{unclassified_count:,}")
     
     # Timeline view options
     st.subheader("Timeline View")
