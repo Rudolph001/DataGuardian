@@ -1717,237 +1717,186 @@ def get_risk_indicator(status):
 def show_email_details_modal(email):
     """Show email details in pop-out window format with all fields and domain classification"""
     # Create a clean title for the modal
-    subject_preview = email.get('subject', 'No Subject')[:50]
-    if len(email.get('subject', '')) > 50:
+    subject_preview = email.get('subject', 'No Subject')[:80]
+    if len(email.get('subject', '')) > 80:
         subject_preview += "..."
     
     # Get domain classification
     domain = email.get('recipients_email_domain', 'Unknown')
     domain_classification = st.session_state.domain_classifier.classify_domain(domain)
     
-    # Classification color mapping
-    classification_colors = {
-        'Suspicious': '#ff4444',
-        'Free Email': '#ffaa00',
-        'Business': '#44aa44',
-        'Government': '#4444ff',
-        'Financial': '#ff8800',
-        'Cloud Providers': '#8844ff',
-        'Unknown': '#888888'
+    # Create full-width modal with better styling
+    st.markdown(f"""
+    <div style="
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 25px;
+        border-radius: 15px;
+        margin: 20px 0;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        border: 1px solid rgba(255,255,255,0.2);
+    ">
+        <h2 style="color: white; margin: 0; text-align: center; font-size: 28px;">
+            📧 Email Analysis Details
+        </h2>
+        <p style="color: #e0e0e0; text-align: center; margin: 10px 0 0 0; font-size: 18px;">
+            {subject_preview}
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Primary Email Information - Full width cards
+    st.subheader("📧 Email Information")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.info(f"""
+        **📤 From:** {email.get('sender', 'Unknown')}
+        
+        **📥 To:** {email.get('recipients', 'Unknown')}
+        
+        **📝 Subject:** {email.get('subject', 'No Subject')}
+        
+        **⏰ Time:** {email.get('_time', 'Unknown')}
+        
+        **📅 Time Month:** {email.get('time_month', 'Unknown')}
+        """)
+    
+    with col2:
+        # Handle attachments display
+        attachment_value = email.get('attachments', '')
+        if attachment_value and attachment_value not in [True, False, 'True', 'False']:
+            attachment_text = f"📎 {attachment_value}"
+        elif attachment_value:
+            attachment_text = "✅ Yes"
+        else:
+            attachment_text = "❌ No"
+        
+        st.warning(f"""
+        **🌐 Recipients Domain:** {domain}
+        
+        **🏷️ Domain Classification:** {domain_classification}
+        
+        **⚠️ Status:** {email.get('status', 'Unknown').title()}
+        
+        **📎 Attachments:** {attachment_text}
+        
+        **🔐 Encryption:** {email.get('encryption', 'Unknown')}
+        """)
+    
+    # Security & Compliance Section
+    st.subheader("🔒 Security & Compliance")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.error(f"""
+        **🛡️ Minecast:** {'✅ Yes' if email.get('minecast') else '❌ No'}
+        
+        **🔍 Tessian:** {'✅ Yes' if email.get('tessian') else '❌ No'}
+        
+        **📊 Tessian Status A:** {email.get('tessian_status_A', 'Unknown')}
+        """)
+    
+    with col2:
+        st.success(f"""
+        **📊 Tessian Status B:** {email.get('tessian_status_B', 'Unknown')}
+        
+        **📎 Wordlist Attachment:** {'⚠️ Yes' if email.get('wordlist_attachment') else '✅ No'}
+        
+        **📝 Wordlist Subject:** {'⚠️ Yes' if email.get('wordlist_subject') else '✅ No'}
+        """)
+    
+    with col3:
+        st.warning(f"""
+        **👋 Leaver:** {'⚠️ Yes' if email.get('leaver') else '✅ No'}
+        
+        **🚪 Termination:** {'⚠️ Yes' if email.get('Termination') else '✅ No'}
+        """)
+    
+    # Organizational Information
+    st.subheader("🏢 Organizational Information")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.info(f"""
+        **🏛️ Department:** {email.get('department', 'Unknown')}
+        
+        **🏢 Business Unit:** {email.get('bunit', 'Unknown')}
+        """)
+    
+    with col2:
+        st.info(f"""
+        **👤 Account Type:** {email.get('account_type', 'Unknown')}
+        """)
+    
+    # Additional Fields
+    st.subheader("📋 Additional Fields")
+    
+    # Get all fields that weren't already displayed
+    displayed_fields = {
+        'sender', 'recipients', 'subject', '_time', 'time_month', 
+        'recipients_email_domain', 'attachments', 'status', 'minecast', 
+        'tessian', 'tessian_status_A', 'tessian_status_B', 'wordlist_attachment', 
+        'wordlist_subject', 'leaver', 'Termination', 'department', 'bunit', 
+        'account_type', 'encryption'
     }
     
-    classification_color = classification_colors.get(domain_classification, '#888888')
+    additional_fields = {k: v for k, v in email.items() if k not in displayed_fields}
     
-    # Create pop-out window with prominent styling
-    with st.container():
-        # Header with prominent styling
-        st.markdown(f"""
-        <div style="
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px;
-            border-radius: 15px;
-            margin: 10px 0;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.2);
-        ">
-            <h2 style="color: white; margin: 0; text-align: center; font-size: 24px;">
-                📧 Email Analysis Details
-            </h2>
-            <p style="color: #e0e0e0; text-align: center; margin: 5px 0 0 0; font-size: 16px;">
-                {subject_preview}
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Main content in a styled container
-        st.markdown(f"""
-        <div style="
-            background: rgba(255,255,255,0.05);
-            backdrop-filter: blur(10px);
-            border-radius: 15px;
-            padding: 25px;
-            margin: 15px 0;
-            border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-        ">
-        """, unsafe_allow_html=True)
-        
-        # Primary Email Information with enhanced styling
-        st.markdown("### 📧 Email Information")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown(f"""
-            <div style="background: rgba(100,149,237,0.1); padding: 15px; border-radius: 10px; margin: 10px 0;">
-                <p><strong>📤 From:</strong> {email.get('sender', 'Unknown')}</p>
-                <p><strong>📥 To:</strong> {email.get('recipients', 'Unknown')}</p>
-                <p><strong>📝 Subject:</strong> {email.get('subject', 'No Subject')}</p>
-                <p><strong>⏰ Time:</strong> {email.get('_time', 'Unknown')}</p>
-                <p><strong>📅 Time Month:</strong> {email.get('time_month', 'Unknown')}</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            attachment_value = email.get('attachments', '')
-            if attachment_value and attachment_value not in [True, False, 'True', 'False']:
-                attachment_text = f"📎 {attachment_value}"
-            elif attachment_value:
-                attachment_text = "✅ Yes"
-            else:
-                attachment_text = "❌ No"
-            
-            risk_status = email.get('status', 'Unknown')
-            termination_value = email.get('Termination', '')
-            termination_text = f"⚠️ {termination_value}" if termination_value else "✅ No"
-            
-            st.markdown(f"""
-            <div style="background: rgba(255,140,0,0.1); padding: 15px; border-radius: 10px; margin: 10px 0;">
-                <p><strong>🌐 Recipients Domain:</strong> {domain}</p>
-                <p><strong>🏷️ Domain Classification:</strong> 
-                    <span style="background: {classification_color}; color: white; padding: 4px 8px; border-radius: 15px; font-weight: bold;">
-                        {domain_classification}
-                    </span>
-                </p>
-                <p><strong>📎 Attachments:</strong> {attachment_text}</p>
-                <p><strong>⚠️ Risk Status:</strong> {get_risk_indicator(risk_status)} {risk_status.title()}</p>
-                <p><strong>🚪 Termination:</strong> {termination_text}</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # Security & Compliance Section with enhanced styling
-        st.markdown("### 🔒 Security & Compliance")
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.markdown(f"""
-            <div style="background: rgba(255,69,0,0.1); padding: 15px; border-radius: 10px; margin: 10px 0;">
-                <p><strong>🛡️ Minecast:</strong> {'✅ Yes' if email.get('minecast') else '❌ No'}</p>
-                <p><strong>🔍 Tessian:</strong> {'✅ Yes' if email.get('tessian') else '❌ No'}</p>
-                <p><strong>📊 Tessian Status A:</strong> {email.get('tessian_status_A', 'Unknown')}</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            st.markdown(f"""
-            <div style="background: rgba(50,205,50,0.1); padding: 15px; border-radius: 10px; margin: 10px 0;">
-                <p><strong>📊 Tessian Status B:</strong> {email.get('tessian_status_B', 'Unknown')}</p>
-                <p><strong>📎 Wordlist Attachment:</strong> {'⚠️ Yes' if email.get('wordlist_attachment') else '✅ No'}</p>
-                <p><strong>📝 Wordlist Subject:</strong> {'⚠️ Yes' if email.get('wordlist_subject') else '✅ No'}</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col3:
-            st.markdown(f"""
-            <div style="background: rgba(255,20,147,0.1); padding: 15px; border-radius: 10px; margin: 10px 0;">
-                <p><strong>👋 Leaver:</strong> {'⚠️ Yes' if email.get('leaver') else '✅ No'}</p>
-                <p><strong>🚪 Termination:</strong> {'⚠️ Yes' if email.get('Termination') else '✅ No'}</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # Organizational Information with enhanced styling
-        st.markdown("### 🏢 Organizational Information")
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown(f"""
-            <div style="background: rgba(70,130,180,0.1); padding: 15px; border-radius: 10px; margin: 10px 0;">
-                <p><strong>🏛️ Department:</strong> {email.get('department', 'Unknown')}</p>
-                <p><strong>🏢 Business Unit:</strong> {email.get('bunit', 'Unknown')}</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col2:
-            st.markdown(f"""
-            <div style="background: rgba(147,112,219,0.1); padding: 15px; border-radius: 10px; margin: 10px 0;">
-                <p><strong>👤 Account Type:</strong> {email.get('account_type', 'Unknown')}</p>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # Domain Classification Details Section
-        st.markdown("### 🌐 Domain Classification Details")
-        st.markdown(f"""
-        <div style="
-            background: linear-gradient(135deg, {classification_color}20, {classification_color}10);
-            border-left: 5px solid {classification_color};
-            padding: 20px;
-            border-radius: 10px;
-            margin: 15px 0;
-        ">
-            <h4 style="color: {classification_color}; margin-top: 0;">
-                🏷️ Classification: {domain_classification}
-            </h4>
-            <p><strong>🌐 Domain:</strong> {domain}</p>
-            <p><strong>📊 Classification Confidence:</strong> Auto-detected</p>
-            <p><strong>🔍 Last Updated:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Additional Fields (for any extra fields not explicitly handled)
-        st.markdown("### 📋 Additional Fields")
-        
-        # Get all fields that weren't already displayed
-        displayed_fields = {
-            'sender', 'recipients', 'subject', '_time', 'time_month', 
-            'recipients_email_domain', 'attachments', 'status', 'minecast', 
-            'tessian', 'tessian_status_A', 'tessian_status_B', 'wordlist_attachment', 
-            'wordlist_subject', 'leaver', 'Termination', 'department', 'bunit', 
-            'account_type'
-        }
-        
-        additional_fields = {k: v for k, v in email.items() if k not in displayed_fields}
-        
-        if additional_fields:
-            st.markdown(f"""
-            <div style="background: rgba(128,128,128,0.1); padding: 15px; border-radius: 10px; margin: 10px 0;">
-            """, unsafe_allow_html=True)
-            
-            cols = st.columns(2)
-            for i, (field, value) in enumerate(additional_fields.items()):
-                with cols[i % 2]:
-                    # Format field name nicely
-                    field_name = field.replace('_', ' ').title()
-                    st.markdown(f"**{field_name}:** {value}")
-            
-            st.markdown("</div>", unsafe_allow_html=True)
-        else:
-            st.markdown("""
-            <div style="background: rgba(128,128,128,0.1); padding: 15px; border-radius: 10px; margin: 10px 0; text-align: center; color: #888;">
-                <em>No additional fields</em>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # Action buttons with enhanced styling
-        st.markdown("### 🔧 Actions")
-        col1, col2, col3 = st.columns([1, 1, 1])
-        
-        with col1:
-            if st.button("✅ Clear", key=f"modal_clear_{hash(str(email))}", type="secondary", use_container_width=True):
-                email_id = str(hash(str(email)))
-                st.session_state.completed_reviews[email_id] = {
-                    'email': email,
-                    'decision': 'clear',
-                    'timestamp': datetime.now()
-                }
-                st.success("Email marked as cleared!")
-                st.rerun()
-        
-        with col2:
-            if st.button("🚨 Escalate", key=f"modal_escalate_{hash(str(email))}", type="primary", use_container_width=True):
-                email_id = str(hash(str(email)))
-                st.session_state.escalated_records[email_id] = {
-                    'email': email,
-                    'decision': 'escalate',
-                    'timestamp': datetime.now()
-                }
-                st.success("Email escalated for follow-up!")
-                st.rerun()
-        
-        with col3:
-            if st.button("🌐 Update Domain", key=f"modal_domain_{hash(str(email))}", use_container_width=True):
-                st.info("Domain classification update feature - coming soon!")
-        
-        # Close the main container
-        st.markdown("</div>", unsafe_allow_html=True)
+    if additional_fields:
+        cols = st.columns(2)
+        for i, (field, value) in enumerate(additional_fields.items()):
+            with cols[i % 2]:
+                # Format field name nicely
+                field_name = field.replace('_', ' ').title()
+                st.write(f"**{field_name}:** {value}")
+    else:
+        st.info("No additional fields to display")
+    
+    # Action buttons
+    st.subheader("🔧 Actions")
+    col1, col2, col3 = st.columns([1, 1, 1])
+    
+    with col1:
+        if st.button("✅ Clear", key=f"modal_clear_{hash(str(email))}", type="secondary", use_container_width=True):
+            email_id = str(hash(str(email)))
+            st.session_state.completed_reviews[email_id] = {
+                'email': email,
+                'decision': 'clear',
+                'timestamp': datetime.now()
+            }
+            st.success("Email marked as cleared!")
+            st.rerun()
+    
+    with col2:
+        if st.button("🚨 Escalate", key=f"modal_escalate_{hash(str(email))}", type="primary", use_container_width=True):
+            email_id = str(hash(str(email)))
+            st.session_state.escalated_records[email_id] = {
+                'email': email,
+                'decision': 'escalate',
+                'timestamp': datetime.now()
+            }
+            st.success("Email escalated for follow-up!")
+            st.rerun()
+    
+    with col3:
+        if st.button("🌐 Update Domain", key=f"modal_domain_{hash(str(email))}", use_container_width=True):
+            st.info("Domain classification update feature - coming soon!")
+    
+    # Summary Footer
+    st.markdown("---")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("Domain Classification", domain_classification)
+    
+    with col2:
+        st.metric("Current Status", email.get('status', 'Unknown').title())
+    
+    with col3:
+        st.metric("Risk Score", email.get('risk_score', 'Unknown'))
         
         
 
