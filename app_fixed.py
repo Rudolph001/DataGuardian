@@ -48,16 +48,80 @@ def initialize_session_state():
     """Initialize all session state variables"""
     if 'data' not in st.session_state:
         st.session_state.data = None
+    
+    # Security Operations Dashboard state
+    if 'completed_reviews' not in st.session_state:
+        st.session_state.completed_reviews = {}
+    if 'escalated_records' not in st.session_state:
+        st.session_state.escalated_records = {}
+    if 'active_filters' not in st.session_state:
+        st.session_state.active_filters = {}
+    if 'review_decisions' not in st.session_state:
+        st.session_state.review_decisions = {}
+    if 'last_reviewed_email' not in st.session_state:
+        st.session_state.last_reviewed_email = ""
+    if 'review_session_start' not in st.session_state:
+        st.session_state.review_session_start = ""
+    if 'total_reviews_this_session' not in st.session_state:
+        st.session_state.total_reviews_this_session = 0
+    
+    # Email Check Completed Dashboard state
+    if 'review_notes' not in st.session_state:
+        st.session_state.review_notes = {}
+    if 'reviewer_assignments' not in st.session_state:
+        st.session_state.reviewer_assignments = {}
+    if 'completion_timestamps' not in st.session_state:
+        st.session_state.completion_timestamps = {}
+    if 'review_quality_scores' not in st.session_state:
+        st.session_state.review_quality_scores = {}
+    if 'batch_review_sessions' not in st.session_state:
+        st.session_state.batch_review_sessions = []
+    
+    # Follow-up Center Dashboard state
+    if 'followup_status' not in st.session_state:
+        st.session_state.followup_status = {}
+    if 'followup_notes' not in st.session_state:
+        st.session_state.followup_notes = {}
+    if 'email_templates' not in st.session_state:
+        st.session_state.email_templates = {}
+    if 'followup_assignments' not in st.session_state:
+        st.session_state.followup_assignments = {}
+    if 'escalation_reasons' not in st.session_state:
+        st.session_state.escalation_reasons = {}
+    if 'followup_deadlines' not in st.session_state:
+        st.session_state.followup_deadlines = {}
+    if 'email_sent_status' not in st.session_state:
+        st.session_state.email_sent_status = {}
+    if 'template_drafts' not in st.session_state:
+        st.session_state.template_drafts = {}
+    
+    # General system state
     if 'follow_up_decisions' not in st.session_state:
         st.session_state.follow_up_decisions = {}
     if 'blocked_domains' not in st.session_state:
         st.session_state.blocked_domains = []
     if 'sender_status' not in st.session_state:
         st.session_state.sender_status = {}
-    if 'completed_reviews' not in st.session_state:
-        st.session_state.completed_reviews = {}
-    if 'escalated_records' not in st.session_state:
-        st.session_state.escalated_records = {}
+    if 'domain_classifications' not in st.session_state:
+        st.session_state.domain_classifications = {}
+    if 'user_preferences' not in st.session_state:
+        st.session_state.user_preferences = {}
+    if 'session_statistics' not in st.session_state:
+        st.session_state.session_statistics = {}
+    
+    # UI state
+    if 'selected_filters' not in st.session_state:
+        st.session_state.selected_filters = {}
+    if 'sort_preferences' not in st.session_state:
+        st.session_state.sort_preferences = {}
+    if 'view_modes' not in st.session_state:
+        st.session_state.view_modes = {}
+    if 'expanded_sections' not in st.session_state:
+        st.session_state.expanded_sections = {}
+    if 'modal_states' not in st.session_state:
+        st.session_state.modal_states = {}
+    
+    # System components
     if 'domain_classifier' not in st.session_state:
         st.session_state.domain_classifier = DomainClassifier()
     if 'security_config' not in st.session_state:
@@ -1916,15 +1980,51 @@ def data_upload_page():
                         
                         # Load work state if available
                         if loaded_work_state:
+                            # Security Operations Dashboard
                             st.session_state.completed_reviews = loaded_work_state.get("completed_reviews", {})
                             st.session_state.escalated_records = loaded_work_state.get("escalated_records", {})
+                            st.session_state.active_filters = loaded_work_state.get("active_filters", {})
+                            st.session_state.review_decisions = loaded_work_state.get("review_decisions", {})
+                            st.session_state.last_reviewed_email = loaded_work_state.get("last_reviewed_email", "")
+                            st.session_state.review_session_start = loaded_work_state.get("review_session_start", "")
+                            st.session_state.total_reviews_this_session = loaded_work_state.get("total_reviews_this_session", 0)
+                            
+                            # Email Check Completed Dashboard
+                            st.session_state.review_notes = loaded_work_state.get("review_notes", {})
+                            st.session_state.reviewer_assignments = loaded_work_state.get("reviewer_assignments", {})
+                            st.session_state.completion_timestamps = loaded_work_state.get("completion_timestamps", {})
+                            st.session_state.review_quality_scores = loaded_work_state.get("review_quality_scores", {})
+                            st.session_state.batch_review_sessions = loaded_work_state.get("batch_review_sessions", [])
+                            
+                            # Follow-up Center Dashboard
+                            st.session_state.followup_status = loaded_work_state.get("followup_status", {})
+                            st.session_state.followup_notes = loaded_work_state.get("followup_notes", {})
+                            st.session_state.email_templates = loaded_work_state.get("email_templates", {})
+                            st.session_state.followup_assignments = loaded_work_state.get("followup_assignments", {})
+                            st.session_state.escalation_reasons = loaded_work_state.get("escalation_reasons", {})
+                            st.session_state.followup_deadlines = loaded_work_state.get("followup_deadlines", {})
+                            st.session_state.email_sent_status = loaded_work_state.get("email_sent_status", {})
+                            st.session_state.template_drafts = loaded_work_state.get("template_drafts", {})
+                            
+                            # General system state
                             st.session_state.follow_up_decisions = loaded_work_state.get("follow_up_decisions", {})
                             st.session_state.blocked_domains = loaded_work_state.get("blocked_domains", [])
                             st.session_state.sender_status = loaded_work_state.get("sender_status", {})
+                            st.session_state.domain_classifications = loaded_work_state.get("domain_classifications", {})
+                            st.session_state.user_preferences = loaded_work_state.get("user_preferences", {})
+                            st.session_state.session_statistics = loaded_work_state.get("session_statistics", {})
+                            
+                            # UI state
+                            st.session_state.selected_filters = loaded_work_state.get("selected_filters", {})
+                            st.session_state.sort_preferences = loaded_work_state.get("sort_preferences", {})
+                            st.session_state.view_modes = loaded_work_state.get("view_modes", {})
+                            st.session_state.expanded_sections = loaded_work_state.get("expanded_sections", {})
+                            st.session_state.modal_states = loaded_work_state.get("modal_states", {})
                             
                             completed_count = len(st.session_state.completed_reviews)
                             escalated_count = len(st.session_state.escalated_records)
-                            st.info(f"📊 Restored work state: {completed_count} completed reviews, {escalated_count} escalated records")
+                            template_count = len(st.session_state.email_templates)
+                            st.info(f"📊 Restored complete work state: {completed_count} completed reviews, {escalated_count} escalated records, {template_count} email templates")
                         
                         st.rerun()
                     else:
@@ -3589,11 +3689,46 @@ def save_work_state():
     persistence = st.session_state.data_persistence
     
     work_state = {
+        # Security Operations Dashboard
         "completed_reviews": st.session_state.completed_reviews,
         "escalated_records": st.session_state.escalated_records,
+        "active_filters": st.session_state.active_filters,
+        "review_decisions": st.session_state.review_decisions,
+        "last_reviewed_email": st.session_state.last_reviewed_email,
+        "review_session_start": st.session_state.review_session_start,
+        "total_reviews_this_session": st.session_state.total_reviews_this_session,
+        
+        # Email Check Completed Dashboard
+        "review_notes": st.session_state.review_notes,
+        "reviewer_assignments": st.session_state.reviewer_assignments,
+        "completion_timestamps": st.session_state.completion_timestamps,
+        "review_quality_scores": st.session_state.review_quality_scores,
+        "batch_review_sessions": st.session_state.batch_review_sessions,
+        
+        # Follow-up Center Dashboard
+        "followup_status": st.session_state.followup_status,
+        "followup_notes": st.session_state.followup_notes,
+        "email_templates": st.session_state.email_templates,
+        "followup_assignments": st.session_state.followup_assignments,
+        "escalation_reasons": st.session_state.escalation_reasons,
+        "followup_deadlines": st.session_state.followup_deadlines,
+        "email_sent_status": st.session_state.email_sent_status,
+        "template_drafts": st.session_state.template_drafts,
+        
+        # General system state
         "follow_up_decisions": st.session_state.follow_up_decisions,
         "blocked_domains": st.session_state.blocked_domains,
-        "sender_status": st.session_state.sender_status
+        "sender_status": st.session_state.sender_status,
+        "domain_classifications": st.session_state.domain_classifications,
+        "user_preferences": st.session_state.user_preferences,
+        "session_statistics": st.session_state.session_statistics,
+        
+        # UI state
+        "selected_filters": st.session_state.selected_filters,
+        "sort_preferences": st.session_state.sort_preferences,
+        "view_modes": st.session_state.view_modes,
+        "expanded_sections": st.session_state.expanded_sections,
+        "modal_states": st.session_state.modal_states
     }
     
     saved_path = persistence.save_work_state(work_state)

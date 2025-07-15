@@ -77,15 +77,64 @@ class DataPersistence:
         filename = f"work_state_{upload_date}.json"
         filepath = os.path.join(self.work_state_folder, filename)
         
-        # Add metadata
+        # Add metadata and comprehensive dashboard states
         work_state_with_metadata = {
             "save_date": upload_date,
             "save_timestamp": datetime.now().isoformat(),
-            "completed_reviews": work_state.get("completed_reviews", {}),
-            "escalated_records": work_state.get("escalated_records", {}),
-            "follow_up_decisions": work_state.get("follow_up_decisions", {}),
-            "blocked_domains": work_state.get("blocked_domains", []),
-            "sender_status": work_state.get("sender_status", {})
+            "version": "2.0",  # Version for compatibility
+            
+            # Security Operations Dashboard state
+            "security_operations": {
+                "completed_reviews": work_state.get("completed_reviews", {}),
+                "escalated_records": work_state.get("escalated_records", {}),
+                "active_filters": work_state.get("active_filters", {}),
+                "review_decisions": work_state.get("review_decisions", {}),
+                "last_reviewed_email": work_state.get("last_reviewed_email", ""),
+                "review_session_start": work_state.get("review_session_start", ""),
+                "total_reviews_this_session": work_state.get("total_reviews_this_session", 0)
+            },
+            
+            # Email Check Completed Dashboard state
+            "email_check_completed": {
+                "completed_reviews": work_state.get("completed_reviews", {}),
+                "review_notes": work_state.get("review_notes", {}),
+                "reviewer_assignments": work_state.get("reviewer_assignments", {}),
+                "completion_timestamps": work_state.get("completion_timestamps", {}),
+                "review_quality_scores": work_state.get("review_quality_scores", {}),
+                "batch_review_sessions": work_state.get("batch_review_sessions", [])
+            },
+            
+            # Follow-up Center Dashboard state
+            "followup_center": {
+                "escalated_records": work_state.get("escalated_records", {}),
+                "followup_status": work_state.get("followup_status", {}),
+                "followup_notes": work_state.get("followup_notes", {}),
+                "email_templates": work_state.get("email_templates", {}),
+                "followup_assignments": work_state.get("followup_assignments", {}),
+                "escalation_reasons": work_state.get("escalation_reasons", {}),
+                "followup_deadlines": work_state.get("followup_deadlines", {}),
+                "email_sent_status": work_state.get("email_sent_status", {}),
+                "template_drafts": work_state.get("template_drafts", {})
+            },
+            
+            # General system state
+            "system_state": {
+                "follow_up_decisions": work_state.get("follow_up_decisions", {}),
+                "blocked_domains": work_state.get("blocked_domains", []),
+                "sender_status": work_state.get("sender_status", {}),
+                "domain_classifications": work_state.get("domain_classifications", {}),
+                "user_preferences": work_state.get("user_preferences", {}),
+                "session_statistics": work_state.get("session_statistics", {})
+            },
+            
+            # Dashboard interaction state
+            "ui_state": {
+                "selected_filters": work_state.get("selected_filters", {}),
+                "sort_preferences": work_state.get("sort_preferences", {}),
+                "view_modes": work_state.get("view_modes", {}),
+                "expanded_sections": work_state.get("expanded_sections", {}),
+                "modal_states": work_state.get("modal_states", {})
+            }
         }
         
         try:
@@ -112,14 +161,63 @@ class DataPersistence:
             with open(filepath, 'r', encoding='utf-8') as f:
                 work_state_with_metadata = json.load(f)
             
-            # Return only the work state data
-            return {
-                "completed_reviews": work_state_with_metadata.get("completed_reviews", {}),
-                "escalated_records": work_state_with_metadata.get("escalated_records", {}),
-                "follow_up_decisions": work_state_with_metadata.get("follow_up_decisions", {}),
-                "blocked_domains": work_state_with_metadata.get("blocked_domains", []),
-                "sender_status": work_state_with_metadata.get("sender_status", {})
-            }
+            # Check version for compatibility
+            version = work_state_with_metadata.get("version", "1.0")
+            
+            if version == "2.0":
+                # New format with detailed dashboard states
+                return {
+                    # Security Operations Dashboard
+                    "completed_reviews": work_state_with_metadata.get("security_operations", {}).get("completed_reviews", {}),
+                    "escalated_records": work_state_with_metadata.get("security_operations", {}).get("escalated_records", {}),
+                    "active_filters": work_state_with_metadata.get("security_operations", {}).get("active_filters", {}),
+                    "review_decisions": work_state_with_metadata.get("security_operations", {}).get("review_decisions", {}),
+                    "last_reviewed_email": work_state_with_metadata.get("security_operations", {}).get("last_reviewed_email", ""),
+                    "review_session_start": work_state_with_metadata.get("security_operations", {}).get("review_session_start", ""),
+                    "total_reviews_this_session": work_state_with_metadata.get("security_operations", {}).get("total_reviews_this_session", 0),
+                    
+                    # Email Check Completed Dashboard
+                    "review_notes": work_state_with_metadata.get("email_check_completed", {}).get("review_notes", {}),
+                    "reviewer_assignments": work_state_with_metadata.get("email_check_completed", {}).get("reviewer_assignments", {}),
+                    "completion_timestamps": work_state_with_metadata.get("email_check_completed", {}).get("completion_timestamps", {}),
+                    "review_quality_scores": work_state_with_metadata.get("email_check_completed", {}).get("review_quality_scores", {}),
+                    "batch_review_sessions": work_state_with_metadata.get("email_check_completed", {}).get("batch_review_sessions", []),
+                    
+                    # Follow-up Center Dashboard
+                    "followup_status": work_state_with_metadata.get("followup_center", {}).get("followup_status", {}),
+                    "followup_notes": work_state_with_metadata.get("followup_center", {}).get("followup_notes", {}),
+                    "email_templates": work_state_with_metadata.get("followup_center", {}).get("email_templates", {}),
+                    "followup_assignments": work_state_with_metadata.get("followup_center", {}).get("followup_assignments", {}),
+                    "escalation_reasons": work_state_with_metadata.get("followup_center", {}).get("escalation_reasons", {}),
+                    "followup_deadlines": work_state_with_metadata.get("followup_center", {}).get("followup_deadlines", {}),
+                    "email_sent_status": work_state_with_metadata.get("followup_center", {}).get("email_sent_status", {}),
+                    "template_drafts": work_state_with_metadata.get("followup_center", {}).get("template_drafts", {}),
+                    
+                    # General system state
+                    "follow_up_decisions": work_state_with_metadata.get("system_state", {}).get("follow_up_decisions", {}),
+                    "blocked_domains": work_state_with_metadata.get("system_state", {}).get("blocked_domains", []),
+                    "sender_status": work_state_with_metadata.get("system_state", {}).get("sender_status", {}),
+                    "domain_classifications": work_state_with_metadata.get("system_state", {}).get("domain_classifications", {}),
+                    "user_preferences": work_state_with_metadata.get("system_state", {}).get("user_preferences", {}),
+                    "session_statistics": work_state_with_metadata.get("system_state", {}).get("session_statistics", {}),
+                    
+                    # UI state
+                    "selected_filters": work_state_with_metadata.get("ui_state", {}).get("selected_filters", {}),
+                    "sort_preferences": work_state_with_metadata.get("ui_state", {}).get("sort_preferences", {}),
+                    "view_modes": work_state_with_metadata.get("ui_state", {}).get("view_modes", {}),
+                    "expanded_sections": work_state_with_metadata.get("ui_state", {}).get("expanded_sections", {}),
+                    "modal_states": work_state_with_metadata.get("ui_state", {}).get("modal_states", {})
+                }
+            else:
+                # Legacy format compatibility
+                return {
+                    "completed_reviews": work_state_with_metadata.get("completed_reviews", {}),
+                    "escalated_records": work_state_with_metadata.get("escalated_records", {}),
+                    "follow_up_decisions": work_state_with_metadata.get("follow_up_decisions", {}),
+                    "blocked_domains": work_state_with_metadata.get("blocked_domains", []),
+                    "sender_status": work_state_with_metadata.get("sender_status", {})
+                }
+                
         except Exception as e:
             print(f"Error loading work state: {e}")
             return None
