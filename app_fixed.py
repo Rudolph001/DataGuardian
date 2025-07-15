@@ -1044,7 +1044,7 @@ class ReportGenerator:
     def create_pie_chart(self, data_dict, title, colors_palette=None):
         """Create a professional pie chart and return as reportlab Image"""
         plt.style.use('default')
-        fig, ax = plt.subplots(figsize=(8, 6))
+        fig, ax = plt.subplots(figsize=(9, 7))
         
         # Define colors if not provided
         if colors_palette is None:
@@ -1057,25 +1057,36 @@ class ReportGenerator:
             plt.close(fig)
             return None
             
+        # Calculate total for better percentage display
+        total = sum(filtered_data.values())
+        
         wedges, texts, autotexts = ax.pie(
             filtered_data.values(), 
             labels=filtered_data.keys(),
-            autopct='%1.1f%%',
+            autopct=lambda pct: f'{pct:.1f}%\n({int(pct/100*total):,})',
             colors=colors_palette[:len(filtered_data)],
             startangle=90,
-            explode=[0.05] * len(filtered_data)
+            explode=[0.02] * len(filtered_data),
+            shadow=True,
+            textprops={'fontsize': 10, 'fontweight': 'bold'}
         )
         
         # Enhance text appearance
         for text in texts:
-            text.set_fontsize(10)
+            text.set_fontsize(12)
             text.set_fontweight('bold')
         for autotext in autotexts:
             autotext.set_color('white')
-            autotext.set_fontsize(9)
+            autotext.set_fontsize(10)
             autotext.set_fontweight('bold')
         
-        ax.set_title(title, fontsize=14, fontweight='bold', pad=20)
+        ax.set_title(title, fontsize=16, fontweight='bold', pad=25)
+        
+        # Add a legend
+        ax.legend(wedges, [f'{k}: {v:,}' for k, v in filtered_data.items()],
+                 title="Risk Levels",
+                 loc="center left",
+                 bbox_to_anchor=(1, 0, 0.5, 1))
         
         # Save to BytesIO and return as reportlab Image
         img_buffer = io.BytesIO()
@@ -1084,7 +1095,7 @@ class ReportGenerator:
         img_buffer.seek(0)
         plt.close(fig)
         
-        return Image(img_buffer, width=4*inch, height=3*inch)
+        return Image(img_buffer, width=5*inch, height=4*inch)
     
     def create_bar_chart(self, data_dict, title, xlabel, ylabel):
         """Create a professional bar chart and return as reportlab Image"""
@@ -1094,24 +1105,39 @@ class ReportGenerator:
         # Sort data by values for better visualization
         sorted_data = dict(sorted(data_dict.items(), key=lambda x: x[1], reverse=True))
         
-        # Create color gradient
-        colors_list = plt.cm.Blues(np.linspace(0.4, 0.8, len(sorted_data)))
+        # Create professional color gradient
+        colors_list = plt.cm.viridis(np.linspace(0.2, 0.8, len(sorted_data)))
         
-        bars = ax.bar(sorted_data.keys(), sorted_data.values(), color=colors_list)
+        bars = ax.bar(sorted_data.keys(), sorted_data.values(), color=colors_list, 
+                     edgecolor='white', linewidth=1.5)
         
         # Add value labels on bars
         for bar in bars:
             height = bar.get_height()
             ax.text(bar.get_x() + bar.get_width()/2., height + height*0.01,
-                   f'{int(height):,}', ha='center', va='bottom', fontweight='bold')
+                   f'{int(height):,}', ha='center', va='bottom', 
+                   fontweight='bold', fontsize=11)
         
-        ax.set_title(title, fontsize=14, fontweight='bold', pad=20)
-        ax.set_xlabel(xlabel, fontsize=12, fontweight='bold')
-        ax.set_ylabel(ylabel, fontsize=12, fontweight='bold')
+        ax.set_title(title, fontsize=16, fontweight='bold', pad=25)
+        ax.set_xlabel(xlabel, fontsize=13, fontweight='bold')
+        ax.set_ylabel(ylabel, fontsize=13, fontweight='bold')
         
         # Rotate x-axis labels for better readability
-        plt.xticks(rotation=45, ha='right')
-        ax.grid(axis='y', alpha=0.3)
+        plt.xticks(rotation=45, ha='right', fontsize=10)
+        plt.yticks(fontsize=10)
+        
+        # Add professional grid
+        ax.grid(axis='y', alpha=0.3, linestyle='--', linewidth=0.5)
+        ax.set_axisbelow(True)
+        
+        # Set background color
+        ax.set_facecolor('#f8f9fa')
+        
+        # Add border
+        for spine in ax.spines.values():
+            spine.set_visible(True)
+            spine.set_linewidth(1)
+            spine.set_color('black')
         
         # Save to BytesIO and return as reportlab Image
         img_buffer = io.BytesIO()
@@ -1121,7 +1147,7 @@ class ReportGenerator:
         img_buffer.seek(0)
         plt.close(fig)
         
-        return Image(img_buffer, width=5*inch, height=3*inch)
+        return Image(img_buffer, width=6*inch, height=4.5*inch)
     
     def create_trend_chart(self, time_data, title):
         """Create a professional trend line chart"""
@@ -1227,13 +1253,14 @@ class ReportGenerator:
             total_emails = len(data)
             risk_counts = {}
             for email in data:
-                status = email.get('status', 'unknown')
+                status = email.get('status', 'unknown').lower()
                 risk_counts[status] = risk_counts.get(status, 0) + 1
             
             critical_count = risk_counts.get('critical', 0)
             high_count = risk_counts.get('high', 0)
             medium_count = risk_counts.get('medium', 0)
             low_count = risk_counts.get('low', 0)
+            unclassified_count = risk_counts.get('unclassified', 0)
             
             # Calculate review metrics
             completed_reviews = len(st.session_state.completed_reviews) if 'completed_reviews' in st.session_state else 0
@@ -1244,6 +1271,9 @@ class ReportGenerator:
             # Risk percentage calculations
             critical_pct = (critical_count / total_emails) * 100 if total_emails > 0 else 0
             high_pct = (high_count / total_emails) * 100 if total_emails > 0 else 0
+            medium_pct = (medium_count / total_emails) * 100 if total_emails > 0 else 0
+            low_pct = (low_count / total_emails) * 100 if total_emails > 0 else 0
+            unclassified_pct = (unclassified_count / total_emails) * 100 if total_emails > 0 else 0
             
             # Executive summary text
             summary_text = f"""
@@ -1255,7 +1285,10 @@ class ReportGenerator:
             <b>KEY SECURITY FINDINGS:</b><br/>
             • Critical Risk Events: <b>{critical_count:,}</b> ({critical_pct:.1f}% of total volume)<br/>
             • High Risk Events: <b>{high_count:,}</b> ({high_pct:.1f}% of total volume)<br/>
-            • Security Review Completion: <b>{((total_emails - critical_count - high_count) / total_emails * 100):.1f}%</b><br/>
+            • Medium Risk Events: <b>{medium_count:,}</b> ({medium_pct:.1f}% of total volume)<br/>
+            • Low Risk Events: <b>{low_count:,}</b> ({low_pct:.1f}% of total volume)<br/>
+            • Unclassified Events: <b>{unclassified_count:,}</b> ({unclassified_pct:.1f}% of total volume)<br/>
+            • Security Review Completion: <b>{completion_rate:.1f}%</b><br/>
             • Immediate Action Required: <b>{"YES - URGENT RESPONSE NEEDED" if critical_count > 0 else "NO - CONTINUE MONITORING"}</b><br/><br/>
             
             <b>BUSINESS IMPACT ASSESSMENT:</b><br/>
@@ -1270,12 +1303,31 @@ class ReportGenerator:
             story.append(Spacer(1, 10))
             
             # Create pie chart for risk distribution
-            risk_chart_data = {k.title(): v for k, v in risk_counts.items() if v > 0}
+            risk_chart_data = {}
+            risk_colors = []
+            
+            # Build chart data with proper colors for each status type
+            if critical_count > 0:
+                risk_chart_data['Critical'] = critical_count
+                risk_colors.append('#FF4444')
+            if high_count > 0:
+                risk_chart_data['High'] = high_count
+                risk_colors.append('#FF8800')
+            if medium_count > 0:
+                risk_chart_data['Medium'] = medium_count
+                risk_colors.append('#FFBB00')
+            if low_count > 0:
+                risk_chart_data['Low'] = low_count
+                risk_colors.append('#44AA44')
+            if unclassified_count > 0:
+                risk_chart_data['Unclassified'] = unclassified_count
+                risk_colors.append('#888888')
+            
             if risk_chart_data:
                 risk_pie_chart = self.create_pie_chart(
                     risk_chart_data, 
                     "Email Risk Level Distribution",
-                    ['#FF4444', '#FF8800', '#FFBB00', '#44AA44', '#888888']
+                    risk_colors
                 )
                 if risk_pie_chart:
                     story.append(risk_pie_chart)
