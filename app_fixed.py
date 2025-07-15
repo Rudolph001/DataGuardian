@@ -1848,16 +1848,13 @@ def show_email_details_modal(email):
     
     # Summary Footer
     st.markdown("---")
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     
     with col1:
         st.metric("Domain Classification", domain_classification)
     
     with col2:
         st.metric("Current Status", email.get('status', 'Unknown').title())
-    
-    with col3:
-        st.metric("Risk Score", email.get('risk_score', 'Unknown'))
         
         
 
