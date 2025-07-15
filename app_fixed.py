@@ -141,10 +141,10 @@ class CSVProcessor:
     def __init__(self):
         self.required_fields = [
             '_time', 'sender', 'subject', 'attachments', 'recipients',
-            'recipients_email_domain', 'minecast', 'tessian', 'leaver', 
-            'Termination', 'time_month', 'account_type', 'wordlist_attachment',
-            'wordlist_subject', 'bunit', 'department', 'status', 
-            'tessian_status_A', 'tessian_status_B'
+            'recipients_email_domain', 'time_month', 'tessian', 'leaver', 
+            'Termination', 'account_type', 'wordlist_attachment',
+            'wordlist_subject', 'bunit', 'department', 'status',
+            'user_response', 'final_outcome'
         ]
     
     def process_csv_data(self, csv_content):
@@ -369,11 +369,15 @@ class AnomalyDetector:
                     # Sender pattern analysis
                     1 if sender.count('.') > 2 else 0,
                     1 if '@' in sender and any(char.isdigit() for char in sender.split('@')[0]) else 0,
+                    
+                    # New fields analysis
+                    1 if email.get('user_response') else 0,
+                    1 if email.get('final_outcome') else 0,
                 ]
                 
                 features.append(feature_vector)
             except:
-                features.append([0] * 20)  # Default feature vector
+                features.append([0] * 22)  # Default feature vector (updated count)
         
         return np.array(features)
     
@@ -401,6 +405,15 @@ class AnomalyDetector:
             reasons.append("Suspicious recipient domain")
         if sender.count('.') > 2:
             reasons.append("Complex sender email pattern")
+        
+        # Check user response and final outcome patterns
+        user_response = email.get('user_response', '')
+        final_outcome = email.get('final_outcome', '')
+        
+        if user_response and 'no response' in user_response.lower():
+            reasons.append("User did not respond to security inquiry")
+        if final_outcome and any(word in final_outcome.lower() for word in ['violation', 'breach', 'unauthorized']):
+            reasons.append("Security violation detected in final outcome")
         
         # Time-based reasons
         try:
@@ -1771,27 +1784,25 @@ def show_email_details_modal(email):
     
     with col1:
         st.error(f"""
-        **🛡️ Minecast:** {'✅ Yes' if email.get('minecast') else '❌ No'}
-        
         **🔍 Tessian:** {'✅ Yes' if email.get('tessian') else '❌ No'}
-        
-        **📊 Tessian Status A:** {email.get('tessian_status_A', 'Unknown')}
-        """)
-    
-    with col2:
-        st.success(f"""
-        **📊 Tessian Status B:** {email.get('tessian_status_B', 'Unknown')}
         
         **📎 Wordlist Attachment:** {'⚠️ Yes' if email.get('wordlist_attachment') else '✅ No'}
         
         **📝 Wordlist Subject:** {'⚠️ Yes' if email.get('wordlist_subject') else '✅ No'}
         """)
     
-    with col3:
-        st.warning(f"""
+    with col2:
+        st.success(f"""
         **👋 Leaver:** {'⚠️ Yes' if email.get('leaver') else '✅ No'}
         
         **🚪 Termination:** {'⚠️ Yes' if email.get('Termination') else '✅ No'}
+        
+        **👤 User Response:** {email.get('user_response', 'Unknown')}
+        """)
+    
+    with col3:
+        st.warning(f"""
+        **🎯 Final Outcome:** {email.get('final_outcome', 'Unknown')}
         """)
     
     # Organizational Information
@@ -1817,10 +1828,10 @@ def show_email_details_modal(email):
     # Get all fields that weren't already displayed
     displayed_fields = {
         'sender', 'recipients', 'subject', '_time', 'time_month', 
-        'recipients_email_domain', 'attachments', 'status', 'minecast', 
-        'tessian', 'tessian_status_A', 'tessian_status_B', 'wordlist_attachment', 
-        'wordlist_subject', 'leaver', 'Termination', 'department', 'bunit', 
-        'account_type', 'encryption'
+        'recipients_email_domain', 'attachments', 'status',
+        'tessian', 'wordlist_attachment', 'wordlist_subject', 'leaver', 
+        'Termination', 'department', 'bunit', 'account_type', 
+        'user_response', 'final_outcome'
     }
     
     additional_fields = {k: v for k, v in email.items() if k not in displayed_fields}
