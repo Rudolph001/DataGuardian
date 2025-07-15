@@ -237,439 +237,653 @@ class AnomalyDetector:
         return anomalies
 
 class NetworkAnalyzer:
-    """Network analysis for email communication patterns"""
+    """Enhanced interactive network analysis for email communication patterns"""
     
     def __init__(self):
         self.layout_options = {
             'spring': nx.spring_layout,
             'circular': nx.circular_layout,
+            'kamada_kawai': nx.kamada_kawai_layout,
+            'shell': nx.shell_layout,
+            'spectral': nx.spectral_layout,
+            'fruchterman_reingold': nx.fruchterman_reingold_layout,
             'hierarchical': self._hierarchical_layout,
-            'fruchterman_reingold': nx.fruchterman_reingold_layout
+            'force_directed': self._force_directed_layout
         }
     
     def create_network_graph(self, data, source_field='sender', target_field='recipients', config=None):
-        """Create interactive network graph using NetworkX and Plotly"""
+        """Create highly interactive network graph with advanced visualization"""
         if not data:
             return None
         
-        # Build graph
+        # Build and filter graph
         G = self.build_network_from_data(data, source_field, target_field)
         
         if len(G.nodes()) == 0:
             return None
         
+        # Apply filters
+        G = self._apply_filters(G, config or {})
+        
         # Calculate layout
         layout_type = config.get('layout', 'spring') if config else 'spring'
         pos = self.calculate_advanced_layout(G, layout_type)
         
-        # Create Plotly figure
-        fig = self._create_plotly_network(G, pos, config)
+        # Create enhanced Plotly figure
+        fig = self._create_enhanced_plotly_network(G, pos, config or {})
         
         return fig
     
     def build_network_from_data(self, data, source_field, target_field):
-        """Build NetworkX directed graph from email data"""
-        G = nx.DiGraph()  # Use directed graph to show email flow direction
+        """Build enhanced NetworkX directed graph with metadata"""
+        G = nx.DiGraph()
+        
+        # Track email metadata for each edge
+        edge_metadata = {}
         
         for email in data:
-            source = email.get(source_field, '')
-            targets = email.get(target_field, '').split(',')
+            source = email.get(source_field, '').strip()
+            targets_str = email.get(target_field, '')
+            
+            # Handle multiple recipients
+            if ',' in targets_str:
+                targets = [t.strip() for t in targets_str.split(',')]
+            else:
+                targets = [targets_str.strip()]
             
             for target in targets:
-                target = target.strip()
                 if source and target and source != target:
+                    edge_key = (source, target)
+                    
                     if G.has_edge(source, target):
                         G[source][target]['weight'] += 1
+                        G[source][target]['emails'].append(email)
                     else:
-                        G.add_edge(source, target, weight=1)
+                        G.add_edge(source, target, weight=1, emails=[email])
+                    
+                    # Store additional metadata
+                    if edge_key not in edge_metadata:
+                        edge_metadata[edge_key] = {
+                            'risk_levels': [],
+                            'departments': set(),
+                            'attachments': 0,
+                            'wordlist_matches': 0
+                        }
+                    
+                    metadata = edge_metadata[edge_key]
+                    metadata['risk_levels'].append(email.get('status', 'unknown'))
+                    metadata['departments'].add(email.get('department', 'unknown'))
+                    
+                    if email.get('attachment'):
+                        metadata['attachments'] += 1
+                    
+                    if email.get('wordlist_subject') or email.get('wordlist_attachment'):
+                        metadata['wordlist_matches'] += 1
+        
+        # Add metadata to graph edges
+        for edge_key, metadata in edge_metadata.items():
+            if G.has_edge(*edge_key):
+                G[edge_key[0]][edge_key[1]].update(metadata)
+        
+        return G
+    
+    def _apply_filters(self, G, config):
+        """Apply filtering to reduce graph complexity"""
+        min_connections = config.get('min_connections', 1)
+        max_nodes = config.get('max_nodes', 100)
+        
+        # Filter by minimum connections
+        nodes_to_remove = [node for node in G.nodes() if G.degree(node) < min_connections]
+        G.remove_nodes_from(nodes_to_remove)
+        
+        # Limit to top nodes by degree if necessary
+        if len(G.nodes()) > max_nodes:
+            degree_centrality = nx.degree_centrality(G)
+            top_nodes = sorted(degree_centrality.items(), key=lambda x: x[1], reverse=True)[:max_nodes]
+            nodes_to_keep = [node for node, _ in top_nodes]
+            nodes_to_remove = [node for node in G.nodes() if node not in nodes_to_keep]
+            G.remove_nodes_from(nodes_to_remove)
         
         return G
     
     def calculate_advanced_layout(self, G, layout_type):
-        """Calculate node positions using specified layout algorithm"""
-        if layout_type in self.layout_options:
-            layout_func = self.layout_options[layout_type]
-            try:
-                return layout_func(G)
-            except:
+        """Calculate node positions with enhanced algorithms"""
+        if len(G.nodes()) == 0:
+            return {}
+        
+        try:
+            if layout_type in self.layout_options:
+                layout_func = self.layout_options[layout_type]
+                
+                # Special handling for certain layouts
+                if layout_type == 'kamada_kawai' and len(G.nodes()) > 100:
+                    # Use spring layout for large graphs as kamada_kawai is slow
+                    return nx.spring_layout(G, k=1, iterations=50)
+                elif layout_type == 'spectral' and len(G.nodes()) < 3:
+                    # Spectral layout needs at least 3 nodes
+                    return nx.spring_layout(G)
+                else:
+                    return layout_func(G)
+            else:
                 return nx.spring_layout(G)
-        else:
-            return nx.spring_layout(G)
+        except:
+            # Fallback to spring layout
+            return nx.spring_layout(G, k=1, iterations=50)
     
     def _hierarchical_layout(self, G):
-        """Custom hierarchical layout"""
+        """Enhanced hierarchical layout based on centrality"""
         try:
-            # Simple hierarchical layout based on degree
+            # Calculate different centrality measures
+            degree_cent = nx.degree_centrality(G)
+            betweenness_cent = nx.betweenness_centrality(G)
+            
+            # Combine centralities for hierarchical positioning
+            combined_cent = {}
+            for node in G.nodes():
+                combined_cent[node] = 0.7 * degree_cent[node] + 0.3 * betweenness_cent[node]
+            
+            # Sort nodes by centrality
+            sorted_nodes = sorted(combined_cent.items(), key=lambda x: x[1], reverse=True)
+            
             pos = {}
-            degrees = dict(G.degree())
-            sorted_nodes = sorted(degrees.items(), key=lambda x: x[1], reverse=True)
+            levels = 5  # Number of hierarchical levels
+            nodes_per_level = len(sorted_nodes) // levels + 1
             
-            levels = {}
-            for i, (node, degree) in enumerate(sorted_nodes):
-                level = min(i // 10, 5)  # Max 5 levels
-                levels[node] = level
-            
-            for node, level in levels.items():
-                angle = hash(node) % 360
-                radius = level * 0.3
-                pos[node] = (radius * np.cos(angle), radius * np.sin(angle))
+            for i, (node, centrality) in enumerate(sorted_nodes):
+                level = i // nodes_per_level
+                position_in_level = i % nodes_per_level
+                
+                # Calculate positions
+                y = (levels - level - 1) * 2  # Higher centrality = higher position
+                x = (position_in_level - nodes_per_level // 2) * 1.5
+                
+                # Add some randomness to avoid overlaps
+                x += np.random.normal(0, 0.1)
+                y += np.random.normal(0, 0.1)
+                
+                pos[node] = (x, y)
             
             return pos
         except:
             return nx.spring_layout(G)
     
-    def _create_plotly_network(self, G, pos, config):
-        """Create Plotly network visualization with directional arrows and interactivity"""
-        # Store graph data for interactivity
-        graph_edges = list(G.edges())
-        graph_nodes = list(G.nodes())
+    def _force_directed_layout(self, G):
+        """Custom force-directed layout with enhanced parameters"""
+        try:
+            return nx.spring_layout(
+                G, 
+                k=2/np.sqrt(len(G.nodes())), 
+                iterations=100,
+                threshold=1e-4,
+                weight='weight'
+            )
+        except:
+            return nx.spring_layout(G)
+    
+    def _create_enhanced_plotly_network(self, G, pos, config):
+        """Create enhanced interactive network visualization"""
+        if not pos:
+            return None
         
-        # Create edge traces with unique identifiers
-        edge_traces = []
-        arrow_annotations = []
+        # Calculate node and edge properties
+        node_properties = self._calculate_node_properties(G)
+        edge_properties = self._calculate_edge_properties(G)
         
-        # Normal edges
-        edge_x = []
-        edge_y = []
-        edge_ids = []
+        # Create traces
+        edge_traces = self._create_edge_traces(G, pos, edge_properties)
+        node_traces = self._create_node_traces(G, pos, node_properties)
         
-        for i, edge in enumerate(graph_edges):
-            x0, y0 = pos[edge[0]]
-            x1, y1 = pos[edge[1]]
-            edge_x.extend([x0, x1, None])
-            edge_y.extend([y0, y1, None])
-            edge_ids.extend([i, i, None])
-            
-            # Calculate arrow position (80% along the edge)
-            arrow_x = x0 + 0.8 * (x1 - x0)
-            arrow_y = y0 + 0.8 * (y1 - y0)
-            
-            # Calculate arrow direction
-            dx = x1 - x0
-            dy = y1 - y0
-            length = np.sqrt(dx**2 + dy**2)
-            
-            if length > 0:
-                # Create arrow annotation with edge info
-                arrow_annotations.append(
-                    dict(
-                        x=arrow_x, y=arrow_y,
-                        ax=x0, ay=y0,
-                        xref='x', yref='y',
-                        axref='x', ayref='y',
-                        text="",
-                        arrowhead=2,
-                        arrowsize=1.5,
-                        arrowwidth=2,
-                        arrowcolor='#666',
-                        standoff=5,
-                        name=f"arrow_{i}"
-                    )
-                )
+        # Combine all traces
+        data = edge_traces + node_traces
         
-        # Create main edge trace
-        edge_trace = go.Scatter(
-            x=edge_x, y=edge_y,
-            line=dict(width=1, color='#888'),
-            hoverinfo='none',
-            mode='lines',
-            name='edges',
-            customdata=edge_ids
+        # Create layout
+        layout = self._create_enhanced_layout(G, config)
+        
+        # Create figure
+        fig = go.Figure(data=data, layout=layout)
+        
+        # Configure interactivity
+        fig.update_layout(
+            clickmode='event+select',
+            dragmode='pan',
+            hovermode='closest',
+            uirevision='network_graph_enhanced'
         )
         
-        # Create highlighted edge trace (initially empty)
-        highlighted_edge_trace = go.Scatter(
-            x=[], y=[],
-            line=dict(width=3, color='#ff6b6b'),
-            hoverinfo='none',
-            mode='lines',
-            name='highlighted_edges'
-        )
+        # Store metadata for interactions
+        fig._graph_data = {
+            'graph': G,
+            'positions': pos,
+            'node_properties': node_properties,
+            'edge_properties': edge_properties
+        }
         
-        # Create node trace with interactivity
-        node_x = []
-        node_y = []
-        node_text = []
-        node_info = []
-        node_ids = []
-        node_colors = []
+        return fig
+    
+    def _calculate_node_properties(self, G):
+        """Calculate enhanced node properties for visualization"""
+        properties = {}
         
-        for i, node in enumerate(graph_nodes):
-            x, y = pos[node]
-            node_x.append(x)
-            node_y.append(y)
-            node_ids.append(i)
-            
-            # Node information for directed graph
+        # Calculate centrality measures
+        degree_cent = nx.degree_centrality(G)
+        betweenness_cent = nx.betweenness_centrality(G)
+        closeness_cent = nx.closeness_centrality(G)
+        
+        # Calculate clustering coefficient
+        clustering = nx.clustering(G.to_undirected())
+        
+        for node in G.nodes():
             in_degree = G.in_degree(node)
             out_degree = G.out_degree(node)
             total_degree = in_degree + out_degree
-            node_colors.append(total_degree)
             
-            node_text.append(f'{node}<br>In: {in_degree} | Out: {out_degree}')
-            node_info.append(f'Node: {node}<br>Emails Received: {in_degree}<br>Emails Sent: {out_degree}<br>Total: {total_degree}')
+            # Determine node size based on degree
+            node_size = max(15, min(50, 15 + total_degree * 2))
+            
+            # Determine node color based on risk levels of connected emails
+            risk_score = self._calculate_node_risk_score(G, node)
+            
+            # Create hover text with comprehensive information
+            hover_text = self._create_node_hover_text(G, node, degree_cent, betweenness_cent, closeness_cent)
+            
+            properties[node] = {
+                'size': node_size,
+                'color': risk_score,
+                'hover_text': hover_text,
+                'in_degree': in_degree,
+                'out_degree': out_degree,
+                'total_degree': total_degree,
+                'degree_centrality': degree_cent[node],
+                'betweenness_centrality': betweenness_cent[node],
+                'closeness_centrality': closeness_cent[node],
+                'clustering': clustering[node]
+            }
         
-        # Main node trace
-        node_trace = go.Scatter(
+        return properties
+    
+    def _calculate_edge_properties(self, G):
+        """Calculate enhanced edge properties for visualization"""
+        properties = {}
+        
+        for edge in G.edges():
+            source, target = edge
+            edge_data = G[source][target]
+            
+            weight = edge_data.get('weight', 1)
+            risk_levels = edge_data.get('risk_levels', [])
+            attachments = edge_data.get('attachments', 0)
+            wordlist_matches = edge_data.get('wordlist_matches', 0)
+            
+            # Calculate edge thickness based on weight
+            thickness = max(1, min(8, weight * 0.5))
+            
+            # Calculate edge color based on risk
+            edge_color = self._calculate_edge_color(risk_levels)
+            
+            # Create hover text
+            hover_text = f"From: {source}<br>To: {target}<br>Emails: {weight}<br>Attachments: {attachments}<br>Wordlist Matches: {wordlist_matches}"
+            
+            properties[edge] = {
+                'thickness': thickness,
+                'color': edge_color,
+                'weight': weight,
+                'hover_text': hover_text,
+                'opacity': min(1.0, 0.3 + weight * 0.1)
+            }
+        
+        return properties
+    
+    def _calculate_node_risk_score(self, G, node):
+        """Calculate risk score for a node based on connected emails"""
+        risk_levels = []
+        
+        # Collect risk levels from all connected edges
+        for neighbor in G.neighbors(node):
+            edge_data = G[node][neighbor]
+            risk_levels.extend(edge_data.get('risk_levels', []))
+        
+        for predecessor in G.predecessors(node):
+            edge_data = G[predecessor][node]
+            risk_levels.extend(edge_data.get('risk_levels', []))
+        
+        if not risk_levels:
+            return 0
+        
+        # Calculate risk score
+        risk_mapping = {'critical': 4, 'high': 3, 'medium': 2, 'low': 1, 'unknown': 0}
+        scores = [risk_mapping.get(level.lower(), 0) for level in risk_levels]
+        
+        return np.mean(scores) if scores else 0
+    
+    def _calculate_edge_color(self, risk_levels):
+        """Calculate edge color based on risk levels"""
+        if not risk_levels:
+            return '#888'
+        
+        risk_mapping = {'critical': 4, 'high': 3, 'medium': 2, 'low': 1, 'unknown': 0}
+        max_risk = max(risk_mapping.get(level.lower(), 0) for level in risk_levels)
+        
+        color_mapping = {
+            4: '#ff4444',  # Critical - Red
+            3: '#ff8800',  # High - Orange  
+            2: '#ffcc00',  # Medium - Yellow
+            1: '#44aa44',  # Low - Green
+            0: '#888888'   # Unknown - Gray
+        }
+        
+        return color_mapping.get(max_risk, '#888888')
+    
+    def _create_node_hover_text(self, G, node, degree_cent, betweenness_cent, closeness_cent):
+        """Create comprehensive hover text for nodes"""
+        in_degree = G.in_degree(node)
+        out_degree = G.out_degree(node)
+        
+        # Get connected departments
+        departments = set()
+        for neighbor in list(G.neighbors(node)) + list(G.predecessors(node)):
+            if G.has_edge(node, neighbor):
+                edge_data = G[node][neighbor]
+            else:
+                edge_data = G[neighbor][node]
+            departments.update(edge_data.get('departments', set()))
+        
+        dept_str = ', '.join(list(departments)[:3])
+        if len(departments) > 3:
+            dept_str += f" +{len(departments)-3} more"
+        
+        hover_text = f"""
+        <b>{node}</b><br>
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br>
+        <b>Email Traffic:</b><br>
+        • Emails Sent: {out_degree}<br>
+        • Emails Received: {in_degree}<br>
+        • Total: {in_degree + out_degree}<br><br>
+        <b>Network Metrics:</b><br>
+        • Degree Centrality: {degree_cent[node]:.3f}<br>
+        • Betweenness Centrality: {betweenness_cent[node]:.3f}<br>
+        • Closeness Centrality: {closeness_cent[node]:.3f}<br><br>
+        <b>Connected Departments:</b><br>
+        • {dept_str if dept_str else 'Unknown'}<br><br>
+        <i>Click to analyze connections</i>
+        """
+        
+        return hover_text
+    
+    def _create_edge_traces(self, G, pos, edge_properties):
+        """Create enhanced edge traces with multiple styles"""
+        traces = []
+        
+        # Group edges by risk level
+        edge_groups = {'critical': [], 'high': [], 'medium': [], 'low': [], 'unknown': []}
+        
+        for edge in G.edges():
+            source, target = edge
+            edge_data = G[source][target]
+            risk_levels = edge_data.get('risk_levels', [])
+            
+            if 'critical' in [r.lower() for r in risk_levels]:
+                edge_groups['critical'].append(edge)
+            elif 'high' in [r.lower() for r in risk_levels]:
+                edge_groups['high'].append(edge)
+            elif 'medium' in [r.lower() for r in risk_levels]:
+                edge_groups['medium'].append(edge)
+            elif 'low' in [r.lower() for r in risk_levels]:
+                edge_groups['low'].append(edge)
+            else:
+                edge_groups['unknown'].append(edge)
+        
+        # Create traces for each risk level
+        colors = {
+            'critical': '#ff4444',
+            'high': '#ff8800', 
+            'medium': '#ffcc00',
+            'low': '#44aa44',
+            'unknown': '#888888'
+        }
+        
+        for risk_level, edges in edge_groups.items():
+            if not edges:
+                continue
+            
+            edge_x = []
+            edge_y = []
+            edge_info = []
+            
+            for edge in edges:
+                source, target = edge
+                if source in pos and target in pos:
+                    x0, y0 = pos[source]
+                    x1, y1 = pos[target]
+                    
+                    # Add edge line
+                    edge_x.extend([x0, x1, None])
+                    edge_y.extend([y0, y1, None])
+                    
+                    # Add hover info
+                    edge_props = edge_properties[edge]
+                    edge_info.extend([edge_props['hover_text'], edge_props['hover_text'], None])
+            
+            if edge_x:
+                trace = go.Scatter(
+                    x=edge_x, y=edge_y,
+                    mode='lines',
+                    line=dict(
+                        width=2 if risk_level in ['critical', 'high'] else 1,
+                        color=colors[risk_level]
+                    ),
+                    hoverinfo='text',
+                    text=edge_info,
+                    name=f'{risk_level.title()} Risk',
+                    showlegend=True,
+                    opacity=0.8 if risk_level in ['critical', 'high'] else 0.6
+                )
+                traces.append(trace)
+        
+        return traces
+    
+    def _create_node_traces(self, G, pos, node_properties):
+        """Create enhanced node traces with detailed information"""
+        traces = []
+        
+        # Main nodes trace
+        node_x = []
+        node_y = []
+        node_text = []
+        node_sizes = []
+        node_colors = []
+        hover_texts = []
+        
+        for node in G.nodes():
+            if node in pos:
+                x, y = pos[node]
+                node_x.append(x)
+                node_y.append(y)
+                
+                props = node_properties[node]
+                node_text.append(node.split('@')[0] if '@' in node else node[:15])
+                node_sizes.append(props['size'])
+                node_colors.append(props['color'])
+                hover_texts.append(props['hover_text'])
+        
+        main_trace = go.Scatter(
             x=node_x, y=node_y,
             mode='markers+text',
-            hoverinfo='text',
-            text=node_text,
-            hovertext=node_info,
-            customdata=node_ids,
             marker=dict(
-                size=15,
+                size=node_sizes,
                 color=node_colors,
-                colorscale='Viridis',
+                colorscale='RdYlGn_r',  # Red-Yellow-Green reversed (Red for high risk)
                 showscale=True,
-                colorbar=dict(title="Total Email Traffic"),
+                colorbar=dict(
+                    title="Risk Level",
+                    titleside="right",
+                    tickmode="array",
+                    tickvals=[0, 1, 2, 3, 4],
+                    ticktext=["Unknown", "Low", "Medium", "High", "Critical"]
+                ),
                 line=dict(width=2, color='white'),
-                opacity=0.8
+                opacity=0.8,
+                sizemode='diameter'
             ),
-            name='nodes',
+            text=node_text,
             textposition="middle center",
-            textfont=dict(size=8, color='white'),
-            hoverlabel=dict(bgcolor="white", font_size=12)
+            textfont=dict(size=10, color='white', family='Arial Black'),
+            hoverinfo='text',
+            hovertext=hover_texts,
+            name='Email Accounts',
+            showlegend=True
         )
+        traces.append(main_trace)
         
-        # Highlighted nodes trace (initially empty)
-        highlighted_node_trace = go.Scatter(
+        # Highlighted nodes trace (for interactions)
+        highlighted_trace = go.Scatter(
             x=[], y=[],
             mode='markers+text',
-            hoverinfo='text',
-            text=[],
-            hovertext=[],
             marker=dict(
-                size=20,
-                color='#ff6b6b',
-                line=dict(width=3, color='white'),
-                opacity=1.0
+                size=30,
+                color='rgba(255, 107, 107, 0.8)',
+                line=dict(width=4, color='white'),
+                symbol='circle'
             ),
-            name='highlighted_nodes',
+            text=[],
             textposition="middle center",
-            textfont=dict(size=10, color='white')
+            textfont=dict(size=12, color='white', family='Arial Black'),
+            hoverinfo='text',
+            hovertext=[],
+            name='Selected Connections',
+            showlegend=False
         )
+        traces.append(highlighted_trace)
         
-        # Combine arrow annotations with info annotation
-        all_annotations = arrow_annotations + [dict(
-            text="Interactive Network: Click nodes to highlight connections | Drag to move nodes",
-            showarrow=False,
-            xref="paper", yref="paper",
-            x=0.005, y=-0.002,
-            xanchor="left", yanchor="bottom",
-            font=dict(color="#888", size=12)
-        )]
-        
-        # Create figure with all traces and proper interaction settings
-        fig = go.Figure(
-            data=[edge_trace, highlighted_edge_trace, node_trace, highlighted_node_trace],
-            layout=go.Layout(
-                title=dict(text='Email Communication Network (Interactive)', font=dict(size=16)),
-                showlegend=False,
-                hovermode='closest',
-                margin=dict(b=20,l=5,r=5,t=40),
-                annotations=all_annotations,
-                xaxis=dict(
-                    showgrid=False, 
-                    zeroline=False, 
-                    showticklabels=False,
-                    fixedrange=False  # Allow zooming
-                ),
-                yaxis=dict(
-                    showgrid=False, 
-                    zeroline=False, 
-                    showticklabels=False,
-                    fixedrange=False  # Allow zooming
-                ),
-                dragmode='pan',
-                selectdirection='any'
-            )
-        )
-        
-        # Configure for better interactivity
-        fig.update_layout(
-            uirevision='network_graph',  # Preserve UI state with consistent key
-            clickmode='event',
-            modebar=dict(
-                remove=['autoScale2d', 'resetScale2d'],
-                add=['select2d', 'lasso2d']
-            )
-        )
-        
-        # Enable individual node dragging by updating traces
-        fig.update_traces(
-            selector=dict(name='nodes'),
-            marker=dict(
-                size=15,
-                line=dict(width=2, color='white'),
-                opacity=0.9,
-                sizemode='diameter'
-            )
-        )
-        
-        # Store metadata for interactivity
-        fig._graph_data = {
-            'nodes': graph_nodes,
-            'edges': graph_edges,
-            'positions': pos,
-            'graph': G
-        }
-        
-        return fig
+        return traces
     
-    def _highlight_node_connections(self, fig, selected_node, graph_data):
-        """Highlight connections for selected node"""
-        if not graph_data or 'graph' not in graph_data:
-            return fig
-        
-        G = graph_data['graph']
-        pos = graph_data['positions']
-        
-        # Find connected nodes
-        connected_nodes = set()
-        highlighted_edges = []
-        
-        # Get incoming and outgoing connections
-        for edge in G.edges():
-            if edge[0] == selected_node:
-                connected_nodes.add(edge[1])
-                highlighted_edges.append(edge)
-            elif edge[1] == selected_node:
-                connected_nodes.add(edge[0])
-                highlighted_edges.append(edge)
-        
-        # Update highlighted edge trace
-        highlighted_edge_x = []
-        highlighted_edge_y = []
-        
-        for edge in highlighted_edges:
-            x0, y0 = pos[edge[0]]
-            x1, y1 = pos[edge[1]]
-            highlighted_edge_x.extend([x0, x1, None])
-            highlighted_edge_y.extend([y0, y1, None])
-        
-        # Update highlighted node trace
-        highlighted_node_x = []
-        highlighted_node_y = []
-        highlighted_node_text = []
-        
-        # Add selected node
-        if selected_node in pos:
-            x, y = pos[selected_node]
-            highlighted_node_x.append(x)
-            highlighted_node_y.append(y)
-            highlighted_node_text.append(f'{selected_node}<br>SELECTED')
-        
-        # Add connected nodes
-        for node in connected_nodes:
-            if node in pos:
-                x, y = pos[node]
-                highlighted_node_x.append(x)
-                highlighted_node_y.append(y)
-                in_degree = G.in_degree(node)
-                out_degree = G.out_degree(node)
-                highlighted_node_text.append(f'{node}<br>In: {in_degree} | Out: {out_degree}')
-        
-        # Update figure data
-        fig.data[1].x = highlighted_edge_x
-        fig.data[1].y = highlighted_edge_y
-        fig.data[3].x = highlighted_node_x
-        fig.data[3].y = highlighted_node_y
-        fig.data[3].text = highlighted_node_text
-        
-        return fig
+    def _create_enhanced_layout(self, G, config):
+        """Create enhanced layout with better styling"""
+        return go.Layout(
+            title=dict(
+                text='📧 Email Communication Network Analysis',
+                font=dict(size=20, color='#2c3e50'),
+                x=0.5
+            ),
+            showlegend=True,
+            legend=dict(
+                orientation="v",
+                yanchor="top",
+                y=1,
+                xanchor="left",
+                x=1.02
+            ),
+            hovermode='closest',
+            margin=dict(b=40, l=40, r=120, t=60),
+            annotations=[
+                dict(
+                    text="🎯 Interactive Network Visualization<br>" +
+                         "• Hover over nodes for detailed information<br>" +
+                         "• Different colors represent risk levels<br>" +
+                         "• Node size represents email volume<br>" +
+                         "• Use controls below to interact",
+                    showarrow=False,
+                    xref="paper", yref="paper",
+                    x=0.02, y=-0.02,
+                    xanchor="left", yanchor="bottom",
+                    font=dict(color="#7f8c8d", size=11),
+                    bgcolor="rgba(255,255,255,0.8)",
+                    bordercolor="#bdc3c7",
+                    borderwidth=1
+                )
+            ],
+            xaxis=dict(
+                showgrid=False,
+                zeroline=False,
+                showticklabels=False,
+                title=""
+            ),
+            yaxis=dict(
+                showgrid=False,
+                zeroline=False,
+                showticklabels=False,
+                title=""
+            ),
+            plot_bgcolor='rgba(248,249,250,1)',
+            paper_bgcolor='white'
+        )
     
-    def _get_node_connections(self, selected_node, graph_data):
-        """Get connection details for selected node"""
-        if not graph_data or 'graph' not in graph_data:
+    def get_network_statistics(self, G):
+        """Get comprehensive network statistics"""
+        if not G or len(G.nodes()) == 0:
             return {}
         
-        G = graph_data['graph']
+        stats = {
+            'basic': {
+                'nodes': len(G.nodes()),
+                'edges': len(G.edges()),
+                'density': nx.density(G),
+                'is_connected': nx.is_weakly_connected(G)
+            },
+            'centrality': {
+                'degree': nx.degree_centrality(G),
+                'betweenness': nx.betweenness_centrality(G),
+                'closeness': nx.closeness_centrality(G),
+                'eigenvector': nx.eigenvector_centrality(G, max_iter=1000)
+            },
+            'clustering': {
+                'average_clustering': nx.average_clustering(G.to_undirected()),
+                'transitivity': nx.transitivity(G.to_undirected())
+            }
+        }
         
-        incoming = []
-        outgoing = []
+        # Add top nodes by different metrics
+        stats['top_nodes'] = {
+            'by_degree': sorted(stats['centrality']['degree'].items(), 
+                              key=lambda x: x[1], reverse=True)[:10],
+            'by_betweenness': sorted(stats['centrality']['betweenness'].items(), 
+                                   key=lambda x: x[1], reverse=True)[:10],
+            'by_closeness': sorted(stats['centrality']['closeness'].items(), 
+                                 key=lambda x: x[1], reverse=True)[:10]
+        }
         
-        for edge in G.edges():
-            if edge[0] == selected_node:
-                outgoing.append(edge[1])
-            elif edge[1] == selected_node:
-                incoming.append(edge[0])
+        return stats
+    
+    def analyze_node_connections(self, node, G):
+        """Analyze connections for a specific node"""
+        if not G or node not in G:
+            return {}
+        
+        # Get direct connections
+        predecessors = list(G.predecessors(node))
+        successors = list(G.successors(node))
+        
+        # Get edge information
+        incoming_emails = []
+        outgoing_emails = []
+        
+        for pred in predecessors:
+            edge_data = G[pred][node]
+            incoming_emails.append({
+                'from': pred,
+                'weight': edge_data.get('weight', 1),
+                'risk_levels': edge_data.get('risk_levels', []),
+                'attachments': edge_data.get('attachments', 0),
+                'departments': list(edge_data.get('departments', set()))
+            })
+        
+        for succ in successors:
+            edge_data = G[node][succ]
+            outgoing_emails.append({
+                'to': succ,
+                'weight': edge_data.get('weight', 1),
+                'risk_levels': edge_data.get('risk_levels', []),
+                'attachments': edge_data.get('attachments', 0),
+                'departments': list(edge_data.get('departments', set()))
+            })
         
         return {
-            'Emails Received From': incoming,
-            'Emails Sent To': outgoing
+            'node': node,
+            'incoming': incoming_emails,
+            'outgoing': outgoing_emails,
+            'total_incoming': len(predecessors),
+            'total_outgoing': len(successors),
+            'total_connections': len(predecessors) + len(successors)
         }
-    
-    def _create_highlighted_graph(self, original_fig, selected_node, graph_data):
-        """Create a new graph with highlighted connections for selected node"""
-        import copy
-        
-        # Create a copy of the original figure
-        fig = copy.deepcopy(original_fig)
-        
-        if not graph_data or 'graph' not in graph_data:
-            return fig
-        
-        G = graph_data['graph']
-        pos = graph_data['positions']
-        
-        # Find connected nodes and edges
-        connected_nodes = set([selected_node])
-        highlighted_edges = []
-        
-        for edge in G.edges():
-            if edge[0] == selected_node or edge[1] == selected_node:
-                connected_nodes.add(edge[0])
-                connected_nodes.add(edge[1])
-                highlighted_edges.append(edge)
-        
-        # Update edge highlighting
-        highlighted_edge_x = []
-        highlighted_edge_y = []
-        
-        for edge in highlighted_edges:
-            if edge[0] in pos and edge[1] in pos:
-                x0, y0 = pos[edge[0]]
-                x1, y1 = pos[edge[1]]
-                highlighted_edge_x.extend([x0, x1, None])
-                highlighted_edge_y.extend([y0, y1, None])
-        
-        # Update highlighted edges trace (index 1)
-        fig.data[1].x = highlighted_edge_x
-        fig.data[1].y = highlighted_edge_y
-        
-        # Update highlighted nodes
-        highlighted_node_x = []
-        highlighted_node_y = []
-        highlighted_node_text = []
-        
-        for node in connected_nodes:
-            if node in pos:
-                x, y = pos[node]
-                highlighted_node_x.append(x)
-                highlighted_node_y.append(y)
-                
-                if node == selected_node:
-                    highlighted_node_text.append(f'{node}<br>SELECTED')
-                else:
-                    in_degree = G.in_degree(node)
-                    out_degree = G.out_degree(node)
-                    highlighted_node_text.append(f'{node}<br>In: {in_degree} | Out: {out_degree}')
-        
-        # Update highlighted nodes trace (index 3)
-        fig.data[3].x = highlighted_node_x
-        fig.data[3].y = highlighted_node_y
-        fig.data[3].text = highlighted_node_text
-        
-        # Update title to show selection
-        fig.update_layout(
-            title=dict(
-                text=f'Email Communication Network - {selected_node} Selected', 
-                font=dict(size=16)
-            )
-        )
-        
-        return fig
 
 class ReportGenerator:
     """PDF report generation for security reviews"""
@@ -2355,50 +2569,67 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}
     return template
 
 def network_analysis_page():
-    """Network Analysis page"""
-    st.title("🔗 Network Analysis")
+    """Enhanced Network Analysis page with advanced interactivity"""
+    st.title("🔗 Advanced Network Analysis")
     
     if not st.session_state.data:
         st.warning("Please upload data first in the Data Upload & Preprocessing section.")
         return
     
     st.markdown("""
-    Analyze email communication patterns and relationships using interactive network graphs.
-    Identify clusters, anomalies, and communication patterns in your email data.
+    🎯 **Advanced Email Communication Network Analysis**
+    
+    Discover hidden patterns, identify key players, and analyze communication flows using 
+    state-of-the-art network visualization and analysis techniques.
     """)
     
     data = st.session_state.data
     
-    # Network configuration
-    st.subheader("Network Configuration")
+    # Enhanced Network Configuration
+    st.subheader("🛠️ Network Configuration")
     
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         source_field = st.selectbox(
             "Source Field",
             ["sender", "recipients", "recipients_email_domain"],
-            index=0
+            index=0,
+            help="Choose what represents the source of communication"
         )
     
     with col2:
         target_field = st.selectbox(
             "Target Field",
             ["recipients", "recipients_email_domain", "sender"],
-            index=0
+            index=0,
+            help="Choose what represents the target of communication"
         )
     
     with col3:
         layout_type = st.selectbox(
             "Layout Algorithm",
-            ["spring", "circular", "hierarchical", "fruchterman_reingold"],
-            index=0
+            ["spring", "kamada_kawai", "circular", "hierarchical", "force_directed", "spectral", "fruchterman_reingold"],
+            index=0,
+            help="Different algorithms create different visual patterns"
         )
     
-    # Filters
-    st.subheader("Filters")
+    with col4:
+        if st.button("ℹ️ Layout Help", help="Learn about layout algorithms"):
+            st.info("""
+            **Layout Algorithms:**
+            - **Spring**: Good general purpose, nodes repel each other
+            - **Kamada-Kawai**: High quality for small-medium networks
+            - **Hierarchical**: Shows organizational structure
+            - **Force-Directed**: Enhanced spring with weighted edges
+            - **Circular**: Nodes arranged in a circle
+            - **Spectral**: Uses graph's eigenvalues for positioning
+            """)
     
-    col1, col2, col3 = st.columns(3)
+    # Advanced Filters
+    st.subheader("🔍 Advanced Filters")
+    
+    col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         min_connections = st.slider(
@@ -2406,14 +2637,15 @@ def network_analysis_page():
             min_value=1,
             max_value=50,
             value=2,
-            help="Minimum number of connections for a node to be displayed"
+            help="Filter out nodes with fewer connections"
         )
     
     with col2:
         status_filter = st.multiselect(
             "Risk Status",
             ["critical", "high", "medium", "low"],
-            default=["critical", "high", "medium", "low"]
+            default=["critical", "high", "medium", "low"],
+            help="Include emails with these risk levels"
         )
     
     with col3:
@@ -2422,7 +2654,14 @@ def network_analysis_page():
             min_value=10,
             max_value=500,
             value=100,
-            help="Maximum number of nodes to display for performance"
+            help="Limit nodes for better performance"
+        )
+    
+    with col4:
+        show_risk_edges = st.checkbox(
+            "Highlight Risk Edges",
+            value=True,
+            help="Color edges by risk level"
         )
     
     # Filter data
@@ -2431,195 +2670,336 @@ def network_analysis_page():
         if email.get('status', '').lower() in status_filter
     ]
     
-    # Generate network
-    if st.button("Generate Network Graph", type="primary"):
-        if filtered_data:
-            with st.spinner("Generating network graph..."):
-                analyzer = NetworkAnalyzer()
-                
-                config = {
-                    'layout': layout_type,
-                    'min_connections': min_connections,
-                    'max_nodes': max_nodes
-                }
-                
-                # Store graph configuration for regeneration
-                graph_key = f"{source_field}_{target_field}_{layout_type}_{min_connections}_{max_nodes}"
-                
-                # Create or retrieve network graph
-                if f'network_graph_{graph_key}' not in st.session_state or st.button("🔄 Regenerate Graph"):
-                    with st.spinner("Generating network graph..."):
-                        fig = analyzer.create_network_graph(filtered_data, source_field, target_field, config)
-                        if fig:
-                            # Store both the figure and graph data
-                            st.session_state[f'network_graph_{graph_key}'] = fig
-                            st.session_state[f'graph_data_{graph_key}'] = getattr(fig, '_graph_data', None)
-                
-                fig = st.session_state.get(f'network_graph_{graph_key}')
-                graph_data = st.session_state.get(f'graph_data_{graph_key}')
-                
+    if not filtered_data:
+        st.error("No data matches the selected filters.")
+        return
+    
+    # Generate network with enhanced options
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        generate_btn = st.button("🚀 Generate Enhanced Network", type="primary", use_container_width=True)
+    
+    with col2:
+        if st.button("🔄 Regenerate", use_container_width=True):
+            # Clear cached graphs
+            keys_to_remove = [k for k in st.session_state.keys() if k.startswith('network_graph_') or k.startswith('graph_data_')]
+            for key in keys_to_remove:
+                del st.session_state[key]
+            st.rerun()
+    
+    if generate_btn or f'network_graph_enhanced' in st.session_state:
+        
+        # Create progress indicator
+        progress_container = st.container()
+        
+        with progress_container:
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            status_text.text("🔧 Initializing network analyzer...")
+            progress_bar.progress(10)
+            
+            analyzer = NetworkAnalyzer()
+            
+            config = {
+                'layout': layout_type,
+                'min_connections': min_connections,
+                'max_nodes': max_nodes,
+                'show_risk_edges': show_risk_edges
+            }
+            
+            status_text.text("📊 Building network graph...")
+            progress_bar.progress(30)
+            
+            # Generate or retrieve network graph
+            if generate_btn or f'network_graph_enhanced' not in st.session_state:
+                fig = analyzer.create_network_graph(filtered_data, source_field, target_field, config)
                 if fig:
-                    st.subheader("Interactive Network Graph")
-                    st.markdown("""
-                    **How to interact:**
-                    - **Double-click a node** to highlight its connections
-                    - **Drag nodes** to rearrange the layout (use the drag mode)
-                    - **Zoom and pan** to explore different areas
-                    - **Hover over nodes** to see detailed information
-                    """)
+                    st.session_state['network_graph_enhanced'] = fig
+                    st.session_state['graph_data_enhanced'] = getattr(fig, '_graph_data', None)
+            
+            status_text.text("🎨 Rendering visualization...")
+            progress_bar.progress(70)
+            
+            fig = st.session_state.get('network_graph_enhanced')
+            graph_data = st.session_state.get('graph_data_enhanced')
+            
+            progress_bar.progress(100)
+            status_text.text("✅ Network analysis complete!")
+            
+            # Clear progress after a moment
+            import time
+            time.sleep(1)
+            progress_container.empty()
+        
+        if fig and graph_data:
+            
+            # Main network visualization
+            st.subheader("📊 Interactive Network Visualization")
+            
+            # Display the enhanced network
+            st.plotly_chart(fig, use_container_width=True, key="enhanced_network_graph")
+            
+            # Interactive controls section
+            st.subheader("🎮 Interactive Analysis Controls")
+            
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.markdown("**📍 Node Selection**")
+                if 'graph' in graph_data:
+                    G = graph_data['graph']
+                    nodes_list = sorted(list(G.nodes()))
+                    selected_node = st.selectbox(
+                        "Analyze Node:",
+                        options=["None"] + nodes_list,
+                        key="enhanced_node_selector"
+                    )
+                else:
+                    selected_node = None
+            
+            with col2:
+                st.markdown("**🔍 Analysis Mode**")
+                analysis_mode = st.radio(
+                    "Choose analysis:",
+                    ["Overview", "Centrality", "Risk Analysis", "Communities"],
+                    key="analysis_mode"
+                )
+            
+            with col3:
+                st.markdown("**📋 Export Options**")
+                if st.button("📊 Export Network Stats"):
+                    if 'graph' in graph_data:
+                        stats = analyzer.get_network_statistics(graph_data['graph'])
+                        st.json(stats)
+                
+                if st.button("💾 Download Graph Data"):
+                    # Create downloadable network data
+                    network_data = {
+                        'nodes': list(graph_data['graph'].nodes()) if 'graph' in graph_data else [],
+                        'edges': list(graph_data['graph'].edges()) if 'graph' in graph_data else [],
+                        'config': config
+                    }
+                    st.download_button(
+                        "Download JSON",
+                        data=json.dumps(network_data, indent=2),
+                        file_name=f"network_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                        mime="application/json"
+                    )
+            
+            # Analysis results based on mode
+            if analysis_mode == "Overview" and 'graph' in graph_data:
+                st.subheader("📈 Network Overview")
+                
+                G = graph_data['graph']
+                stats = analyzer.get_network_statistics(G)
+                
+                # Basic statistics
+                col1, col2, col3, col4, col5 = st.columns(5)
+                
+                with col1:
+                    st.metric("🔗 Nodes", stats['basic']['nodes'])
+                
+                with col2:
+                    st.metric("📧 Connections", stats['basic']['edges'])
+                
+                with col3:
+                    st.metric("🌐 Density", f"{stats['basic']['density']:.4f}")
+                
+                with col4:
+                    st.metric("🔄 Connected", "✅" if stats['basic']['is_connected'] else "❌")
+                
+                with col5:
+                    avg_clustering = stats['clustering'].get('average_clustering', 0)
+                    st.metric("🎯 Clustering", f"{avg_clustering:.3f}")
+                
+                # Visual network summary
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    st.markdown("**🏆 Top Nodes by Degree**")
+                    for i, (node, centrality) in enumerate(stats['top_nodes']['by_degree'][:5]):
+                        st.write(f"{i+1}. `{node[:30]}...` - {centrality:.3f}")
+                
+                with col2:
+                    st.markdown("**🌉 Top Nodes by Betweenness**")
+                    for i, (node, centrality) in enumerate(stats['top_nodes']['by_betweenness'][:5]):
+                        st.write(f"{i+1}. `{node[:30]}...` - {centrality:.3f}")
+            
+            elif analysis_mode == "Centrality" and 'graph' in graph_data:
+                st.subheader("📊 Centrality Analysis")
+                
+                G = graph_data['graph']
+                stats = analyzer.get_network_statistics(G)
+                
+                # Create centrality comparison chart
+                centrality_data = []
+                for node in list(G.nodes())[:20]:  # Top 20 nodes
+                    centrality_data.append({
+                        'Node': node[:20] + "..." if len(node) > 20 else node,
+                        'Degree': stats['centrality']['degree'].get(node, 0),
+                        'Betweenness': stats['centrality']['betweenness'].get(node, 0),
+                        'Closeness': stats['centrality']['closeness'].get(node, 0),
+                        'Eigenvector': stats['centrality']['eigenvector'].get(node, 0)
+                    })
+                
+                # Create comparative bar chart
+                import pandas as pd
+                df = pd.DataFrame(centrality_data)
+                
+                # Normalize values for comparison
+                for col in ['Degree', 'Betweenness', 'Closeness', 'Eigenvector']:
+                    if df[col].max() > 0:
+                        df[f'{col}_norm'] = df[col] / df[col].max()
+                
+                fig_centrality = px.bar(
+                    df.head(10), 
+                    x='Node', 
+                    y=['Degree', 'Betweenness', 'Closeness', 'Eigenvector'],
+                    title="Centrality Measures Comparison (Top 10 Nodes)",
+                    barmode='group'
+                )
+                fig_centrality.update_xaxis(tickangle=45)
+                st.plotly_chart(fig_centrality, use_container_width=True)
+            
+            elif analysis_mode == "Risk Analysis" and 'graph' in graph_data:
+                st.subheader("⚠️ Risk Analysis")
+                
+                G = graph_data['graph']
+                
+                # Risk distribution analysis
+                risk_stats = {'critical': 0, 'high': 0, 'medium': 0, 'low': 0, 'unknown': 0}
+                total_emails = 0
+                
+                for edge in G.edges():
+                    edge_data = G[edge[0]][edge[1]]
+                    risk_levels = edge_data.get('risk_levels', [])
+                    total_emails += edge_data.get('weight', 1)
                     
-                    # Show both graphs simultaneously to avoid disappearing issue
-                    col1, col2 = st.columns([1, 3])
+                    for risk in risk_levels:
+                        risk_lower = risk.lower()
+                        if risk_lower in risk_stats:
+                            risk_stats[risk_lower] += 1
+                
+                # Risk visualization
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    fig_risk = px.pie(
+                        values=list(risk_stats.values()),
+                        names=list(risk_stats.keys()),
+                        title="Risk Level Distribution",
+                        color_discrete_map={
+                            'critical': '#ff4444',
+                            'high': '#ff8800',
+                            'medium': '#ffcc00',
+                            'low': '#44aa44',
+                            'unknown': '#888888'
+                        }
+                    )
+                    st.plotly_chart(fig_risk, use_container_width=True)
+                
+                with col2:
+                    st.markdown("**🚨 Risk Summary**")
+                    st.metric("Total Emails", total_emails)
+                    st.metric("High Risk Connections", risk_stats['critical'] + risk_stats['high'])
+                    st.metric("Risk Ratio", f"{((risk_stats['critical'] + risk_stats['high']) / max(sum(risk_stats.values()), 1) * 100):.1f}%")
                     
-                    with col1:
-                        st.subheader("Graph Controls")
-                        
-                        # Show mode selection as buttons instead of radio
-                        st.markdown("**Interaction Mode:**")
-                        
-                        if st.button("🔍 Pan & Zoom Mode", key="pan_mode", use_container_width=True):
-                            st.session_state.current_mode = "pan"
-                        
-                        if st.button("🔧 Drag Nodes Mode", key="drag_mode", use_container_width=True):
-                            st.session_state.current_mode = "drag"
-                        
-                        # Initialize mode if not set
-                        if 'current_mode' not in st.session_state:
-                            st.session_state.current_mode = "pan"
-                        
-                        # Show current mode
-                        if st.session_state.current_mode == "pan":
-                            st.success("**Active:** Pan & Zoom")
-                            st.caption("Click and drag to pan, scroll to zoom")
-                        else:
-                            st.success("**Active:** Drag Nodes")
-                            st.caption("Click and drag individual nodes to move them")
-                    
-                    with col2:
-                        # Create figure copy for current mode
-                        import copy
-                        display_fig = copy.deepcopy(fig)
-                        
-                        # Apply mode-specific settings
-                        if st.session_state.current_mode == "drag":
-                            display_fig.update_layout(dragmode='select')
-                        else:
-                            display_fig.update_layout(dragmode='pan')
-                        
-                        # Display with stable key
-                        st.plotly_chart(
-                            display_fig,
-                            use_container_width=True,
-                            key="stable_network_graph"
-                        )
-                    
-                    # Node selection interface below the main graph
-                    st.subheader("Node Connection Analysis")
-                    
-                    if graph_data and 'nodes' in graph_data:
-                        col1, col2 = st.columns([1, 2])
-                        
-                        with col1:
-                            # Node selector dropdown
-                            selected_node = st.selectbox(
-                                "Select a node to analyze:",
-                                options=["None"] + graph_data['nodes'],
-                                key="node_selector"
-                            )
-                        
-                        if selected_node and selected_node != "None":
-                            with col2:
-                                st.info(f"Analyzing connections for: **{selected_node}**")
-                            
-                            # Show connection details
-                            connections = analyzer._get_node_connections(selected_node, graph_data)
-                            
-                            if connections:
-                                # Display connection details in columns
-                                col1, col2 = st.columns(2)
-                                
-                                with col1:
-                                    if connections.get('Emails Received From'):
-                                        st.markdown("**📨 Emails Received From:**")
-                                        for sender in connections['Emails Received From'][:10]:
-                                            st.write(f"• {sender}")
-                                        if len(connections['Emails Received From']) > 10:
-                                            st.caption(f"... and {len(connections['Emails Received From']) - 10} more")
-                                
-                                with col2:
-                                    if connections.get('Emails Sent To'):
-                                        st.markdown("**📤 Emails Sent To:**")
-                                        for recipient in connections['Emails Sent To'][:10]:
-                                            st.write(f"• {recipient}")
-                                        if len(connections['Emails Sent To']) > 10:
-                                            st.caption(f"... and {len(connections['Emails Sent To']) - 10} more")
-                                
-                                # Create highlighted graph
-                                highlighted_fig = analyzer._create_highlighted_graph(fig, selected_node, graph_data)
-                                
-                                st.markdown("**🔍 Highlighted Network View:**")
-                                st.plotly_chart(
-                                    highlighted_fig,
-                                    use_container_width=True,
-                                    key=f"highlighted_graph_{selected_node}"
-                                )
-                            else:
-                                st.warning(f"No connections found for {selected_node}")
+                    if risk_stats['critical'] > 0:
+                        st.error(f"⚠️ {risk_stats['critical']} critical risk connections found!")
+                    elif risk_stats['high'] > 0:
+                        st.warning(f"🔶 {risk_stats['high']} high risk connections found!")
                     else:
-                        st.info("Generate a network graph first to analyze node connections.")
+                        st.success("✅ No critical risk connections detected!")
+            
+            elif analysis_mode == "Communities" and 'graph' in graph_data:
+                st.subheader("👥 Community Detection")
+                
+                G = graph_data['graph']
+                
+                try:
+                    import networkx.algorithms.community as nx_comm
+                    communities = list(nx_comm.greedy_modularity_communities(G.to_undirected()))
                     
-                    # Network statistics
-                    st.subheader("Network Statistics")
+                    st.write(f"**🏘️ Detected {len(communities)} communities**")
                     
-                    G = analyzer.build_network_from_data(filtered_data, source_field, target_field)
+                    # Community size distribution
+                    community_sizes = [len(community) for community in communities]
                     
-                    col1, col2, col3, col4 = st.columns(4)
+                    fig_communities = px.bar(
+                        x=[f"Community {i+1}" for i in range(len(community_sizes))],
+                        y=community_sizes,
+                        title="Community Size Distribution",
+                        labels={'x': 'Community', 'y': 'Number of Nodes'}
+                    )
+                    st.plotly_chart(fig_communities, use_container_width=True)
+                    
+                    # Show community details
+                    for i, community in enumerate(communities[:5]):  # Show first 5
+                        with st.expander(f"👥 Community {i+1} ({len(community)} members)"):
+                            members = list(community)[:20]  # Show first 20 members
+                            st.write("**Members:**")
+                            for j, member in enumerate(members):
+                                st.write(f"{j+1}. {member}")
+                            if len(community) > 20:
+                                st.caption(f"... and {len(community) - 20} more members")
+                
+                except ImportError:
+                    st.warning("Community detection requires additional packages. Using basic clustering analysis.")
+                    
+                    # Fallback to degree-based clustering
+                    degree_dict = dict(G.degree())
+                    high_degree_nodes = [node for node, degree in degree_dict.items() if degree > np.mean(list(degree_dict.values()))]
+                    
+                    st.write(f"**📈 High-connectivity cluster: {len(high_degree_nodes)} nodes**")
+                    for node in high_degree_nodes[:10]:
+                        st.write(f"• {node} (degree: {degree_dict[node]})")
+            
+            # Node-specific analysis
+            if selected_node and selected_node != "None" and 'graph' in graph_data:
+                st.subheader(f"🔍 Detailed Analysis: {selected_node}")
+                
+                G = graph_data['graph']
+                connections = analyzer.analyze_node_connections(selected_node, G)
+                
+                if connections:
+                    # Connection overview
+                    col1, col2, col3 = st.columns(3)
                     
                     with col1:
-                        st.metric("Total Nodes", len(G.nodes()))
+                        st.metric("📥 Incoming", connections['total_incoming'])
                     
                     with col2:
-                        st.metric("Total Edges", len(G.edges()))
+                        st.metric("📤 Outgoing", connections['total_outgoing'])
                     
                     with col3:
-                        avg_degree = np.mean([d for n, d in G.degree()]) if G.nodes() else 0
-                        st.metric("Average Degree", f"{avg_degree:.2f}")
+                        st.metric("🔗 Total", connections['total_connections'])
                     
-                    with col4:
-                        density = nx.density(G) if G.nodes() else 0
-                        st.metric("Network Density", f"{density:.4f}")
+                    # Detailed connection analysis
+                    col1, col2 = st.columns(2)
                     
-                    # Top nodes analysis
-                    st.subheader("Top Connected Nodes")
+                    with col1:
+                        st.markdown("**📥 Incoming Emails**")
+                        for conn in connections['incoming'][:10]:
+                            risk_color = "🔴" if 'critical' in conn['risk_levels'] else "🟠" if 'high' in conn['risk_levels'] else "🟡" if 'medium' in conn['risk_levels'] else "🟢"
+                            st.write(f"{risk_color} **{conn['from']}** ({conn['weight']} emails)")
+                            if conn['attachments'] > 0:
+                                st.caption(f"   📎 {conn['attachments']} attachments")
                     
-                    if G.nodes():
-                        degree_centrality = nx.degree_centrality(G)
-                        top_nodes = sorted(degree_centrality.items(), key=lambda x: x[1], reverse=True)[:10]
-                        
-                        for i, (node, centrality) in enumerate(top_nodes):
-                            st.write(f"{i+1}. **{node}** - Centrality: {centrality:.4f}")
-                    
-                    # Community detection
-                    st.subheader("Community Detection")
-                    
-                    try:
-                        import networkx.algorithms.community as nx_comm
-                        communities = list(nx_comm.greedy_modularity_communities(G))
-                        
-                        st.write(f"**Number of Communities:** {len(communities)}")
-                        
-                        for i, community in enumerate(communities[:5]):  # Show first 5 communities
-                            st.write(f"**Community {i+1}** ({len(community)} nodes): {', '.join(list(community)[:10])}")
-                            if len(community) > 10:
-                                st.write(f"... and {len(community) - 10} more")
-                    
-                    except ImportError:
-                        st.info("Community detection requires additional packages.")
-                    
-                else:
-                    st.error("Unable to generate network graph. Please check your data and filters.")
+                    with col2:
+                        st.markdown("**📤 Outgoing Emails**")
+                        for conn in connections['outgoing'][:10]:
+                            risk_color = "🔴" if 'critical' in conn['risk_levels'] else "🟠" if 'high' in conn['risk_levels'] else "🟡" if 'medium' in conn['risk_levels'] else "🟢"
+                            st.write(f"{risk_color} **{conn['to']}** ({conn['weight']} emails)")
+                            if conn['attachments'] > 0:
+                                st.caption(f"   📎 {conn['attachments']} attachments")
+        
         else:
-            st.error("No data matches the selected filters.")
+            st.error("❌ Unable to generate network graph. Please check your data and filters.")
+    
+    else:
+        st.info("👆 Click 'Generate Enhanced Network' to start the analysis!")
 
 def domain_classification_page():
     """Domain Classification page"""
