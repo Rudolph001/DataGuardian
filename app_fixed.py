@@ -2213,46 +2213,104 @@ def security_operations_dashboard():
         if suspicious_events:
             st.info(f"🎯 AI identified {len(suspicious_events)} suspicious events from {len(filtered_records)} records that need your attention")
             
-            # Show smart filtered results
+            # Show smart filtered results with Timeline View styling
             st.subheader("🔍 AI-Recommended Events to Review")
+            
             for i, event in enumerate(suspicious_events):
                 email = event['email']
                 email_id = str(hash(str(email)))
+                current_status = email.get('status', 'unclassified').lower()
+                
+                # Create styled expander with matching format
+                status_indicator = get_risk_indicator(current_status)
+                suspicion_score = f"0.{int(event['suspicion_score'] * 100):02d}"
                 
                 with st.expander(f"🚨 Suspicious Event #{i+1} - {email.get('subject', 'No Subject')[:50]}...", expanded=False):
-                    col1, col2 = st.columns([3, 1])
+                    
+                    # Header section matching Timeline View
+                    st.markdown(f"""
+                    **Sender:** {email.get('sender', 'N/A')}
+                    
+                    **Recipients:** {email.get('recipients', 'N/A')}
+                    
+                    **Current Status:** {status_indicator} {current_status.title()}
+                    
+                    **Suspicion Score:** {suspicion_score}
+                    
+                    **AI Reasoning:** {event['reason']}
+                    """)
+                    
+                    # Create priority indicator with colored border (matching Timeline View style)
+                    priority_color = {
+                        'critical': '#ff4444',
+                        'high': '#ff8800', 
+                        'medium': '#ffcc00',
+                        'low': '#44aa44'
+                    }.get(current_status, '#888888')
+                    
+                    # Email content section with colored border
+                    st.markdown(f"""
+                    <div style="border-left: 4px solid {priority_color}; padding: 12px; margin: 8px 0; background-color: #f8f9fa; border-radius: 4px;">
+                        <div style="font-weight: bold; color: #333; margin-bottom: 8px;">{status_indicator} {current_status.upper()} PRIORITY</div>
+                        <div style="font-size: 1.1em; font-weight: 500; margin-bottom: 4px;">{email.get('subject', 'No Subject')}</div>
+                        <div style="color: #666; font-size: 0.9em;">
+                            <strong>From:</strong> {email.get('sender', 'N/A').split('@')[0]} → <strong>To:</strong> {email.get('recipients_email_domain', 'Unknown')}
+                        </div>
+                        <div style="color: #666; font-size: 0.9em; margin-top: 4px;">
+                            <strong>Time:</strong> {email.get('_time', 'Unknown')}
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Action buttons section (matching Timeline View layout)
+                    col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
                     
                     with col1:
-                        st.write(f"**Sender:** {email.get('sender', 'N/A')}")
-                        st.write(f"**Recipients:** {email.get('recipients', 'N/A')}")
-                        st.write(f"**Current Status:** {get_risk_indicator(email.get('status', 'unknown'))} {email.get('status', 'Unknown').title()}")
-                        st.write(f"**Suspicion Score:** {event['suspicion_score']:.2f}")
-                        st.write(f"**AI Reasoning:** {event['reason']}")
+                        if st.button("📋 View Details", key=f"ai_details_{email_id}", use_container_width=True):
+                            with st.popover("📧 Email Details", use_container_width=True):
+                                show_email_details_modal(email)
                     
                     with col2:
-                        # Status change functionality
-                        current_status = email.get('status', 'unclassified')
+                        # Status change dropdown (matching Timeline View)
                         new_status = st.selectbox(
-                            "Change Status:",
+                            "Status:",
                             ["critical", "high", "medium", "low", "unclassified"],
-                            index=["critical", "high", "medium", "low", "unclassified"].index(current_status.lower() if current_status.lower() in ["critical", "high", "medium", "low", "unclassified"] else "unclassified"),
-                            key=f"status_{email_id}"
+                            index=["critical", "high", "medium", "low", "unclassified"].index(current_status if current_status in ["critical", "high", "medium", "low", "unclassified"] else "unclassified"),
+                            key=f"ai_status_{email_id}"
                         )
                         
-                        if st.button(f"Update Status", key=f"update_{email_id}"):
-                            # Update the email status in the data
-                            for i, data_email in enumerate(st.session_state.data):
-                                if str(hash(str(data_email))) == email_id:
-                                    st.session_state.data[i]['status'] = new_status
-                                    # Save updated data to persistence
-                                    data_persistence = DataPersistence()
-                                    data_persistence.save_daily_data(st.session_state.data)
-                                    st.success(f"Status updated to {new_status.title()}")
-                                    st.rerun()
-                                    break
-                        
-                        if st.button(f"View Details", key=f"details_{email_id}"):
-                            show_email_details_modal(email)
+                        if new_status != current_status:
+                            if st.button("Update", key=f"ai_update_{email_id}", use_container_width=True):
+                                # Update the email status in the data
+                                for idx, data_email in enumerate(st.session_state.data):
+                                    if str(hash(str(data_email))) == email_id:
+                                        st.session_state.data[idx]['status'] = new_status
+                                        # Save updated data to persistence
+                                        data_persistence = DataPersistence()
+                                        data_persistence.save_daily_data(st.session_state.data)
+                                        st.success(f"Status updated to {new_status.title()}")
+                                        st.rerun()
+                                        break
+                    
+                    with col3:
+                        if st.button("✅ Clear", key=f"ai_clear_{email_id}", type="secondary", use_container_width=True):
+                            st.session_state.completed_reviews[email_id] = {
+                                'email': email,
+                                'decision': 'clear',
+                                'timestamp': datetime.now()
+                            }
+                            st.success("Email marked as cleared!")
+                            st.rerun()
+                    
+                    with col4:
+                        if st.button("🚨 Escalate", key=f"ai_escalate_{email_id}", type="primary", use_container_width=True):
+                            st.session_state.escalated_records[email_id] = {
+                                'email': email,
+                                'decision': 'escalate',
+                                'timestamp': datetime.now()
+                            }
+                            st.success("Email escalated for follow-up!")
+                            st.rerun()
             
             st.markdown("---")
         else:
@@ -2468,94 +2526,14 @@ def security_operations_dashboard():
                         st.success("Email escalated for follow-up!")
                         st.rerun()
                 
-                # Show modal if triggered
+                # Show modal if triggered - use popover instead of dialog to avoid conflicts
                 if st.session_state.get(f'show_modal_{unique_key}', False):
-                    # Use st.dialog for a proper popup modal
-                    @st.dialog(f"📧 Email Details - {email.get('subject', 'No Subject')[:50]}", width="large")
-                    def show_email_modal():
-                        # Apply the enhanced modal CSS first
-                        st.markdown("""
-                        <style>
-                        /* Enhanced CSS for larger, more readable modal popups */
-                        .stDialog > div:first-child {
-                            width: 95vw !important;
-                            max-width: 1400px !important;
-                            height: 90vh !important;
-                            max-height: none !important;
-                        }
-                        
-                        .stDialog > div:first-child > div {
-                            width: 100% !important;
-                            height: 100% !important;
-                            padding: 2.5rem !important;
-                            overflow-y: auto !important;
-                        }
-                        
-                        .stDialog h1, .stDialog h2, .stDialog h3 {
-                            margin-top: 1.5rem !important;
-                            margin-bottom: 1rem !important;
-                        }
-                        
-                        .stDialog .stMarkdown {
-                            margin-bottom: 1rem !important;
-                        }
-                        
-                        .stDialog .stColumns {
-                            gap: 2rem !important;
-                        }
-                        
-                        .stDialog .element-container {
-                            margin-bottom: 0.75rem !important;
-                        }
-                        
-                        /* Center the close button and improve styling */
-                        .stDialog button[kind="secondary"] {
-                            display: block !important;
-                            margin: 2rem auto 0 auto !important;
-                            min-width: 150px !important;
-                            padding: 1rem 2rem !important;
-                            font-size: 1.2rem !important;
-                            font-weight: bold !important;
-                        }
-                        
-                        /* Better section separation */
-                        .stDialog hr {
-                            margin: 2rem 0 !important;
-                            border-color: #e0e0e0 !important;
-                        }
-                        
-                        /* Improve readability of content */
-                        .stDialog .stInfo, .stDialog .stWarning, .stDialog .stError, .stDialog .stSuccess {
-                            padding: 1.5rem !important;
-                            margin-bottom: 1.5rem !important;
-                            font-size: 1.1rem !important;
-                            line-height: 1.6 !important;
-                        }
-                        
-                        /* Better spacing for metrics */
-                        .stDialog .metric-container {
-                            padding: 1.5rem !important;
-                            margin-bottom: 1.5rem !important;
-                        }
-                        
-                        /* Make text more readable */
-                        .stDialog .stMarkdown p, .stDialog .stMarkdown strong {
-                            font-size: 1.1rem !important;
-                            line-height: 1.5 !important;
-                        }
-                        </style>
-                        """, unsafe_allow_html=True)
-                        
+                    with st.popover("📧 Email Details", use_container_width=True):
                         show_email_details_modal(email)
                         
-                        # Close button at the bottom
-                        st.markdown("---")
-                        if st.button("❌ Close Modal", key=f"close_modal_{unique_key}", type="secondary", use_container_width=True):
+                        if st.button("❌ Close", key=f"close_modal_{unique_key}", type="secondary"):
                             st.session_state[f'show_modal_{unique_key}'] = False
                             st.rerun()
-                    
-                    # Show the dialog
-                    show_email_modal()
             
             if len(group_emails_sorted) > 15:
                 remaining = len(group_emails_sorted) - 15
