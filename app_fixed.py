@@ -2843,9 +2843,9 @@ We received an alert regarding the file you recently emailed (details below). To
 
 In particular, we'd appreciate it if you could confirm:
 
-Whether the file contains any Investec intellectual property (IP)
+• Whether the file contains any Investec intellectual property (IP)
 
-If this activity is part of an approved business process
+• If this activity is part of an approved business process
 
 Your input is important and will help us ensure everything is in line with our data protection policies. Please feel free to reach out if you have any questions.
 
