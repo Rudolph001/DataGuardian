@@ -2486,10 +2486,8 @@ def security_operations_dashboard():
                 unique_key = f"{group_name}_{i}_{hash(str(email))}"
                 
                 with col1:
-                    if st.button(f"📋 View Details - {subject_preview}", key=f"details_{unique_key}", use_container_width=True):
-                        # Show modal directly using popover
-                        with st.popover("📧 Email Details", use_container_width=True):
-                            show_email_details_modal(email)
+                    with st.popover("📋 View Details", use_container_width=True):
+                        show_email_details_modal(email)
                 
                 with col2:
                     # Status change dropdown
