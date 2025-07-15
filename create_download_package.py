@@ -18,6 +18,8 @@ def create_download_package():
         'domain_classifier.py',
         'security_config.py',
         'local_requirements.txt',
+        'run_windows.py',
+        'run_mac.py',
         'run_windows.bat',
         'run_mac.sh',
         'local_config.toml',

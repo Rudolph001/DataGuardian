@@ -3,12 +3,27 @@
 ## Quick Start
 
 ### Windows Users
+**Option 1: Python Launcher (Recommended)**
+1. Download all files to a folder on your computer
+2. Double-click `run_windows.py`
+3. The app will automatically install dependencies and start
+4. Open your browser to `http://localhost:8501`
+
+**Option 2: Batch Script**
 1. Download all files to a folder on your computer
 2. Double-click `run_windows.bat`
 3. The app will automatically install dependencies and start
 4. Open your browser to `http://localhost:8501`
 
 ### Mac Users
+**Option 1: Python Launcher (Recommended)**
+1. Download all files to a folder on your computer
+2. Open Terminal and navigate to the folder
+3. Run: `python3 run_mac.py`
+4. The app will automatically install dependencies and start
+5. Open your browser to `http://localhost:8501`
+
+**Option 2: Shell Script**
 1. Download all files to a folder on your computer
 2. Open Terminal and navigate to the folder
 3. Run: `chmod +x run_mac.sh && ./run_mac.sh`
