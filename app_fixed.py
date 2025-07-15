@@ -700,7 +700,13 @@ def show_email_details_modal(email):
         
         with col2:
             st.markdown(f"**Recipients Domain:** {email.get('recipients_email_domain', 'Unknown')}")
-            st.markdown(f"**Attachment:** {'✅ Yes' if email.get('attachment') else '❌ No'}")
+            attachment_value = email.get('attachment', '')
+            if attachment_value and attachment_value not in [True, False, 'True', 'False']:
+                st.markdown(f"**Attachment:** 📎 {attachment_value}")
+            elif attachment_value:
+                st.markdown(f"**Attachment:** ✅ Yes")
+            else:
+                st.markdown(f"**Attachment:** ❌ No")
             risk_status = email.get('status', 'Unknown')
             st.markdown(f"**Risk Status:** {get_risk_indicator(risk_status)} {risk_status.title()}")
         
