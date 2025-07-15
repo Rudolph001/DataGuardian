@@ -1512,12 +1512,15 @@ def followup_center_page():
                     template = generate_followup_email(email)
                     st.text_area("Email Template", template, height=200)
                     
-                    # Create mailto link
+                    # Create mailto link with proper formatting
                     subject = f"Security Alert - {email.get('subject', 'Email Security Issue')}"
-                    body = template.replace('\n', '%0A')
-                    mailto_link = f"mailto:{email.get('sender', '')}?subject={quote(subject)}&body={quote(body)}"
+                    # Clean template for mailto - remove extra line breaks and format properly
+                    clean_body = template.replace('\n\n', '\n').strip()
                     
-                    st.markdown(f"[Open in Outlook]({mailto_link})")
+                    # Create the mailto link without over-encoding
+                    mailto_link = f"mailto:{email.get('sender', '')}?subject={quote(subject)}&body={quote(clean_body)}"
+                    
+                    st.markdown(f"[📧 Open in Outlook]({mailto_link})")
             
             with col2:
                 new_status = st.selectbox(
@@ -1546,26 +1549,36 @@ def followup_center_page():
 
 def generate_followup_email(email):
     """Generate follow-up email template"""
-    template = f"""Subject: Security Alert - Review Required for Email Communication
+    # Create clean, professional email content
+    sender_name = email.get('sender', 'Team Member').split('@')[0].replace('.', ' ').title()
+    subject = email.get('subject', 'No Subject')
+    recipient = email.get('recipients', 'Unknown')
+    domain = email.get('recipients_email_domain', 'Unknown')
+    risk_level = email.get('status', 'Unknown').title()
+    date_sent = email.get('_time', 'Unknown')
+    
+    template = f"""SECURITY ALERT - Email Review Required
 
-Dear {email.get('sender', 'Team Member')},
+Dear {sender_name},
 
 Our security monitoring system has flagged an email communication that requires your immediate attention and review.
 
-Email Details:
-- From: {email.get('sender', 'Unknown')}
-- To: {email.get('recipients', 'Unknown')}
-- Subject: {email.get('subject', 'No Subject')}
-- Date: {email.get('_time', 'Unknown')}
-- Risk Level: {email.get('status', 'Unknown').title()}
-- Domain: {email.get('recipients_email_domain', 'Unknown')}
+EMAIL DETAILS:
+From: {email.get('sender', 'Unknown')}
+To: {recipient}
+Subject: {subject}
+Date: {date_sent}
+Risk Level: {risk_level}
+Recipient Domain: {domain}
 
+REQUIRED ACTIONS:
 This email has been escalated due to potential security concerns. Please review the communication and confirm:
 
 1. Was this email sent intentionally?
 2. Does the recipient have authorization to receive this information?
 3. Are there any sensitive data or attachments that should not have been shared?
 
+RESPONSE REQUIRED:
 Please respond to this email within 24 hours with your confirmation and any additional context.
 
 If you have any questions or concerns, please contact the Security Team immediately.
@@ -1574,9 +1587,7 @@ Best regards,
 Security Team
 ExfilEye Data Loss Prevention System
 
----
-This is an automated message from the ExfilEye DLP system.
-"""
+This is an automated security alert from the ExfilEye DLP system."""
     
     return template
 
