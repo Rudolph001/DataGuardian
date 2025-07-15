@@ -2576,103 +2576,58 @@ def followup_center_page():
                         col_send1, col_send2, col_send3 = st.columns([2, 1, 1])
                         
                         with col_send1:
-                            # Create enhanced Outlook integration
+                            if st.button("📧 Open in Outlook", key=f"open_outlook_{record_id}", type="primary", use_container_width=True):
+                                # Create mailto link for automatic opening in Outlook
+                                import urllib.parse
+                                mailto_subject = urllib.parse.quote(subject)
+                                mailto_body = urllib.parse.quote(edited_template)
+                                mailto_to = urllib.parse.quote(sender_email)
+                                mailto_link = f"mailto:{mailto_to}?subject={mailto_subject}&body={mailto_body}"
+
+                                # Auto-open in Outlook using HTML redirect and JavaScript
+                                st.markdown(f"""
+                                <meta http-equiv="refresh" content="0; url={mailto_link}">
+                                <p>Opening Outlook automatically...</p>
+                                <script>
+                                setTimeout(function(){{
+                                    window.location.href = '{mailto_link}';
+                                }}, 100);
+                                </script>
+                                """, unsafe_allow_html=True)
+
+                                st.success("Opening Outlook automatically...")
+                                
+                                # Display email details for reference
+                                st.subheader("Follow-up Email Details")
+                                col_email1, col_email2 = st.columns(2)
+                                with col_email1:
+                                    st.write(f"**To:** {sender_email}")
+                                    st.write(f"**Subject:** {subject}")
+                                with col_email2:
+                                    st.write(f"**Body Preview:** {edited_template[:100]}...")
+                                
+                                # Force page refresh to trigger the email opening
+                                st.rerun()
+                            
+                            # Also provide alternative method
+                            st.markdown("---")
+                            st.markdown("**Alternative Method:**")
+                            
+                            # Create basic mailto link
                             basic_mailto = f"mailto:{sender_email}?subject={quote(subject)}&body={quote(clean_body)}"
                             
-                            # Create a more aggressive Outlook opening approach
-                            outlook_button_id = f"outlook_btn_{record_id}"
-                            
-                            # Prepare clean body for JavaScript (escape problematic characters)
-                            js_safe_body = clean_body.replace('`', "'").replace('\\', '').replace('\n', ' ').replace('\r', '')
-                            
-                            st.markdown(f"""
-                            <div style="margin: 10px 0;">
-                                <button id="{outlook_button_id}" 
-                                        onclick="openOutlookAdvanced('{sender_email}', '{quote(subject)}', '{js_safe_body}')"
-                                        style="background: #dc3545; color: white; padding: 15px 30px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%;">
-                                    📧 Open in Outlook
-                                </button>
-                            </div>
-                            
-                            <script>
-                            function openOutlookAdvanced(to, subject, body) {{
-                                // Multiple fallback methods to open Outlook
-                                const methods = [
-                                    // Method 1: Direct ms-outlook protocol
-                                    () => {{
-                                        const outlookUrl = 'ms-outlook://compose?to=' + to + '&subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body.substring(0, 500));
-                                        window.location.href = outlookUrl;
-                                    }},
-                                    
-                                    // Method 2: Standard mailto with immediate redirect
-                                    () => {{
-                                        const mailtoUrl = 'mailto:' + to + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
-                                        window.location.href = mailtoUrl;
-                                    }},
-                                    
-                                    // Method 3: Force open in new tab/window
-                                    () => {{
-                                        const mailtoUrl = 'mailto:' + to + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
-                                        const newWindow = window.open(mailtoUrl, '_blank');
-                                        if (newWindow) newWindow.close();
-                                    }},
-                                    
-                                    // Method 4: Create invisible iframe
-                                    () => {{
-                                        const mailtoUrl = 'mailto:' + to + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
-                                        const iframe = document.createElement('iframe');
-                                        iframe.style.display = 'none';
-                                        iframe.src = mailtoUrl;
-                                        document.body.appendChild(iframe);
-                                        setTimeout(() => document.body.removeChild(iframe), 1000);
-                                    }}
-                                ];
+                            if st.button("📧 Try Alternative Method", key=f"alt_outlook_{record_id}", use_container_width=True):
+                                # Auto-open Outlook using JavaScript
+                                st.markdown(f"""
+                                <script>
+                                setTimeout(function() {{
+                                    window.open('{basic_mailto}', '_blank');
+                                }}, 100);
+                                </script>
+                                """, unsafe_allow_html=True)
                                 
-                                // Try each method with delays
-                                methods.forEach((method, index) => {{
-                                    setTimeout(() => {{
-                                        try {{
-                                            method();
-                                            console.log('Outlook method ' + (index + 1) + ' executed');
-                                        }} catch (e) {{
-                                            console.log('Outlook method ' + (index + 1) + ' failed:', e);
-                                        }}
-                                    }}, index * 200);
-                                }});
-                                
-                                // Show success message
-                                const button = document.getElementById('{outlook_button_id}');
-                                const originalText = button.innerHTML;
-                                button.innerHTML = '✅ Opening Outlook...';
-                                button.style.background = '#28a745';
-                                
-                                setTimeout(() => {{
-                                    button.innerHTML = originalText;
-                                    button.style.background = '#dc3545';
-                                }}, 3000);
-                            }}
-                            
-                            // Auto-setup for better compatibility
-                            document.addEventListener('DOMContentLoaded', function() {{
-                                if (navigator.userAgent.indexOf('Windows') !== -1) {{
-                                    console.log('Windows detected - Outlook integration ready');
-                                }}
-                            }});
-                            </script>
-                            """, unsafe_allow_html=True)
-                            
-                            # Provide immediate troubleshooting
-                            st.info("Click the button above to open Outlook. The system will try multiple methods automatically.")
-                            
-                            # Show the raw mailto link as backup
-                            st.markdown(f"""
-                            <details>
-                            <summary>Backup: Right-click this link if button doesn't work</summary>
-                            <a href="{basic_mailto}" style="color: #0066cc; text-decoration: underline;">
-                                Open in Email Client (Right-click → Open link)
-                            </a>
-                            </details>
-                            """, unsafe_allow_html=True)
+                                st.success("Opening Outlook automatically...")
+                                st.rerun()
                         
                         with col_send2:
                             # Reset/regenerate template
