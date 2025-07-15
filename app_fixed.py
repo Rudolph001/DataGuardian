@@ -3114,9 +3114,10 @@ def domain_classification_page():
         # View existing classifications
         st.write("**Current Domain Classifications:**")
         
+        available_categories = ["All"] + list(domain_classifier.classifications.keys())
         category_filter = st.selectbox(
             "Filter by Category",
-            ["All", "Suspicious", "Free Email", "Business", "Government", "Financial", "Cloud Providers"]
+            available_categories
         )
         
         domains = domain_classifier.get_domains_by_category(category_filter)
@@ -3144,10 +3145,17 @@ def domain_classification_page():
                             st.success(f"Domain {domain_info['domain']} removed!")
                             st.rerun()
                         
+                        category_list = list(domain_classifier.classifications.keys())
+                        current_index = 0
+                        try:
+                            current_index = category_list.index(domain_info['category'])
+                        except ValueError:
+                            current_index = 0
+                        
                         new_category = st.selectbox(
                             "Change Category",
-                            ["Suspicious", "Free Email", "Business", "Government", "Financial", "Cloud Providers"],
-                            index=["Suspicious", "Free Email", "Business", "Government", "Financial", "Cloud Providers"].index(domain_info['category']),
+                            category_list,
+                            index=current_index,
                             key=f"cat_{domain_info['domain']}"
                         )
                         
@@ -3173,7 +3181,7 @@ def domain_classification_page():
         with col2:
             new_category = st.selectbox(
                 "Category",
-                ["Suspicious", "Free Email", "Business", "Government", "Financial", "Cloud Providers"]
+                list(domain_classifier.classifications.keys())
             )
         
         if st.button("Add Domain", type="primary"):
@@ -3196,7 +3204,7 @@ def domain_classification_page():
         
         bulk_category = st.selectbox(
             "Category for all domains",
-            ["Suspicious", "Free Email", "Business", "Government", "Financial", "Cloud Providers"],
+            list(domain_classifier.classifications.keys()),
             key="bulk_category"
         )
         
