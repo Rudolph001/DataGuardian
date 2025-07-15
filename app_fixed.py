@@ -1465,6 +1465,25 @@ def followup_center_page():
             # Follow-up actions
             st.subheader("Follow-up Actions")
             
+            # Add troubleshooting info
+            with st.expander("📧 Email Troubleshooting"):
+                st.markdown("""
+                **If the email link doesn't work:**
+                
+                1. **Browser Settings**: Some browsers block mailto links by default
+                2. **Default Email Client**: Make sure you have a default email client set (Outlook, Gmail app, etc.)
+                3. **Manual Copy**: Use the "Copy Email Template" button to manually copy the content
+                4. **Alternative**: Copy the recipient email address and template text separately
+                
+                **For Outlook Web/Office 365:**
+                - The mailto link should open in your default browser with Outlook Web
+                - Make sure you're logged into Office 365 in your browser
+                
+                **For Desktop Outlook:**
+                - Windows should automatically open desktop Outlook if it's installed
+                - Check Windows default apps settings if it doesn't work
+                """)
+            
             col1, col2, col3 = st.columns(3)
             
             with col1:
@@ -1472,15 +1491,22 @@ def followup_center_page():
                     template = generate_followup_email(email)
                     st.text_area("Email Template", template, height=200)
                     
-                    # Create mailto link with proper formatting
+                    # Create mailto link with better encoding
                     subject = f"Security Alert - {email.get('subject', 'Email Security Issue')}"
                     # Clean template for mailto - remove extra line breaks and format properly
                     clean_body = template.replace('\n\n', '\n').strip()
                     
-                    # Create the mailto link without over-encoding
+                    # Create the mailto link with proper encoding
                     mailto_link = f"mailto:{email.get('sender', '')}?subject={quote(subject)}&body={quote(clean_body)}"
                     
-                    st.markdown(f"[📧 Open in Outlook]({mailto_link})")
+                    # Display the mailto link with multiple options
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.markdown(f"[📧 Open in Email Client]({mailto_link})")
+                    with col2:
+                        if st.button("Copy Email Template", key=f"copy_template_{record_id}"):
+                            st.code(f"To: {email.get('sender', '')}\nSubject: {subject}\n\n{template}", language="text")
+                            st.success("Email template displayed above - copy and paste into your email client!")
             
             with col2:
                 new_status = st.selectbox(
