@@ -179,12 +179,35 @@ class DataPersistence:
             with open(filepath, 'r', encoding='utf-8') as f:
                 work_state_with_metadata = json.load(f)
             
+            # Helper function to convert datetime strings back to datetime objects
+            def restore_datetime_objects(obj):
+                """Convert ISO format strings back to datetime objects where needed"""
+                if isinstance(obj, dict):
+                    result = {}
+                    for key, value in obj.items():
+                        if key == 'timestamp' and isinstance(value, str):
+                            try:
+                                # Try to parse ISO format datetime string
+                                from datetime import datetime
+                                result[key] = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                            except (ValueError, AttributeError):
+                                result[key] = value
+                        elif isinstance(value, (dict, list)):
+                            result[key] = restore_datetime_objects(value)
+                        else:
+                            result[key] = value
+                    return result
+                elif isinstance(obj, list):
+                    return [restore_datetime_objects(item) for item in obj]
+                else:
+                    return obj
+            
             # Check version for compatibility
             version = work_state_with_metadata.get("version", "1.0")
             
             if version == "2.0":
                 # New format with detailed dashboard states
-                return {
+                work_state = {
                     # Security Operations Dashboard
                     "completed_reviews": work_state_with_metadata.get("security_operations", {}).get("completed_reviews", {}),
                     "escalated_records": work_state_with_metadata.get("security_operations", {}).get("escalated_records", {}),
@@ -228,13 +251,16 @@ class DataPersistence:
                 }
             else:
                 # Legacy format compatibility
-                return {
+                work_state = {
                     "completed_reviews": work_state_with_metadata.get("completed_reviews", {}),
                     "escalated_records": work_state_with_metadata.get("escalated_records", {}),
                     "follow_up_decisions": work_state_with_metadata.get("follow_up_decisions", {}),
                     "blocked_domains": work_state_with_metadata.get("blocked_domains", []),
                     "sender_status": work_state_with_metadata.get("sender_status", {})
                 }
+            
+            # Restore datetime objects from ISO strings
+            return restore_datetime_objects(work_state)
                 
         except Exception as e:
             print(f"Error loading work state: {e}")

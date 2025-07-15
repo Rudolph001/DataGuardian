@@ -2588,7 +2588,14 @@ def email_check_completed_page():
                 }
                 status_indicator = f" - {status_indicators.get(followup_status, 'Unknown Status')}"
             
-            with st.expander(f"📧 {email.get('subject', 'No Subject')[:50]}... - {decision.title()} ({timestamp.strftime('%Y-%m-%d %H:%M')}){status_indicator}"):
+            # Handle both datetime objects and string timestamps
+        if hasattr(timestamp, 'strftime'):
+            timestamp_str = timestamp.strftime('%Y-%m-%d %H:%M')
+        else:
+            # If it's already a string, use it as is
+            timestamp_str = str(timestamp)
+        
+        with st.expander(f"📧 {email.get('subject', 'No Subject')[:50]}... - {decision.title()} ({timestamp_str}){status_indicator}"):
                 col1, col2 = st.columns(2)
                 
                 with col1:
@@ -2599,7 +2606,12 @@ def email_check_completed_page():
                 
                 with col2:
                     st.write(f"**Decision:** {decision.title()}")
-                    st.write(f"**Review Time:** {timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
+                    # Handle timestamp display
+                    if hasattr(timestamp, 'strftime'):
+                        review_time_str = timestamp.strftime('%Y-%m-%d %H:%M:%S')
+                    else:
+                        review_time_str = str(timestamp)
+                    st.write(f"**Review Time:** {review_time_str}")
                     st.write(f"**Reviewer:** Security Analyst")
                     st.write(f"**Department:** {email.get('department', 'Unknown')}")
                     
@@ -2710,6 +2722,12 @@ def followup_center_page():
         escalation_time = record['timestamp']
         followup_status = record.get('followup_status', 'pending')
         
+        # Handle both datetime objects and string timestamps
+        if hasattr(escalation_time, 'strftime'):
+            escalation_time_str = escalation_time.strftime('%Y-%m-%d %H:%M')
+        else:
+            escalation_time_str = str(escalation_time)
+        
         with st.expander(f"📧 {email.get('subject', 'No Subject')[:50]}... - {followup_status.title()}"):
             col1, col2 = st.columns(2)
             
@@ -2718,7 +2736,7 @@ def followup_center_page():
                 st.write(f"**To:** {email.get('recipients', 'Unknown')}")
                 st.write(f"**Domain:** {email.get('recipients_email_domain', 'Unknown')}")
                 st.write(f"**Status:** {get_risk_indicator(email.get('status', 'unknown'))} {email.get('status', 'Unknown').title()}")
-                st.write(f"**Escalated:** {escalation_time.strftime('%Y-%m-%d %H:%M')}")
+                st.write(f"**Escalated:** {escalation_time_str}")
             
             with col2:
                 st.write(f"**Follow-up Status:** {followup_status.title()}")
