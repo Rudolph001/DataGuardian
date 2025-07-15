@@ -1953,12 +1953,20 @@ def network_analysis_page():
                     'max_nodes': max_nodes
                 }
                 
-                # Create network graph and store in session state
-                if 'current_network_graph' not in st.session_state or st.button("Regenerate Graph"):
-                    fig = analyzer.create_network_graph(filtered_data, source_field, target_field, config)
-                    st.session_state.current_network_graph = fig
-                else:
-                    fig = st.session_state.current_network_graph
+                # Store graph configuration for regeneration
+                graph_key = f"{source_field}_{target_field}_{layout_type}_{min_connections}_{max_nodes}"
+                
+                # Create or retrieve network graph
+                if f'network_graph_{graph_key}' not in st.session_state or st.button("🔄 Regenerate Graph"):
+                    with st.spinner("Generating network graph..."):
+                        fig = analyzer.create_network_graph(filtered_data, source_field, target_field, config)
+                        if fig:
+                            # Store both the figure and graph data
+                            st.session_state[f'network_graph_{graph_key}'] = fig
+                            st.session_state[f'graph_data_{graph_key}'] = getattr(fig, '_graph_data', None)
+                
+                fig = st.session_state.get(f'network_graph_{graph_key}')
+                graph_data = st.session_state.get(f'graph_data_{graph_key}')
                 
                 if fig:
                     st.subheader("Interactive Network Graph")
@@ -1970,88 +1978,105 @@ def network_analysis_page():
                     - **Hover over nodes** to see detailed information
                     """)
                     
-                    # Add mode selection with session state
-                    col1, col2, col3 = st.columns([1, 1, 2])
+                    # Show both graphs simultaneously to avoid disappearing issue
+                    col1, col2 = st.columns([1, 3])
+                    
                     with col1:
-                        # Initialize interaction mode in session state
-                        if 'interaction_mode' not in st.session_state:
-                            st.session_state.interaction_mode = "Pan & Zoom"
+                        st.subheader("Graph Controls")
                         
-                        interaction_mode = st.radio(
-                            "Interaction Mode",
-                            ["Pan & Zoom", "Drag Nodes"],
-                            index=0 if st.session_state.interaction_mode == "Pan & Zoom" else 1,
-                            key="mode_selector"
-                        )
+                        # Show mode selection as buttons instead of radio
+                        st.markdown("**Interaction Mode:**")
                         
-                        # Update session state when mode changes
-                        st.session_state.interaction_mode = interaction_mode
+                        if st.button("🔍 Pan & Zoom Mode", key="pan_mode", use_container_width=True):
+                            st.session_state.current_mode = "pan"
+                        
+                        if st.button("🔧 Drag Nodes Mode", key="drag_mode", use_container_width=True):
+                            st.session_state.current_mode = "drag"
+                        
+                        # Initialize mode if not set
+                        if 'current_mode' not in st.session_state:
+                            st.session_state.current_mode = "pan"
+                        
+                        # Show current mode
+                        if st.session_state.current_mode == "pan":
+                            st.success("**Active:** Pan & Zoom")
+                            st.caption("Click and drag to pan, scroll to zoom")
+                        else:
+                            st.success("**Active:** Drag Nodes")
+                            st.caption("Click and drag individual nodes to move them")
                     
                     with col2:
-                        if st.button("Reset View", key="reset_view"):
-                            if 'current_network_graph' in st.session_state:
-                                del st.session_state.current_network_graph
-                            st.rerun()
+                        # Create figure copy for current mode
+                        import copy
+                        display_fig = copy.deepcopy(fig)
+                        
+                        # Apply mode-specific settings
+                        if st.session_state.current_mode == "drag":
+                            display_fig.update_layout(dragmode='select')
+                        else:
+                            display_fig.update_layout(dragmode='pan')
+                        
+                        # Display with stable key
+                        st.plotly_chart(
+                            display_fig,
+                            use_container_width=True,
+                            key="stable_network_graph"
+                        )
                     
-                    # Create a copy of the figure for mode-specific updates
-                    import copy
-                    display_fig = copy.deepcopy(fig)
-                    
-                    # Set dragmode based on selection
-                    if interaction_mode == "Drag Nodes":
-                        display_fig.update_layout(dragmode='select')
-                        st.info("🔧 **Drag Nodes Mode**: Click and drag individual nodes to rearrange the network layout")
-                    else:
-                        display_fig.update_layout(dragmode='pan')
-                        st.info("🔍 **Pan & Zoom Mode**: Click and drag to pan, use mouse wheel to zoom")
-                    
-                    # Display the network graph with proper key management
-                    st.plotly_chart(
-                        display_fig, 
-                        use_container_width=True, 
-                        key=f"network_graph_{interaction_mode.replace(' ', '_').lower()}",
-                        on_select="ignore"
-                    )
-                    
-                    # Node selection interface
-                    st.subheader("Node Analysis")
-                    graph_data = getattr(fig, '_graph_data', None)
+                    # Node selection interface below the main graph
+                    st.subheader("Node Connection Analysis")
                     
                     if graph_data and 'nodes' in graph_data:
-                        # Node selector dropdown
-                        selected_node = st.selectbox(
-                            "Select a node to analyze its connections:",
-                            options=["None"] + graph_data['nodes'],
-                            key="node_selector"
-                        )
+                        col1, col2 = st.columns([1, 2])
+                        
+                        with col1:
+                            # Node selector dropdown
+                            selected_node = st.selectbox(
+                                "Select a node to analyze:",
+                                options=["None"] + graph_data['nodes'],
+                                key="node_selector"
+                            )
                         
                         if selected_node and selected_node != "None":
-                            # Show selected node connections
+                            with col2:
+                                st.info(f"Analyzing connections for: **{selected_node}**")
+                            
+                            # Show connection details
                             connections = analyzer._get_node_connections(selected_node, graph_data)
                             
                             if connections:
-                                st.success(f"**Selected Node:** {selected_node}")
+                                # Display connection details in columns
+                                col1, col2 = st.columns(2)
                                 
-                                # Create a highlighted version of the graph
-                                highlighted_fig = analyzer._create_highlighted_graph(
-                                    fig, selected_node, graph_data
-                                )
+                                with col1:
+                                    if connections.get('Emails Received From'):
+                                        st.markdown("**📨 Emails Received From:**")
+                                        for sender in connections['Emails Received From'][:10]:
+                                            st.write(f"• {sender}")
+                                        if len(connections['Emails Received From']) > 10:
+                                            st.caption(f"... and {len(connections['Emails Received From']) - 10} more")
                                 
+                                with col2:
+                                    if connections.get('Emails Sent To'):
+                                        st.markdown("**📤 Emails Sent To:**")
+                                        for recipient in connections['Emails Sent To'][:10]:
+                                            st.write(f"• {recipient}")
+                                        if len(connections['Emails Sent To']) > 10:
+                                            st.caption(f"... and {len(connections['Emails Sent To']) - 10} more")
+                                
+                                # Create highlighted graph
+                                highlighted_fig = analyzer._create_highlighted_graph(fig, selected_node, graph_data)
+                                
+                                st.markdown("**🔍 Highlighted Network View:**")
                                 st.plotly_chart(
                                     highlighted_fig,
                                     use_container_width=True,
-                                    key=f"highlighted_{selected_node}",
-                                    on_select="ignore"
+                                    key=f"highlighted_graph_{selected_node}"
                                 )
-                                
-                                # Display connection details
-                                for conn_type, nodes in connections.items():
-                                    if nodes:
-                                        st.write(f"**{conn_type}:** {', '.join(nodes[:10])}")
-                                        if len(nodes) > 10:
-                                            st.write(f"... and {len(nodes) - 10} more")
                             else:
-                                st.info(f"No connections found for {selected_node}")
+                                st.warning(f"No connections found for {selected_node}")
+                    else:
+                        st.info("Generate a network graph first to analyze node connections.")
                     
                     # Network statistics
                     st.subheader("Network Statistics")
