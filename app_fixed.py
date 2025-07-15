@@ -2576,58 +2576,46 @@ def followup_center_page():
                         col_send1, col_send2, col_send3 = st.columns([2, 1, 1])
                         
                         with col_send1:
-                            if st.button("📧 Open in Outlook", key=f"open_outlook_{record_id}", type="primary", use_container_width=True):
-                                # Create mailto link for automatic opening in Outlook
-                                import urllib.parse
-                                mailto_subject = urllib.parse.quote(subject)
-                                mailto_body = urllib.parse.quote(edited_template)
-                                mailto_to = urllib.parse.quote(sender_email)
-                                mailto_link = f"mailto:{mailto_to}?subject={mailto_subject}&body={mailto_body}"
+                            # Create mailto link with proper encoding
+                            import urllib.parse
+                            mailto_to = urllib.parse.quote(sender_email)
+                            mailto_subject = urllib.parse.quote(subject)
+                            # Clean template for email body
+                            clean_template = edited_template.replace('\n', '%0D%0A')
+                            mailto_body = urllib.parse.quote(clean_template)
+                            mailto_link = f"mailto:{mailto_to}?subject={mailto_subject}&body={mailto_body}"
+                            
+                            # Direct link approach
+                            st.markdown(f"""
+                            <a href="{mailto_link}" target="_blank" style="
+                                display: inline-block;
+                                padding: 0.5rem 1rem;
+                                background-color: #0078d4;
+                                color: white;
+                                text-decoration: none;
+                                border-radius: 0.25rem;
+                                font-weight: bold;
+                                width: 100%;
+                                text-align: center;
+                                margin: 0.25rem 0;
+                            ">
+                                📧 Open in Outlook
+                            </a>
+                            """, unsafe_allow_html=True)
+                            
+                            # Fallback copy button
+                            if st.button("📋 Copy Email Details", key=f"copy_email_{record_id}", use_container_width=True):
+                                email_text = f"""To: {sender_email}
+Subject: {subject}
 
-                                # Auto-open in Outlook using HTML redirect and JavaScript
-                                st.markdown(f"""
-                                <meta http-equiv="refresh" content="0; url={mailto_link}">
-                                <p>Opening Outlook automatically...</p>
-                                <script>
-                                setTimeout(function(){{
-                                    window.location.href = '{mailto_link}';
-                                }}, 100);
-                                </script>
-                                """, unsafe_allow_html=True)
-
-                                st.success("Opening Outlook automatically...")
-                                
-                                # Display email details for reference
-                                st.subheader("Follow-up Email Details")
-                                col_email1, col_email2 = st.columns(2)
-                                with col_email1:
-                                    st.write(f"**To:** {sender_email}")
-                                    st.write(f"**Subject:** {subject}")
-                                with col_email2:
-                                    st.write(f"**Body Preview:** {edited_template[:100]}...")
-                                
-                                # Force page refresh to trigger the email opening
-                                st.rerun()
-                            
-                            # Also provide alternative method
-                            st.markdown("---")
-                            st.markdown("**Alternative Method:**")
-                            
-                            # Create basic mailto link
-                            basic_mailto = f"mailto:{sender_email}?subject={quote(subject)}&body={quote(clean_body)}"
-                            
-                            if st.button("📧 Try Alternative Method", key=f"alt_outlook_{record_id}", use_container_width=True):
-                                # Auto-open Outlook using JavaScript
-                                st.markdown(f"""
-                                <script>
-                                setTimeout(function() {{
-                                    window.open('{basic_mailto}', '_blank');
-                                }}, 100);
-                                </script>
-                                """, unsafe_allow_html=True)
-                                
-                                st.success("Opening Outlook automatically...")
-                                st.rerun()
+{edited_template}"""
+                                st.text_area(
+                                    "Copy this email content:",
+                                    value=email_text,
+                                    height=200,
+                                    key=f"copyable_email_{record_id}"
+                                )
+                                st.info("Copy the above text and paste it into your email client manually.")
                         
                         with col_send2:
                             # Reset/regenerate template
