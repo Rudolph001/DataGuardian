@@ -1569,6 +1569,8 @@ def email_check_completed_page():
     
     # Display reviews
     filtered_reviews = []
+    
+    # Include completed reviews (cleared emails)
     for review_id, review in completed_reviews.items():
         # Apply filters
         if date_filter and review['timestamp'].date() != date_filter:
@@ -1579,13 +1581,46 @@ def email_check_completed_page():
         
         filtered_reviews.append((review_id, review))
     
+    # Include escalated records when filtering by "Escalate"
+    if decision_filter == "All" or decision_filter == "Escalate":
+        escalated_records = st.session_state.escalated_records
+        for record_id, record in escalated_records.items():
+            # Apply date filter
+            if date_filter and record['timestamp'].date() != date_filter:
+                continue
+            
+            # Skip if filtering by "Clear" (escalated records are not cleared)
+            if decision_filter == "Clear":
+                continue
+            
+            # Add escalated record with consistent format
+            escalated_review = {
+                'email': record['email'],
+                'decision': 'escalate',
+                'timestamp': record['timestamp'],
+                'followup_status': record.get('followup_status', 'pending'),
+                'notes': record.get('notes', '')
+            }
+            filtered_reviews.append((record_id, escalated_review))
+    
     if filtered_reviews:
         for review_id, review in filtered_reviews:
             email = review['email']
             decision = review['decision']
             timestamp = review['timestamp']
             
-            with st.expander(f"📧 {email.get('subject', 'No Subject')[:50]}... - {decision.title()} ({timestamp.strftime('%Y-%m-%d %H:%M')})"):
+            # Add status indicator for escalated records
+            status_indicator = ""
+            if decision == 'escalate':
+                followup_status = review.get('followup_status', 'pending')
+                status_indicators = {
+                    'pending': '🕐 Pending',
+                    'in_progress': '⏳ In Progress', 
+                    'completed': '✅ Completed'
+                }
+                status_indicator = f" - {status_indicators.get(followup_status, 'Unknown Status')}"
+            
+            with st.expander(f"📧 {email.get('subject', 'No Subject')[:50]}... - {decision.title()} ({timestamp.strftime('%Y-%m-%d %H:%M')}){status_indicator}"):
                 col1, col2 = st.columns(2)
                 
                 with col1:
@@ -1599,6 +1634,12 @@ def email_check_completed_page():
                     st.write(f"**Review Time:** {timestamp.strftime('%Y-%m-%d %H:%M:%S')}")
                     st.write(f"**Reviewer:** Security Analyst")
                     st.write(f"**Department:** {email.get('department', 'Unknown')}")
+                    
+                    # Show additional info for escalated records
+                    if decision == 'escalate':
+                        st.write(f"**Follow-up Status:** {review.get('followup_status', 'pending').title()}")
+                        if review.get('notes'):
+                            st.write(f"**Notes:** {review.get('notes', '')}")
     else:
         st.info("No completed reviews match the selected filters.")
     
