@@ -2514,133 +2514,138 @@ def followup_center_page():
             
             with col1:
                 if st.button("Generate Email Template", key=f"email_{record_id}"):
-                    template = generate_followup_email(email)
+                    # Store the generated template in session state for editing
+                    if f"template_content_{record_id}" not in st.session_state:
+                        st.session_state[f"template_content_{record_id}"] = generate_followup_email(email)
                     
-                    # Create mailto link with better encoding
-                    subject = f"Security Alert - {email.get('subject', 'Email Security Issue')}"
-                    # Clean template for mailto - remove extra formatting and keep it simple
-                    clean_body = template.replace('━', '-').replace('🔒', '').replace('📧', '').replace('⚠️', '').replace('📋', '')
-                    clean_body = clean_body.replace('\n\n\n', '\n\n').strip()
+                    # Get current template content (editable)
+                    template = st.session_state[f"template_content_{record_id}"]
                     
-                    # Create the mailto link with proper encoding
-                    sender_email = email.get('sender', '')
-                    mailto_link = f"mailto:{sender_email}?subject={quote(subject)}&body={quote(clean_body)}"
+                    # Email preview and editing section
+                    st.subheader("📧 Email Preview & Editor")
                     
-                    # Display email template and options
-                    st.subheader("Email Template Generated")
-                    st.text_area("Email Content", template, height=200, key=f"template_{record_id}")
+                    # Email subject line (editable)
+                    subject = st.text_input(
+                        "Subject Line:",
+                        value=f"Security Alert - {email.get('subject', 'Email Security Issue')}",
+                        key=f"subject_{record_id}"
+                    )
                     
-                    # Multiple options for opening/copying with enhanced functionality
-                    col_a, col_b, col_c = st.columns(3)
+                    # Recipient (editable)
+                    sender_email = st.text_input(
+                        "To:",
+                        value=email.get('sender', ''),
+                        key=f"recipient_{record_id}"
+                    )
                     
-                    with col_a:
-                        # Enhanced email client integration
-                        st.markdown("**📧 Open in Email Client**")
+                    # Email body (editable)
+                    edited_template = st.text_area(
+                        "Email Content (Edit as needed):",
+                        value=template,
+                        height=300,
+                        key=f"template_{record_id}",
+                        help="You can modify the email content before sending"
+                    )
+                    
+                    # Update session state with edited content
+                    st.session_state[f"template_content_{record_id}"] = edited_template
+                    
+                    # Preview styled email
+                    with st.expander("📋 Formatted Email Preview", expanded=False):
+                        st.markdown("**Preview of how the email will look:**")
+                        st.markdown(f"**To:** {sender_email}")
+                        st.markdown(f"**Subject:** {subject}")
+                        st.markdown("**Body:**")
+                        st.markdown(f"```\n{edited_template}\n```")
+                    
+                    # Validation
+                    if not sender_email or not sender_email.strip():
+                        st.error("Please enter a recipient email address")
+                    elif not subject or not subject.strip():
+                        st.error("Please enter a subject line")
+                    elif not edited_template or not edited_template.strip():
+                        st.error("Please enter email content")
+                    else:
+                        # Clean template for mailto - remove extra formatting and keep it simple
+                        clean_body = edited_template.replace('━', '-').replace('🔒', '').replace('📧', '').replace('⚠️', '').replace('📋', '')
+                        clean_body = clean_body.replace('\n\n\n', '\n\n').strip()
                         
-                        # Direct Outlook integration
-                        if st.button("📧 Open in Outlook", key=f"open_email_{record_id}", type="primary", use_container_width=True):
-                            # Create the mailto link for desktop Outlook
-                            basic_mailto = f"mailto:{sender_email}?subject={quote(subject)}&body={quote(clean_body)}"
-                            
-                            # Try multiple protocols for better Outlook compatibility
-                            st.markdown(f"""
-                            <script>
-                            // Try to open Outlook using different methods
-                            function openOutlook() {{
-                                // Method 1: Try ms-outlook protocol first (works with newer Outlook versions)
-                                const outlookUrl = "ms-outlook://compose?to={sender_email}&subject={quote(subject)}&body={quote(clean_body[:500])}";
-                                let opened = false;
+                        # Action buttons for the finalized email
+                        st.markdown("### 🚀 Send Email")
+                        
+                        col_send1, col_send2, col_send3 = st.columns([2, 1, 1])
+                        
+                        with col_send1:
+                            if st.button("📧 Send via Outlook", key=f"send_outlook_{record_id}", type="primary", use_container_width=True):
+                                # Create the mailto link for desktop Outlook
+                                basic_mailto = f"mailto:{sender_email}?subject={quote(subject)}&body={quote(clean_body)}"
                                 
-                                try {{
-                                    window.open(outlookUrl, '_self');
-                                    opened = true;
-                                }} catch (e) {{
-                                    console.log('ms-outlook protocol failed, trying mailto');
+                                # Try multiple protocols for better Outlook compatibility
+                                st.markdown(f"""
+                                <script>
+                                // Try to open Outlook using different methods
+                                function openOutlook() {{
+                                    // Method 1: Try ms-outlook protocol first (works with newer Outlook versions)
+                                    const outlookUrl = "ms-outlook://compose?to={sender_email}&subject={quote(subject)}&body={quote(clean_body[:500])}";
+                                    let opened = false;
+                                    
+                                    try {{
+                                        window.open(outlookUrl, '_self');
+                                        opened = true;
+                                    }} catch (e) {{
+                                        console.log('ms-outlook protocol failed, trying mailto');
+                                    }}
+                                    
+                                    // Method 2: Fallback to standard mailto if ms-outlook fails
+                                    if (!opened) {{
+                                        setTimeout(function() {{
+                                            window.location.href = "{basic_mailto}";
+                                        }}, 100);
+                                    }}
                                 }}
                                 
-                                // Method 2: Fallback to standard mailto if ms-outlook fails
-                                if (!opened) {{
-                                    setTimeout(function() {{
-                                        window.location.href = "{basic_mailto}";
-                                    }}, 100);
-                                }}
-                            }}
-                            
-                            openOutlook();
-                            </script>
-                            
-                            <div style="background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 10px; border-radius: 4px; margin: 10px 0;">
-                                <strong>Opening Outlook...</strong><br>
-                                If Outlook doesn't open automatically, make sure it's set as your default email client in Windows Settings.
-                            </div>
-                            """, unsafe_allow_html=True)
-                            
-                            # Provide troubleshooting info
-                            with st.expander("Troubleshooting - Click if Outlook didn't open"):
-                                st.markdown("""
-                                **To set Outlook as default email client:**
-                                1. Open Windows Settings (Windows key + I)
-                                2. Go to Apps → Default apps
-                                3. Scroll down to "Email" and click it
-                                4. Select "Microsoft Outlook" from the list
+                                openOutlook();
+                                </script>
                                 
-                                **Alternative:** Right-click the link below and select "Copy link address", then paste into your browser:
-                                """)
-                                st.code(basic_mailto, language="text")
-                    
-                    with col_b:
-                        st.markdown("**📋 Copy Template**")
-                        if st.button("Copy to Clipboard", key=f"copy_template_{record_id}", use_container_width=True):
-                            full_template = f"To: {sender_email}\nSubject: {subject}\n\n{template}"
-                            st.code(full_template, language="text")
-                            st.success("✅ Template displayed above - copy and paste into your email client!")
-                            
-                            # Add JavaScript to copy to clipboard if possible
-                            # Escape backticks for JavaScript template literal
-                            js_safe_template = full_template.replace('`', '\\`').replace('\\', '\\\\').replace('\n', '\\n')
-                            copy_js = f"""
-                            <script>
-                            const emailText = `{js_safe_template}`;
-                            if (navigator.clipboard) {{
-                                navigator.clipboard.writeText(emailText).then(function() {{
-                                    console.log('Email template copied to clipboard!');
-                                }}).catch(function(err) {{
-                                    console.error('Could not copy text: ', err);
-                                }});
-                            }}
-                            </script>
-                            """
-                            st.markdown(copy_js, unsafe_allow_html=True)
-                    
-                    with col_c:
-                        st.markdown("**💾 Download**")
-                        # Download as .txt file
-                        email_content = f"To: {sender_email}\nSubject: {subject}\n\n{template}"
-                        st.download_button(
-                            label="Download .txt",
-                            data=email_content,
-                            file_name=f"security_alert_{record_id}.txt",
-                            mime="text/plain",
-                            key=f"download_{record_id}",
-                            use_container_width=True
-                        )
+                                <div style="background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 10px; border-radius: 4px; margin: 10px 0;">
+                                    <strong>Opening Outlook with your email...</strong><br>
+                                    The email should open in Outlook with all your edits included.
+                                </div>
+                                """, unsafe_allow_html=True)
                         
-                        # Also create an .eml file for better email client compatibility
-                        eml_content = f"""From: security@company.com
-To: {sender_email}
-Subject: {subject}
-Content-Type: text/plain; charset=utf-8
+                        with col_send2:
+                            # Reset/regenerate template
+                            if st.button("🔄 Reset Template", key=f"reset_{record_id}", use_container_width=True):
+                                # Clear the stored template to regenerate
+                                if f"template_content_{record_id}" in st.session_state:
+                                    del st.session_state[f"template_content_{record_id}"]
+                                st.success("Template reset! Click 'Generate Email Template' to create a new one.")
+                                st.rerun()
+                        
+                        with col_send3:
+                            # Save as draft option
+                            if st.button("💾 Save Draft", key=f"save_draft_{record_id}", use_container_width=True):
+                                # Store the draft in session state
+                                draft_key = f"email_draft_{record_id}"
+                                st.session_state[draft_key] = {
+                                    'to': sender_email,
+                                    'subject': subject,
+                                    'body': edited_template,
+                                    'saved_at': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                }
+                                st.success("Draft saved! You can continue editing later.")
+                        
+                        # Show saved draft info if exists
+                        draft_key = f"email_draft_{record_id}"
+                        if draft_key in st.session_state:
+                            draft = st.session_state[draft_key]
+                            st.info(f"💾 Draft saved at {draft['saved_at']}")
+                            
+                            if st.button("🗑️ Delete Draft", key=f"delete_draft_{record_id}"):
+                                del st.session_state[draft_key]
+                                st.success("Draft deleted!")
+                                st.rerun()
 
-{template}"""
-                        
-                        st.download_button(
-                            label="Download .eml",
-                            data=eml_content,
-                            file_name=f"security_alert_{record_id}.eml",
-                            mime="message/rfc822",
-                            key=f"download_eml_{record_id}",
-                            use_container_width=True
-                        )
             
             with col2:
                 new_status = st.selectbox(
