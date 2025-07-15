@@ -128,10 +128,14 @@ class CSVProcessor:
             recipients_domain = self.extract_domain_from_email(row.get('recipients', ''))
             row['recipients_email_domain'] = recipients_domain
             
-            # Normalize status field
-            status = row.get('status', '').lower()
-            if status not in ['critical', 'high', 'medium', 'low']:
-                row['status'] = 'medium'  # Default status
+            # Normalize status field (keep original case but ensure valid values)
+            status = row.get('status', '').lower().strip()
+            valid_statuses = ['critical', 'high', 'medium', 'low']
+            if status in valid_statuses:
+                # Keep the original case from data but ensure it's valid
+                row['status'] = row.get('status', '').strip()
+            else:
+                row['status'] = 'Medium'  # Default status
             
             return row
             
@@ -989,19 +993,19 @@ def security_operations_dashboard():
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        critical_count = sum(1 for email in filtered_records if email.get('status') == 'critical')
+        critical_count = sum(1 for email in filtered_records if email.get('status', '').lower() == 'critical')
         st.metric("🔴 Critical", f"{critical_count:,}")
     
     with col2:
-        high_count = sum(1 for email in filtered_records if email.get('status') == 'high')
+        high_count = sum(1 for email in filtered_records if email.get('status', '').lower() == 'high')
         st.metric("🟠 High", f"{high_count:,}")
     
     with col3:
-        medium_count = sum(1 for email in filtered_records if email.get('status') == 'medium')
+        medium_count = sum(1 for email in filtered_records if email.get('status', '').lower() == 'medium')
         st.metric("🟡 Medium", f"{medium_count:,}")
     
     with col4:
-        low_count = sum(1 for email in filtered_records if email.get('status') == 'low')
+        low_count = sum(1 for email in filtered_records if email.get('status', '').lower() == 'low')
         st.metric("🟢 Low", f"{low_count:,}")
     
     # Timeline view options
@@ -1054,7 +1058,7 @@ def security_operations_dashboard():
         # Risk distribution in group
         risk_counts = {}
         for email in group_emails:
-            status = email.get('status', 'unknown')
+            status = email.get('status', 'unknown').lower()
             risk_counts[status] = risk_counts.get(status, 0) + 1
         
         risk_indicators = []
