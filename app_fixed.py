@@ -765,7 +765,7 @@ def show_email_details_modal(email):
         
         # Action buttons
         st.markdown("### 🔧 Actions")
-        col1, col2, col3 = st.columns(3)
+        col1, col2 = st.columns(2)
         
         with col1:
             if st.button("Clear", key=f"clear_{hash(str(email))}", type="secondary"):
@@ -789,15 +789,7 @@ def show_email_details_modal(email):
                 st.success("Email escalated for follow-up!")
                 st.rerun()
         
-        with col3:
-            if st.button("AI Analysis", key=f"ai_{hash(str(email))}", type="secondary"):
-                if openai_client:
-                    with st.spinner("Analyzing email with AI..."):
-                        ai_insights = AIInsights()
-                        analysis = ai_insights.run_ai_on_selected_fields(['subject', 'sender', 'status'], [email])
-                        st.markdown(analysis)
-                else:
-                    st.error("OpenAI API key not configured")
+        
 
 def generate_sample_data():
     """Generate sample email data for demonstration"""
@@ -1145,161 +1137,7 @@ def security_operations_dashboard():
             if len(group_emails) > 10:
                 st.info(f"Showing first 10 of {len(group_emails)} emails in this group")
 
-def ai_insights_page():
-    """AI-Powered Event Insights page"""
-    st.title("🤖 AI-Powered Event Insights")
-    
-    if not st.session_state.data:
-        st.warning("Please upload data first in the Data Upload & Preprocessing section.")
-        return
-    
-    if not openai_client:
-        st.error("OpenAI API key not configured. Please set the OPENAI_API_KEY environment variable.")
-        return
-    
-    st.markdown("""
-    Select fields from your uploaded data to generate AI-powered insights and contextual analysis.
-    The AI will analyze patterns, detect anomalies, and provide security recommendations.
-    """)
-    
-    data = st.session_state.data
-    
-    # Field selection
-    st.subheader("Field Selection")
-    
-    # Get available fields from data
-    available_fields = list(data[0].keys()) if data else []
-    
-    # Categorize fields for better UX
-    field_categories = {
-        "Email Content": ["subject", "sender", "recipients", "attachment"],
-        "Security": ["status", "tessian", "minecast", "wordlist_attachment", "wordlist_subject"],
-        "Organizational": ["department", "bunit", "account_type"],
-        "Temporal": ["_time", "_time_month"],
-        "Domain": ["recipients_email_domain"],
-        "Other": [field for field in available_fields if field not in [
-            "subject", "sender", "recipients", "attachment", "status", "tessian", 
-            "minecast", "wordlist_attachment", "wordlist_subject", "department", 
-            "bunit", "account_type", "_time", "_time_month", "recipients_email_domain"
-        ]]
-    }
-    
-    selected_fields = []
-    
-    for category, fields in field_categories.items():
-        if fields:
-            st.write(f"**{category}:**")
-            for field in fields:
-                if field in available_fields:
-                    if st.checkbox(field, key=f"field_{field}"):
-                        selected_fields.append(field)
-    
-    if not selected_fields:
-        st.info("Please select at least one field to analyze.")
-        return
-    
-    st.subheader("Selected Fields")
-    st.write(", ".join(selected_fields))
-    
-    # Analysis options
-    st.subheader("Analysis Options")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        analysis_type = st.selectbox(
-            "Analysis Type",
-            ["Comprehensive Analysis", "Anomaly Detection", "Pattern Recognition", "Risk Assessment"]
-        )
-    
-    with col2:
-        # Fix slider value issue when data is small
-        data_len = len(data)
-        if data_len < 100:
-            sample_size = data_len
-            st.info(f"Using all {data_len} records for analysis (minimum 100 not available)")
-        elif data_len == 100:
-            sample_size = 100
-            st.info("Using all 100 records for analysis")
-        else:
-            max_samples = min(5000, data_len)
-            default_value = min(1000, data_len)
-            if max_samples > 100:  # Ensure max is greater than min
-                sample_size = st.slider(
-                    "Sample Size",
-                    min_value=100,
-                    max_value=max_samples,
-                    value=default_value,
-                    help="Number of records to analyze (more records = better insights but slower processing)"
-                )
-            else:
-                sample_size = max_samples
-                st.info(f"Using all {max_samples} records for analysis")
-    
-    # Run analysis
-    if st.button("Generate AI Insights", type="primary"):
-        if selected_fields:
-            with st.spinner("Analyzing data with AI... This may take a moment."):
-                ai_insights = AIInsights()
-                
-                # Use sample of data for performance
-                sample_data = data[:sample_size]
-                
-                # Generate insights
-                insights = ai_insights.run_ai_on_selected_fields(selected_fields, sample_data)
-                
-                st.subheader("AI Analysis Results")
-                st.markdown(insights)
-                
-                # Additional visualizations based on selected fields
-                st.subheader("Field Analysis Visualizations")
-                
-                for field in selected_fields:
-                    field_values = [email.get(field, '') for email in sample_data if email.get(field)]
-                    
-                    if field_values:
-                        st.write(f"**{field.replace('_', ' ').title()}:**")
-                        
-                        # Create visualization based on field type
-                        if field in ['status', 'department', 'bunit', 'account_type']:
-                            # Categorical data - pie chart
-                            value_counts = {}
-                            for value in field_values:
-                                value_counts[value] = value_counts.get(value, 0) + 1
-                            
-                            fig = px.pie(
-                                values=list(value_counts.values()),
-                                names=list(value_counts.keys()),
-                                title=f"{field.replace('_', ' ').title()} Distribution"
-                            )
-                            st.plotly_chart(fig, use_container_width=True)
-                        
-                        elif field in ['_time', '_time_month']:
-                            # Time-based data - histogram
-                            fig = px.histogram(
-                                x=field_values,
-                                title=f"{field.replace('_', ' ').title()} Distribution"
-                            )
-                            st.plotly_chart(fig, use_container_width=True)
-                        
-                        else:
-                            # Text data - show top values
-                            value_counts = {}
-                            for value in field_values:
-                                value_counts[value] = value_counts.get(value, 0) + 1
-                            
-                            top_values = sorted(value_counts.items(), key=lambda x: x[1], reverse=True)[:10]
-                            
-                            if top_values:
-                                fig = px.bar(
-                                    x=[item[1] for item in top_values],
-                                    y=[item[0] for item in top_values],
-                                    orientation='h',
-                                    title=f"Top 10 {field.replace('_', ' ').title()} Values"
-                                )
-                                st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.error("Please select at least one field to analyze.")
+
 
 def email_check_completed_page():
     """Email Check Completed page"""
@@ -1972,7 +1810,6 @@ def main():
     pages = {
         "📁 Data Upload & Preprocessing": data_upload_page,
         "🛡️ Security Operations Dashboard": security_operations_dashboard,
-        "🤖 AI-Powered Event Insights": ai_insights_page,
         "✅ Email Check Completed": email_check_completed_page,
         "📨 Follow-up Center": followup_center_page,
         "🔗 Network Analysis": network_analysis_page,
