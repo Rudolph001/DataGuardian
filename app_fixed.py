@@ -2576,60 +2576,103 @@ def followup_center_page():
                         col_send1, col_send2, col_send3 = st.columns([2, 1, 1])
                         
                         with col_send1:
-                            # Create the mailto link for desktop Outlook
+                            # Create enhanced Outlook integration
                             basic_mailto = f"mailto:{sender_email}?subject={quote(subject)}&body={quote(clean_body)}"
-                            outlook_protocol = f"ms-outlook://compose?to={sender_email}&subject={quote(subject)}&body={quote(clean_body[:500])}"
                             
-                            # Display the send button as a direct link
+                            # Create a more aggressive Outlook opening approach
+                            outlook_button_id = f"outlook_btn_{record_id}"
+                            
+                            # Prepare clean body for JavaScript (escape problematic characters)
+                            js_safe_body = clean_body.replace('`', "'").replace('\\', '').replace('\n', ' ').replace('\r', '')
+                            
                             st.markdown(f"""
                             <div style="margin: 10px 0;">
-                                <strong>📧 Send Email via Outlook</strong><br>
-                                <a href="{basic_mailto}" 
-                                   style="background: #dc3545; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; margin: 5px 0; font-weight: bold;">
-                                    📧 Open in Outlook (Method 1)
-                                </a><br>
-                                <a href="{outlook_protocol}" 
-                                   style="background: #0078d4; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; margin: 5px 0; font-weight: bold;">
-                                    🖥️ Open in Outlook (Method 2)
-                                </a>
+                                <button id="{outlook_button_id}" 
+                                        onclick="openOutlookAdvanced('{sender_email}', '{quote(subject)}', '{js_safe_body}')"
+                                        style="background: #dc3545; color: white; padding: 15px 30px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; width: 100%;">
+                                    📧 Open in Outlook
+                                </button>
                             </div>
+                            
+                            <script>
+                            function openOutlookAdvanced(to, subject, body) {{
+                                // Multiple fallback methods to open Outlook
+                                const methods = [
+                                    // Method 1: Direct ms-outlook protocol
+                                    () => {{
+                                        const outlookUrl = 'ms-outlook://compose?to=' + to + '&subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body.substring(0, 500));
+                                        window.location.href = outlookUrl;
+                                    }},
+                                    
+                                    // Method 2: Standard mailto with immediate redirect
+                                    () => {{
+                                        const mailtoUrl = 'mailto:' + to + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+                                        window.location.href = mailtoUrl;
+                                    }},
+                                    
+                                    // Method 3: Force open in new tab/window
+                                    () => {{
+                                        const mailtoUrl = 'mailto:' + to + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+                                        const newWindow = window.open(mailtoUrl, '_blank');
+                                        if (newWindow) newWindow.close();
+                                    }},
+                                    
+                                    // Method 4: Create invisible iframe
+                                    () => {{
+                                        const mailtoUrl = 'mailto:' + to + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+                                        const iframe = document.createElement('iframe');
+                                        iframe.style.display = 'none';
+                                        iframe.src = mailtoUrl;
+                                        document.body.appendChild(iframe);
+                                        setTimeout(() => document.body.removeChild(iframe), 1000);
+                                    }}
+                                ];
+                                
+                                // Try each method with delays
+                                methods.forEach((method, index) => {{
+                                    setTimeout(() => {{
+                                        try {{
+                                            method();
+                                            console.log('Outlook method ' + (index + 1) + ' executed');
+                                        }} catch (e) {{
+                                            console.log('Outlook method ' + (index + 1) + ' failed:', e);
+                                        }}
+                                    }}, index * 200);
+                                }});
+                                
+                                // Show success message
+                                const button = document.getElementById('{outlook_button_id}');
+                                const originalText = button.innerHTML;
+                                button.innerHTML = '✅ Opening Outlook...';
+                                button.style.background = '#28a745';
+                                
+                                setTimeout(() => {{
+                                    button.innerHTML = originalText;
+                                    button.style.background = '#dc3545';
+                                }}, 3000);
+                            }}
+                            
+                            // Auto-setup for better compatibility
+                            document.addEventListener('DOMContentLoaded', function() {{
+                                if (navigator.userAgent.indexOf('Windows') !== -1) {{
+                                    console.log('Windows detected - Outlook integration ready');
+                                }}
+                            }});
+                            </script>
                             """, unsafe_allow_html=True)
                             
-                            st.success("✅ When the browser asks permission, click 'Open Outlook 2016' to launch your email client!")
+                            # Provide immediate troubleshooting
+                            st.info("Click the button above to open Outlook. The system will try multiple methods automatically.")
                             
-                            # Backup manual copy option
-                            with st.expander("📋 Manual Copy (if Outlook doesn't open)"):
-                                st.markdown("**Copy this email information and paste into Outlook manually:**")
-                                
-                                manual_email = f"""To: {sender_email}
-Subject: {subject}
-
-{edited_template}"""
-                                
-                                st.code(manual_email, language="text")
-                                
-                                if st.button("Copy to Clipboard", key=f"manual_copy_{record_id}"):
-                                    st.success("Email content displayed above - highlight and copy (Ctrl+C) to paste into Outlook!")
-                                    # Try to use clipboard API safely
-                                    safe_email = manual_email.replace('`', '\\`').replace('\\', '\\\\').replace('\n', '\\n')
-                                    st.markdown(f"""
-                                    <script>
-                                    const emailContent = `{safe_email}`;
-                                    if (navigator.clipboard) {{
-                                        navigator.clipboard.writeText(emailContent);
-                                    }}
-                                    </script>
-                                    """, unsafe_allow_html=True)
-                                
-                                st.markdown("""
-                                **Steps to manually send:**
-                                1. Copy the text above
-                                2. Open Outlook manually
-                                3. Click 'New Email'
-                                4. Paste the copied content
-                                5. Adjust formatting as needed
-                                6. Send the email
-                                """)
+                            # Show the raw mailto link as backup
+                            st.markdown(f"""
+                            <details>
+                            <summary>Backup: Right-click this link if button doesn't work</summary>
+                            <a href="{basic_mailto}" style="color: #0066cc; text-decoration: underline;">
+                                Open in Email Client (Right-click → Open link)
+                            </a>
+                            </details>
+                            """, unsafe_allow_html=True)
                         
                         with col_send2:
                             # Reset/regenerate template
