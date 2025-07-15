@@ -1115,10 +1115,27 @@ def security_operations_dashboard():
                 grouped_records[subject] = []
             grouped_records[subject].append(email)
     
+    # Sort groups by highest risk level
+    def get_group_priority(group_emails):
+        """Calculate priority score for group based on highest risk level"""
+        priority_map = {'critical': 4, 'high': 3, 'medium': 2, 'low': 1, 'unknown': 0}
+        max_priority = 0
+        for email in group_emails:
+            status = email.get('status', 'unknown').lower()
+            max_priority = max(max_priority, priority_map.get(status, 0))
+        return max_priority
+    
+    # Sort groups by priority (highest risk first)
+    sorted_groups = sorted(grouped_records.items(), key=lambda x: get_group_priority(x[1]), reverse=True)
+    
     # Display grouped records
-    for group_name, group_emails in sorted(grouped_records.items()):
+    for group_name, group_emails in sorted_groups:
         if not group_emails:
             continue
+        
+        # Sort emails within group by risk level (critical first)
+        priority_map = {'critical': 4, 'high': 3, 'medium': 2, 'low': 1, 'unknown': 0}
+        group_emails_sorted = sorted(group_emails, key=lambda x: priority_map.get(x.get('status', 'unknown').lower(), 0), reverse=True)
         
         # Risk distribution in group
         risk_counts = {}
@@ -1126,28 +1143,66 @@ def security_operations_dashboard():
             status = email.get('status', 'unknown').lower()
             risk_counts[status] = risk_counts.get(status, 0) + 1
         
+        # Create professional risk summary with priority order
         risk_indicators = []
         for status in ['critical', 'high', 'medium', 'low']:
             count = risk_counts.get(status, 0)
             if count > 0:
-                risk_indicators.append(f"{get_risk_indicator(status)} {count}")
+                risk_indicators.append(f"{get_risk_indicator(status)} {count} {status.title()}")
         
-        risk_text = " | ".join(risk_indicators) if risk_indicators else "No risks"
+        # Get highest risk level for styling
+        highest_risk = 'low'
+        for status in ['critical', 'high', 'medium', 'low']:
+            if risk_counts.get(status, 0) > 0:
+                highest_risk = status
+                break
         
-        with st.expander(f"**{group_name}** ({len(group_emails)} emails) - {risk_text}"):
-            # Show first few emails in group with individual risk indicators
-            for email in group_emails[:10]:  # Limit to first 10
+        risk_text = " • ".join(risk_indicators) if risk_indicators else "No classified risks"
+        
+        # Style the expander based on highest risk
+        risk_emoji = get_risk_indicator(highest_risk)
+        
+        with st.expander(f"{risk_emoji} **{group_name}** ({len(group_emails)} emails) • {risk_text}", expanded=(highest_risk in ['critical', 'high'])):
+            # Display emails in priority order with professional styling
+            for i, email in enumerate(group_emails_sorted[:15]):  # Show up to 15 emails
                 # Get individual email risk status
                 email_status = email.get('status', 'unknown').lower()
                 risk_icon = get_risk_indicator(email_status)
                 
-                # Create a modified email title with risk indicator
-                subject_preview = email.get('subject', 'No Subject')[:50]
-                if len(email.get('subject', '')) > 50:
+                # Create professional email preview
+                subject_preview = email.get('subject', 'No Subject')[:60]
+                if len(email.get('subject', '')) > 60:
                     subject_preview += "..."
                 
-                # Show email with risk indicator in title
-                with st.expander(f"{risk_icon} {email_status.title()} - {subject_preview}"):
+                sender_name = email.get('sender', 'Unknown').split('@')[0]
+                recipient_domain = email.get('recipients_email_domain', 'Unknown')
+                time_sent = email.get('_time', 'Unknown')
+                
+                # Style based on risk level
+                risk_color = {
+                    'critical': '#ff4444',
+                    'high': '#ff8800', 
+                    'medium': '#ffcc00',
+                    'low': '#44aa44'
+                }.get(email_status, '#888888')
+                
+                # Professional email card layout
+                with st.container():
+                    st.markdown(f"""
+                    <div style="border-left: 4px solid {risk_color}; padding: 12px; margin: 8px 0; background-color: #f8f9fa; border-radius: 4px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <div style="font-weight: bold; color: #333;">{risk_icon} {email_status.upper()} PRIORITY</div>
+                            <div style="font-size: 0.9em; color: #666;">{time_sent}</div>
+                        </div>
+                        <div style="font-size: 1.1em; font-weight: 500; margin-bottom: 4px;">{subject_preview}</div>
+                        <div style="color: #666; font-size: 0.9em;">
+                            <strong>From:</strong> {sender_name} → <strong>To:</strong> {recipient_domain}
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                # Expandable details
+                with st.expander(f"📋 View Details - {subject_preview}", expanded=False):
                     # Create organized sections for better readability
                     
                     # Primary Email Information
@@ -1256,8 +1311,9 @@ def security_operations_dashboard():
                             st.success("Email escalated for follow-up!")
                             st.rerun()
             
-            if len(group_emails) > 10:
-                st.info(f"Showing first 10 of {len(group_emails)} emails in this group")
+            if len(group_emails_sorted) > 15:
+                remaining = len(group_emails_sorted) - 15
+                st.info(f"📊 Showing top 15 priority emails. {remaining} additional emails available in this group.")
 
 
 
