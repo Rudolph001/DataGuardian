@@ -368,7 +368,7 @@ class AnomalyDetector:
                     
                     # Sender pattern analysis
                     1 if sender.count('.') > 2 else 0,
-                    1 if any(char.isdigit() for char in sender.split('@')[0]) if '@' in sender else 0,
+                    1 if '@' in sender and any(char.isdigit() for char in sender.split('@')[0]) else 0,
                 ]
                 
                 features.append(feature_vector)
