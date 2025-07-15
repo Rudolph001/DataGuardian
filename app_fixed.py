@@ -1716,72 +1716,7 @@ def get_risk_indicator(status):
 
 def show_email_details_modal(email):
     """Show email details in dialog modal format with all fields and domain classification"""
-    # Add custom CSS for larger modal popup
-    st.markdown("""
-    <style>
-    /* Custom CSS for larger, more readable modal popups */
-    .stDialog > div:first-child {
-        width: 90vw !important;
-        max-width: 1200px !important;
-        height: 85vh !important;
-        max-height: none !important;
-    }
-    
-    .stDialog > div:first-child > div {
-        width: 100% !important;
-        height: 100% !important;
-        padding: 2rem !important;
-        overflow-y: auto !important;
-    }
-    
-    .stDialog h1, .stDialog h2, .stDialog h3 {
-        margin-top: 1.5rem !important;
-        margin-bottom: 1rem !important;
-    }
-    
-    .stDialog .stMarkdown {
-        margin-bottom: 1rem !important;
-    }
-    
-    .stDialog .stColumns {
-        gap: 2rem !important;
-    }
-    
-    .stDialog .element-container {
-        margin-bottom: 0.75rem !important;
-    }
-    
-    /* Center the close button and improve styling */
-    .stDialog button[kind="secondary"] {
-        display: block !important;
-        margin: 2rem auto 0 auto !important;
-        min-width: 120px !important;
-        padding: 0.75rem 1.5rem !important;
-        font-size: 1.1rem !important;
-        font-weight: bold !important;
-    }
-    
-    /* Better section separation */
-    .stDialog hr {
-        margin: 2rem 0 !important;
-        border-color: #e0e0e0 !important;
-    }
-    
-    /* Improve readability of content */
-    .stDialog .stInfo, .stDialog .stWarning, .stDialog .stError, .stDialog .stSuccess {
-        padding: 1.25rem !important;
-        margin-bottom: 1rem !important;
-        font-size: 1rem !important;
-        line-height: 1.6 !important;
-    }
-    
-    /* Better spacing for metrics */
-    .stDialog .metric-container {
-        padding: 1rem !important;
-        margin-bottom: 1rem !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    # CSS is now applied in the calling function
     
     # Get domain classification
     domain = email.get('recipients_email_domain', 'Unknown')
@@ -2536,12 +2471,86 @@ def security_operations_dashboard():
                 # Show modal if triggered
                 if st.session_state.get(f'show_modal_{unique_key}', False):
                     # Use st.dialog for a proper popup modal
-                    @st.dialog(f"📧 Email Details - {email.get('subject', 'No Subject')[:50]}")
+                    @st.dialog(f"📧 Email Details - {email.get('subject', 'No Subject')[:50]}", width="large")
                     def show_email_modal():
+                        # Apply the enhanced modal CSS first
+                        st.markdown("""
+                        <style>
+                        /* Enhanced CSS for larger, more readable modal popups */
+                        .stDialog > div:first-child {
+                            width: 95vw !important;
+                            max-width: 1400px !important;
+                            height: 90vh !important;
+                            max-height: none !important;
+                        }
+                        
+                        .stDialog > div:first-child > div {
+                            width: 100% !important;
+                            height: 100% !important;
+                            padding: 2.5rem !important;
+                            overflow-y: auto !important;
+                        }
+                        
+                        .stDialog h1, .stDialog h2, .stDialog h3 {
+                            margin-top: 1.5rem !important;
+                            margin-bottom: 1rem !important;
+                        }
+                        
+                        .stDialog .stMarkdown {
+                            margin-bottom: 1rem !important;
+                        }
+                        
+                        .stDialog .stColumns {
+                            gap: 2rem !important;
+                        }
+                        
+                        .stDialog .element-container {
+                            margin-bottom: 0.75rem !important;
+                        }
+                        
+                        /* Center the close button and improve styling */
+                        .stDialog button[kind="secondary"] {
+                            display: block !important;
+                            margin: 2rem auto 0 auto !important;
+                            min-width: 150px !important;
+                            padding: 1rem 2rem !important;
+                            font-size: 1.2rem !important;
+                            font-weight: bold !important;
+                        }
+                        
+                        /* Better section separation */
+                        .stDialog hr {
+                            margin: 2rem 0 !important;
+                            border-color: #e0e0e0 !important;
+                        }
+                        
+                        /* Improve readability of content */
+                        .stDialog .stInfo, .stDialog .stWarning, .stDialog .stError, .stDialog .stSuccess {
+                            padding: 1.5rem !important;
+                            margin-bottom: 1.5rem !important;
+                            font-size: 1.1rem !important;
+                            line-height: 1.6 !important;
+                        }
+                        
+                        /* Better spacing for metrics */
+                        .stDialog .metric-container {
+                            padding: 1.5rem !important;
+                            margin-bottom: 1.5rem !important;
+                        }
+                        
+                        /* Make text more readable */
+                        .stDialog .stMarkdown p, .stDialog .stMarkdown strong {
+                            font-size: 1.1rem !important;
+                            line-height: 1.5 !important;
+                        }
+                        </style>
+                        """, unsafe_allow_html=True)
+                        
                         show_email_details_modal(email)
                         
                         # Close button at the bottom
-                        if st.button("❌ Close", key=f"close_modal_{unique_key}", type="secondary", use_container_width=True):
+                        st.markdown("---")
+                        if st.button("❌ Close Modal", key=f"close_modal_{unique_key}", type="secondary", use_container_width=True):
                             st.session_state[f'show_modal_{unique_key}'] = False
                             st.rerun()
                     
