@@ -678,29 +678,91 @@ def get_risk_indicator(status):
     return indicators.get(status.lower(), '⚪')
 
 def show_email_details_modal(email):
-    """Show email details in expandable section"""
-    with st.expander(f"📧 Email Details - {email.get('subject', 'No Subject')[:50]}..."):
+    """Show email details in expandable section with all fields"""
+    # Create a clean title for the expander
+    subject_preview = email.get('subject', 'No Subject')[:50]
+    if len(email.get('subject', '')) > 50:
+        subject_preview += "..."
+    
+    with st.expander(f"📧 Email Details - {subject_preview}"):
+        # Create organized sections for better readability
+        
+        # Primary Email Information
+        st.markdown("### 📧 Email Information")
         col1, col2 = st.columns(2)
         
         with col1:
-            st.write(f"**From:** {email.get('sender', 'Unknown')}")
-            st.write(f"**To:** {email.get('recipients', 'Unknown')}")
-            st.write(f"**Subject:** {email.get('subject', 'No Subject')}")
-            st.write(f"**Time:** {email.get('_time', 'Unknown')}")
-            st.write(f"**Status:** {get_risk_indicator(email.get('status', 'unknown'))} {email.get('status', 'Unknown').title()}")
+            st.markdown(f"**From:** {email.get('sender', 'Unknown')}")
+            st.markdown(f"**To:** {email.get('recipients', 'Unknown')}")
+            st.markdown(f"**Subject:** {email.get('subject', 'No Subject')}")
+            st.markdown(f"**Time:** {email.get('_time', 'Unknown')}")
+            st.markdown(f"**Time Month:** {email.get('_time_month', 'Unknown')}")
         
         with col2:
-            st.write(f"**Domain:** {email.get('recipients_email_domain', 'Unknown')}")
-            st.write(f"**Department:** {email.get('department', 'Unknown')}")
-            st.write(f"**Business Unit:** {email.get('bunit', 'Unknown')}")
-            st.write(f"**Account Type:** {email.get('account_type', 'Unknown')}")
-            st.write(f"**Attachment:** {'Yes' if email.get('attachment') else 'No'}")
+            st.markdown(f"**Recipients Domain:** {email.get('recipients_email_domain', 'Unknown')}")
+            st.markdown(f"**Attachment:** {'✅ Yes' if email.get('attachment') else '❌ No'}")
+            risk_status = email.get('status', 'Unknown')
+            st.markdown(f"**Risk Status:** {get_risk_indicator(risk_status)} {risk_status.title()}")
         
-        # Action buttons
+        # Security & Compliance Section
+        st.markdown("### 🔒 Security & Compliance")
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            if st.button("Clear", key=f"clear_{hash(str(email))}"):
+            st.markdown(f"**Minecast:** {'✅ Yes' if email.get('minecast') else '❌ No'}")
+            st.markdown(f"**Tessian:** {'✅ Yes' if email.get('tessian') else '❌ No'}")
+            st.markdown(f"**Tessian Status A:** {email.get('tessian_status_A', 'Unknown')}")
+        
+        with col2:
+            st.markdown(f"**Tessian Status B:** {email.get('tessian_status_B', 'Unknown')}")
+            st.markdown(f"**Wordlist Attachment:** {'⚠️ Yes' if email.get('wordlist_attachment') else '✅ No'}")
+            st.markdown(f"**Wordlist Subject:** {'⚠️ Yes' if email.get('wordlist_subject') else '✅ No'}")
+        
+        with col3:
+            st.markdown(f"**Leaver:** {'⚠️ Yes' if email.get('leaver') else '✅ No'}")
+            st.markdown(f"**Termination:** {'⚠️ Yes' if email.get('Termination') else '✅ No'}")
+        
+        # Organizational Information
+        st.markdown("### 🏢 Organizational Information")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.markdown(f"**Department:** {email.get('department', 'Unknown')}")
+            st.markdown(f"**Business Unit:** {email.get('bunit', 'Unknown')}")
+        
+        with col2:
+            st.markdown(f"**Account Type:** {email.get('account_type', 'Unknown')}")
+        
+        # Additional Fields (for any extra fields not explicitly handled)
+        st.markdown("### 📋 Additional Fields")
+        
+        # Get all fields that weren't already displayed
+        displayed_fields = {
+            'sender', 'recipients', 'subject', '_time', '_time_month', 
+            'recipients_email_domain', 'attachment', 'status', 'minecast', 
+            'tessian', 'tessian_status_A', 'tessian_status_B', 'wordlist_attachment', 
+            'wordlist_subject', 'leaver', 'Termination', 'department', 'bunit', 
+            'account_type'
+        }
+        
+        additional_fields = {k: v for k, v in email.items() if k not in displayed_fields}
+        
+        if additional_fields:
+            cols = st.columns(2)
+            for i, (field, value) in enumerate(additional_fields.items()):
+                with cols[i % 2]:
+                    # Format field name nicely
+                    field_name = field.replace('_', ' ').title()
+                    st.markdown(f"**{field_name}:** {value}")
+        else:
+            st.markdown("*No additional fields*")
+        
+        # Action buttons
+        st.markdown("### 🔧 Actions")
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            if st.button("Clear", key=f"clear_{hash(str(email))}", type="secondary"):
                 email_id = str(hash(str(email)))
                 st.session_state.completed_reviews[email_id] = {
                     'email': email,
@@ -711,7 +773,7 @@ def show_email_details_modal(email):
                 st.rerun()
         
         with col2:
-            if st.button("Escalate", key=f"escalate_{hash(str(email))}"):
+            if st.button("Escalate", key=f"escalate_{hash(str(email))}", type="primary"):
                 email_id = str(hash(str(email)))
                 st.session_state.escalated_records[email_id] = {
                     'email': email,
@@ -722,7 +784,7 @@ def show_email_details_modal(email):
                 st.rerun()
         
         with col3:
-            if st.button("AI Analysis", key=f"ai_{hash(str(email))}"):
+            if st.button("AI Analysis", key=f"ai_{hash(str(email))}", type="secondary"):
                 if openai_client:
                     with st.spinner("Analyzing email with AI..."):
                         ai_insights = AIInsights()
