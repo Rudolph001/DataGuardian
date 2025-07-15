@@ -796,76 +796,7 @@ def show_email_details_modal(email):
         
         
 
-def generate_sample_data():
-    """Generate sample email data for demonstration"""
-    import random
-    from datetime import datetime, timedelta
-    
-    # Sample data templates
-    subjects = [
-        "Quarterly Financial Report",
-        "Employee Database Export",
-        "Client Contact Information",
-        "Project Blueprint Files",
-        "Sensitive Customer Data",
-        "Internal Security Protocols",
-        "Confidential Meeting Notes",
-        "System Access Credentials"
-    ]
-    
-    senders = [
-        "john.doe@company.com",
-        "sarah.smith@company.com",
-        "mike.johnson@company.com",
-        "lisa.brown@company.com",
-        "bob@company.com"
-    ]
-    
-    external_domains = [
-        "gmail.com", "yahoo.com", "hotmail.com", "competitor.com",
-        "suspicious-domain.net", "personal-email.org", "outlook.com"
-    ]
-    
-    departments = ["Finance", "HR", "IT", "Sales", "Marketing", "Legal"]
-    bunits = ["Corporate", "Regional", "International", "Subsidiary"]
-    statuses = ["critical", "high", "medium", "low"]
-    
-    sample_data = []
-    
-    for i in range(50):  # Generate 50 sample records
-        # Random email recipient
-        recipient_domain = random.choice(external_domains)
-        recipient = f"recipient{i}@{recipient_domain}"
-        
-        # Random timestamp in last 30 days
-        days_ago = random.randint(0, 30)
-        timestamp = datetime.now() - timedelta(days=days_ago)
-        
-        email_record = {
-            "_time": timestamp.strftime("%Y-%m-%d %H:%M:%S"),
-            "sender": random.choice(senders),
-            "subject": random.choice(subjects),
-            "attachment": random.choice([True, False]),
-            "recipients": recipient,
-            "recipients_email_domain": recipient_domain,
-            "minecast": random.choice([True, False]),
-            "tessian": random.choice([True, False]),
-            "leaver": random.choice([True, False]),
-            "Termination": random.choice([True, False]),
-            "_time_month": timestamp.strftime("%Y-%m"),
-            "account_type": random.choice(["internal", "external", "contractor"]),
-            "wordlist_attachment": random.choice([True, False]),
-            "wordlist_subject": random.choice([True, False]),
-            "bunit": random.choice(bunits),
-            "department": random.choice(departments),
-            "status": random.choice(statuses),
-            "tessian_status_A": random.choice(["pass", "fail", "warning"]),
-            "tessian_status_B": random.choice(["pass", "fail", "warning"])
-        }
-        
-        sample_data.append(email_record)
-    
-    return sample_data
+
 
 def data_upload_page():
     """Data Upload & Preprocessing page"""
@@ -876,19 +807,7 @@ def data_upload_page():
     The system will validate required fields and process the data for security monitoring.
     """)
     
-    # Option to use sample data
-    col1, col2 = st.columns([3, 1])
-    
-    with col1:
-        st.subheader("Upload Your Data")
-    
-    with col2:
-        if st.button("Use Sample Data", type="secondary"):
-            sample_data = generate_sample_data()
-            st.session_state.data = sample_data
-            st.success(f"Generated {len(sample_data)} sample email records!")
-            st.info("Sample data loaded. You can now explore the Security Operations Dashboard and other features.")
-            st.rerun()
+    st.subheader("Upload Your Data")
     
     # File upload
     uploaded_file = st.file_uploader(

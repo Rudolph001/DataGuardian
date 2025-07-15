@@ -8,7 +8,7 @@ ExfilEye is a comprehensive Streamlit-based Data Loss Prevention (DLP) email mon
 - Upload CSV files up to 2GB with progress tracking
 - Custom email metadata parser (no pandas dependency)
 - Validate required fields and data quality metrics
-- Risk distribution analysis and sample data preview
+- Risk distribution analysis and data preview
 
 ### 🛡️ Security Operations Dashboard
 - Track review status with visual risk indicators (🔴🟠🟡🟢)
