@@ -709,6 +709,11 @@ def show_email_details_modal(email):
                 st.markdown(f"**Attachment:** ❌ No")
             risk_status = email.get('status', 'Unknown')
             st.markdown(f"**Risk Status:** {get_risk_indicator(risk_status)} {risk_status.title()}")
+            termination_value = email.get('Termination', '')
+            if termination_value:
+                st.markdown(f"**Termination:** ⚠️ Yes")
+            else:
+                st.markdown(f"**Termination:** ✅ No")
         
         # Security & Compliance Section
         st.markdown("### 🔒 Security & Compliance")
@@ -1166,6 +1171,11 @@ def security_operations_dashboard():
                         else:
                             st.markdown(f"**Attachment:** ❌ No")
                         st.markdown(f"**Risk Status:** {risk_icon} {email_status.title()}")
+                        termination_value = email.get('Termination', '')
+                        if termination_value:
+                            st.markdown(f"**Termination:** ⚠️ Yes")
+                        else:
+                            st.markdown(f"**Termination:** ✅ No")
                     
                     # Security & Compliance Section
                     st.markdown("### 🔒 Security & Compliance")
