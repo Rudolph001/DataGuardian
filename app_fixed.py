@@ -2566,45 +2566,36 @@ def followup_center_page():
                     elif not edited_template or not edited_template.strip():
                         st.error("Please enter email content")
                     else:
-                        # Clean template for mailto - remove extra formatting and keep it simple
-                        clean_body = edited_template.replace('━', '-').replace('🔒', '').replace('📧', '').replace('⚠️', '').replace('📋', '')
-                        clean_body = clean_body.replace('\n\n\n', '\n\n').strip()
-                        
                         # Action buttons for the finalized email
                         st.markdown("### 🚀 Send Email")
                         
                         col_send1, col_send2, col_send3 = st.columns([2, 1, 1])
                         
                         with col_send1:
-                            # Create mailto link with proper encoding
-                            import urllib.parse
-                            mailto_to = urllib.parse.quote(sender_email)
-                            mailto_subject = urllib.parse.quote(subject)
-                            # Clean template for email body
-                            clean_template = edited_template.replace('\n', '%0D%0A')
-                            mailto_body = urllib.parse.quote(clean_template)
-                            mailto_link = f"mailto:{mailto_to}?subject={mailto_subject}&body={mailto_body}"
+                            # Use the new working mailto function
+                            mailto_link = create_outlook_mailto_link(email, edited_template, subject)
                             
-                            # Direct link approach
+                            # Better styled button with proper mailto link
                             st.markdown(f"""
                             <a href="{mailto_link}" target="_blank" style="
                                 display: inline-block;
-                                padding: 0.5rem 1rem;
+                                padding: 8px 16px;
                                 background-color: #0078d4;
                                 color: white;
                                 text-decoration: none;
-                                border-radius: 0.25rem;
+                                border-radius: 4px;
                                 font-weight: bold;
                                 width: 100%;
                                 text-align: center;
-                                margin: 0.25rem 0;
-                            ">
-                                📧 Open in Outlook
-                            </a>
+                                margin-bottom: 8px;
+                            ">🚀 Click to Open in Email Client</a>
                             """, unsafe_allow_html=True)
                             
+                            st.success("✅ Email ready!")
+                            st.info("💡 Click the blue link above to open your email client.")
+                            
                             # Fallback copy button
-                            if st.button("📋 Copy Email Details", key=f"copy_email_{record_id}", use_container_width=True):
+                            if st.button("📋 Copy Email Template", key=f"copy_email_{record_id}", use_container_width=True):
                                 email_text = f"""To: {sender_email}
 Subject: {subject}
 
@@ -2676,6 +2667,25 @@ Subject: {subject}
                     st.success("Notes saved!")
                     st.rerun()
 
+def create_outlook_mailto_link(email_data, email_template, subject_line):
+    """Create a mailto link that opens in Outlook with the generated email"""
+    import urllib.parse
+    
+    # Extract email details
+    to_email = email_data.get('sender', '')  # Who you're sending to
+    email_subject = subject_line             # Email subject
+    email_body = email_template              # Email content
+    
+    # URL encode the parameters (important for special characters)
+    subject_encoded = urllib.parse.quote(email_subject)
+    body_encoded = urllib.parse.quote(email_body)
+    to_encoded = urllib.parse.quote(to_email)
+    
+    # Create the mailto link
+    mailto_link = f"mailto:{to_encoded}?subject={subject_encoded}&body={body_encoded}"
+    
+    return mailto_link
+
 def generate_followup_email(email):
     """Generate follow-up email template"""
     # Create clean, professional email content
@@ -2686,26 +2696,24 @@ def generate_followup_email(email):
     risk_level = email.get('status', 'Unknown').title()
     date_sent = email.get('_time', 'Unknown')
     
-    template = f"""🔒 SECURITY ALERT - Email Review Required
+    template = f"""SECURITY ALERT - Email Review Required
 
 Dear {sender_name},
 
 Our security monitoring system has flagged an email communication that requires your immediate attention and review.
 
-
-📧 EMAIL DETAILS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EMAIL DETAILS:
+===============================================
 From:               {email.get('sender', 'Unknown')}
 To:                 {recipient}
 Subject:            {subject}
 Date Sent:          {date_sent}
 Risk Level:         {risk_level}
 Recipient Domain:   {domain}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+===============================================
 
-
-⚠️  REQUIRED ACTIONS:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REQUIRED ACTIONS:
+===============================================
 This email has been escalated due to potential security concerns. 
 Please review the communication and confirm the following:
 
@@ -2715,24 +2723,22 @@ Please review the communication and confirm the following:
    
    3. Are there any sensitive data or attachments that should not have been shared?
 
-
-📋 RESPONSE REQUIRED:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RESPONSE REQUIRED:
+===============================================
 Please respond to this email within 24 hours with your confirmation and any additional context.
 
 If you have any questions or concerns, please contact the Security Team immediately at security@company.com
-
 
 Best regards,
 
 Security Team
 ExfilEye Data Loss Prevention System
 
-═══════════════════════════════════════════════════════════
+===============================================
 This is an automated security alert from the ExfilEye DLP system.
 Alert ID: SEC-{hash(str(email)) % 100000}
 Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}
-═══════════════════════════════════════════════════════════"""
+==============================================="""
     
     return template
 

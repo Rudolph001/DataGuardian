@@ -1,0 +1,73 @@
+1. Core Function - Create Mailto Link
+def create_outlook_mailto_link(email_data, email_template):
+    """Create a mailto link that opens in Outlook with the generated email"""
+    import urllib.parse
+    
+    # Extract email details
+    to_email = email_data.get('sender', '')  # Who you're sending to
+    email_subject = "Your Subject Here"      # Email subject
+    email_body = email_template              # Email content
+    
+    # URL encode the parameters (important for special characters)
+    subject_encoded = urllib.parse.quote(email_subject)
+    body_encoded = urllib.parse.quote(email_body)
+    to_encoded = urllib.parse.quote(to_email)
+    
+    # Create the mailto link
+    mailto_link = f"mailto:{to_encoded}?subject={subject_encoded}&body={body_encoded}"
+    
+    return mailto_link
+2. Email Template Generator
+def generate_email_template(data):
+    """Generate your email content"""
+    # Customize this based on your needs
+    template = f"""Dear {data.get('name', 'User')},
+Your custom message here...
+Best regards,
+Your Team"""
+    
+    return template
+3. Streamlit UI Integration
+# In your Streamlit app, use this pattern:
+if st.button("📮 Open in Outlook"):
+    # Generate email content
+    email_template = generate_email_template(your_data)
+    
+    # Create mailto link
+    mailto_link = create_outlook_mailto_link(your_data, email_template)
+    
+    # Display clickable link with styling
+    st.markdown(f"""
+    <a href="{mailto_link}" target="_blank" style="
+        display: inline-block;
+        padding: 8px 16px;
+        background-color: #0078d4;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        font-weight: bold;
+    ">🚀 Click to Open in Email Client</a>
+    """, unsafe_allow_html=True)
+    
+    st.success("✅ Email ready!")
+    st.info("💡 Click the blue link above to open your email client.")
+4. Complete Working Example
+import streamlit as st
+import urllib.parse
+def create_mailto_link(to_email, subject, body):
+    """Simple version for any app"""
+    subject_encoded = urllib.parse.quote(subject)
+    body_encoded = urllib.parse.quote(body)
+    to_encoded = urllib.parse.quote(to_email)
+    
+    return f"mailto:{to_encoded}?subject={subject_encoded}&body={body_encoded}"
+# Usage in any Streamlit app:
+if st.button("Send Email"):
+    to_email = "recipient@example.com"
+    subject = "Your Subject"
+    body = "Your email content here..."
+    
+    mailto_link = create_mailto_link(to_email, subject, body)
+    
+    st.markdown(f'<a href="{mailto_link}" target="_blank">📧 Open Email Client</a>', 
+                unsafe_allow_html=True)
