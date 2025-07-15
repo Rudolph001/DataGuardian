@@ -1994,11 +1994,7 @@ def main():
     st.sidebar.write(f"✅ Completed: {len(st.session_state.completed_reviews)}")
     st.sidebar.write(f"📨 Escalated: {len(st.session_state.escalated_records)}")
     
-    # API status
-    if openai_client:
-        st.sidebar.success("🤖 AI: Connected")
-    else:
-        st.sidebar.error("🤖 AI: Not configured")
+    
     
     # Run selected page
     pages[selected_page]()
