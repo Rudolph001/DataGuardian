@@ -711,7 +711,7 @@ def show_email_details_modal(email):
             st.markdown(f"**Risk Status:** {get_risk_indicator(risk_status)} {risk_status.title()}")
             termination_value = email.get('Termination', '')
             if termination_value:
-                st.markdown(f"**Termination:** ⚠️ Yes")
+                st.markdown(f"**Termination:** ⚠️ {termination_value}")
             else:
                 st.markdown(f"**Termination:** ✅ No")
         
@@ -1173,7 +1173,7 @@ def security_operations_dashboard():
                         st.markdown(f"**Risk Status:** {risk_icon} {email_status.title()}")
                         termination_value = email.get('Termination', '')
                         if termination_value:
-                            st.markdown(f"**Termination:** ⚠️ Yes")
+                            st.markdown(f"**Termination:** ⚠️ {termination_value}")
                         else:
                             st.markdown(f"**Termination:** ✅ No")
                     
