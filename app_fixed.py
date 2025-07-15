@@ -2196,115 +2196,48 @@ def security_operations_dashboard():
                     </div>
                     """, unsafe_allow_html=True)
                 
-                # Expandable details
-                with st.expander(f"📋 View Details - {subject_preview}", expanded=False):
-                    # Create organized sections for better readability
-                    
-                    # Primary Email Information
-                    st.markdown("### 📧 Email Information")
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        st.markdown(f"**From:** {email.get('sender', 'Unknown')}")
-                        st.markdown(f"**To:** {email.get('recipients', 'Unknown')}")
-                        st.markdown(f"**Subject:** {email.get('subject', 'No Subject')}")
-                        st.markdown(f"**Time:** {email.get('_time', 'Unknown')}")
-                        st.markdown(f"**Time Month:** {email.get('_time_month', 'Unknown')}")
-                    
-                    with col2:
-                        st.markdown(f"**Recipients Domain:** {email.get('recipients_email_domain', 'Unknown')}")
-                        attachment_value = email.get('attachment', '')
-                        if attachment_value and attachment_value not in [True, False, 'True', 'False']:
-                            st.markdown(f"**Attachment:** 📎 {attachment_value}")
-                        elif attachment_value:
-                            st.markdown(f"**Attachment:** ✅ Yes")
-                        else:
-                            st.markdown(f"**Attachment:** ❌ No")
-                        st.markdown(f"**Risk Status:** {risk_icon} {email_status.title()}")
-                        termination_value = email.get('Termination', '')
-                        if termination_value:
-                            st.markdown(f"**Termination:** ⚠️ {termination_value}")
-                        else:
-                            st.markdown(f"**Termination:** ✅ No")
-                    
-                    # Security & Compliance Section
-                    st.markdown("### 🔒 Security & Compliance")
-                    col1, col2, col3 = st.columns(3)
-                    
-                    with col1:
-                        st.markdown(f"**Minecast:** {'✅ Yes' if email.get('minecast') else '❌ No'}")
-                        st.markdown(f"**Tessian:** {'✅ Yes' if email.get('tessian') else '❌ No'}")
-                        st.markdown(f"**Tessian Status A:** {email.get('tessian_status_A', 'Unknown')}")
-                    
-                    with col2:
-                        st.markdown(f"**Tessian Status B:** {email.get('tessian_status_B', 'Unknown')}")
-                        st.markdown(f"**Wordlist Attachment:** {'⚠️ Yes' if email.get('wordlist_attachment') else '✅ No'}")
-                        st.markdown(f"**Wordlist Subject:** {'⚠️ Yes' if email.get('wordlist_subject') else '✅ No'}")
-                    
-                    with col3:
-                        st.markdown(f"**Leaver:** {'⚠️ Yes' if email.get('leaver') else '✅ No'}")
-                        st.markdown(f"**Termination:** {'⚠️ Yes' if email.get('Termination') else '✅ No'}")
-                    
-                    # Organizational Information
-                    st.markdown("### 🏢 Organizational Information")
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        st.markdown(f"**Department:** {email.get('department', 'Unknown')}")
-                        st.markdown(f"**Business Unit:** {email.get('bunit', 'Unknown')}")
-                    
-                    with col2:
-                        st.markdown(f"**Account Type:** {email.get('account_type', 'Unknown')}")
-                    
-                    # Additional Fields (for any extra fields not explicitly handled)
-                    st.markdown("### 📋 Additional Fields")
-                    
-                    # Get all fields that weren't already displayed
-                    displayed_fields = {
-                        'sender', 'recipients', 'subject', '_time', '_time_month', 
-                        'recipients_email_domain', 'attachment', 'status', 'minecast', 
-                        'tessian', 'tessian_status_A', 'tessian_status_B', 'wordlist_attachment', 
-                        'wordlist_subject', 'leaver', 'Termination', 'department', 'bunit', 
-                        'account_type'
-                    }
-                    
-                    additional_fields = {k: v for k, v in email.items() if k not in displayed_fields}
-                    
-                    if additional_fields:
-                        cols = st.columns(2)
-                        for i, (field, value) in enumerate(additional_fields.items()):
-                            with cols[i % 2]:
-                                # Format field name nicely
-                                field_name = field.replace('_', ' ').title()
-                                st.markdown(f"**{field_name}:** {value}")
-                    else:
-                        st.markdown("*No additional fields*")
-                    
-                    # Action buttons
-                    st.markdown("### 🔧 Actions")
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        if st.button("Clear", key=f"clear_{hash(str(email))}", type="secondary"):
-                            email_id = str(hash(str(email)))
-                            st.session_state.completed_reviews[email_id] = {
-                                'email': email,
-                                'decision': 'clear',
-                                'timestamp': datetime.now()
-                            }
-                            st.success("Email marked as cleared!")
+                # Pop-out window button for details
+                col1, col2, col3 = st.columns([2, 1, 1])
+                
+                with col1:
+                    if st.button(f"📋 View Details - {subject_preview}", key=f"details_{hash(str(email))}", use_container_width=True):
+                        # Set session state to show modal
+                        st.session_state[f'show_modal_{hash(str(email))}'] = True
+                        st.rerun()
+                
+                with col2:
+                    if st.button("✅ Clear", key=f"clear_{hash(str(email))}", type="secondary", use_container_width=True):
+                        email_id = str(hash(str(email)))
+                        st.session_state.completed_reviews[email_id] = {
+                            'email': email,
+                            'decision': 'clear',
+                            'timestamp': datetime.now()
+                        }
+                        st.success("Email marked as cleared!")
+                        st.rerun()
+                
+                with col3:
+                    if st.button("🚨 Escalate", key=f"escalate_{hash(str(email))}", type="primary", use_container_width=True):
+                        email_id = str(hash(str(email)))
+                        st.session_state.escalated_records[email_id] = {
+                            'email': email,
+                            'decision': 'escalate',
+                            'timestamp': datetime.now()
+                        }
+                        st.success("Email escalated for follow-up!")
+                        st.rerun()
+                
+                # Show modal if triggered
+                if st.session_state.get(f'show_modal_{hash(str(email))}', False):
+                    # Create modal overlay
+                    with st.container():
+                        # Close button
+                        if st.button("❌ Close Details", key=f"close_{hash(str(email))}", type="secondary"):
+                            st.session_state[f'show_modal_{hash(str(email))}'] = False
                             st.rerun()
-                    
-                    with col2:
-                        if st.button("Escalate", key=f"escalate_{hash(str(email))}", type="primary"):
-                            email_id = str(hash(str(email)))
-                            st.session_state.escalated_records[email_id] = {
-                                'email': email,
-                                'decision': 'escalate',
-                                'timestamp': datetime.now()
-                            }
-                            st.success("Email escalated for follow-up!")
-                            st.rerun()
+                        
+                        # Show email details in modal format
+                        show_email_details_modal(email)
             
             if len(group_emails_sorted) > 15:
                 remaining = len(group_emails_sorted) - 15
