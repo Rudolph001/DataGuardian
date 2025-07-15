@@ -228,6 +228,7 @@ class AnomalyDetector:
     def __init__(self):
         self.isolation_forest = IsolationForest(contamination=0.1, random_state=42)
         self.scaler = StandardScaler()
+        self.intelligent_filter = IsolationForest(contamination=0.05, random_state=42)
     
     def detect_anomalies(self, email_data):
         """Detect anomalies in email data using multiple techniques"""
@@ -260,6 +261,161 @@ class AnomalyDetector:
                 })
         
         return anomalies
+    
+    def intelligent_filter_suspicious_events(self, email_data):
+        """Intelligently filter Medium, Low, and Unclassified events to highlight only suspicious ones"""
+        if not email_data:
+            return []
+        
+        # Filter only Medium, Low, and Unclassified events
+        filtered_events = [
+            email for email in email_data 
+            if email.get('status', '').lower() in ['medium', 'low', 'unclassified']
+        ]
+        
+        if len(filtered_events) < 2:
+            return filtered_events
+        
+        # Extract advanced features for intelligent filtering
+        features = self._extract_advanced_features(filtered_events)
+        
+        if len(features) < 2:
+            return filtered_events[:5]  # Return first 5 if not enough data
+        
+        # Normalize features
+        features_scaled = self.scaler.fit_transform(features)
+        
+        # Use more strict isolation forest for filtering
+        suspicious_scores = self.intelligent_filter.fit_predict(features_scaled)
+        
+        # Get anomaly scores for ranking
+        anomaly_scores = self.intelligent_filter.decision_function(features_scaled)
+        
+        # Combine events with their suspicion scores
+        suspicious_events = []
+        for i, (email, score, anomaly_score) in enumerate(zip(filtered_events, suspicious_scores, anomaly_scores)):
+            if score == -1:  # Anomaly detected
+                suspicious_events.append({
+                    'email': email,
+                    'suspicion_score': abs(anomaly_score),
+                    'reason': self._generate_suspicion_reason(email, features[i])
+                })
+        
+        # Sort by suspicion score and return top 10 most suspicious
+        suspicious_events.sort(key=lambda x: x['suspicion_score'], reverse=True)
+        return suspicious_events[:10]
+    
+    def _extract_advanced_features(self, email_data):
+        """Extract advanced features for intelligent filtering"""
+        features = []
+        
+        # Calculate baseline statistics
+        all_subject_lengths = [len(email.get('subject', '')) for email in email_data]
+        all_recipient_counts = [len(email.get('recipients', '').split(',')) for email in email_data]
+        
+        avg_subject_length = np.mean(all_subject_lengths) if all_subject_lengths else 0
+        avg_recipient_count = np.mean(all_recipient_counts) if all_recipient_counts else 0
+        
+        for email in email_data:
+            try:
+                subject = email.get('subject', '')
+                recipients = email.get('recipients', '')
+                sender = email.get('sender', '')
+                domain = email.get('recipients_email_domain', '')
+                
+                # Time-based features
+                time_str = email.get('_time', '')
+                hour_of_day = 12  # Default
+                try:
+                    if time_str:
+                        hour_of_day = int(time_str.split('T')[1].split(':')[0]) if 'T' in time_str else 12
+                except:
+                    hour_of_day = 12
+                
+                # Advanced feature vector
+                feature_vector = [
+                    # Basic features
+                    len(subject),
+                    len(recipients.split(',')),
+                    1 if email.get('attachments') else 0,
+                    len(sender),
+                    
+                    # Deviation from normal patterns
+                    abs(len(subject) - avg_subject_length),
+                    abs(len(recipients.split(',')) - avg_recipient_count),
+                    
+                    # Time-based features
+                    hour_of_day,
+                    1 if hour_of_day < 6 or hour_of_day > 22 else 0,  # Off-hours indicator
+                    
+                    # Content-based features
+                    1 if email.get('wordlist_attachment') else 0,
+                    1 if email.get('wordlist_subject') else 0,
+                    
+                    # Domain-based features
+                    hash(domain) % 1000,
+                    1 if domain.endswith('.com') else 0,
+                    1 if any(word in domain.lower() for word in ['temp', 'disposable', 'fake']) else 0,
+                    
+                    # Recipient pattern analysis
+                    1 if len(recipients.split(',')) > 5 else 0,
+                    1 if '@' in recipients and recipients.count('@') > 3 else 0,
+                    
+                    # Subject pattern analysis
+                    1 if any(word in subject.lower() for word in ['urgent', 'confidential', 'secret', 'private']) else 0,
+                    1 if subject.isupper() else 0,
+                    len([c for c in subject if c.isdigit()]) / max(len(subject), 1),
+                    
+                    # Sender pattern analysis
+                    1 if sender.count('.') > 2 else 0,
+                    1 if any(char.isdigit() for char in sender.split('@')[0]) if '@' in sender else 0,
+                ]
+                
+                features.append(feature_vector)
+            except:
+                features.append([0] * 20)  # Default feature vector
+        
+        return np.array(features)
+    
+    def _generate_suspicion_reason(self, email, features):
+        """Generate a human-readable reason for why this email is suspicious"""
+        reasons = []
+        
+        subject = email.get('subject', '')
+        recipients = email.get('recipients', '')
+        sender = email.get('sender', '')
+        domain = email.get('recipients_email_domain', '')
+        
+        # Check various suspicious patterns
+        if email.get('wordlist_attachment'):
+            reasons.append("Contains suspicious attachment keywords")
+        if email.get('wordlist_subject'):
+            reasons.append("Subject contains flagged keywords")
+        if len(recipients.split(',')) > 5:
+            reasons.append("Large number of recipients")
+        if any(word in subject.lower() for word in ['urgent', 'confidential', 'secret']):
+            reasons.append("Urgent/confidential language in subject")
+        if subject.isupper():
+            reasons.append("Subject in ALL CAPS")
+        if any(word in domain.lower() for word in ['temp', 'disposable', 'fake']):
+            reasons.append("Suspicious recipient domain")
+        if sender.count('.') > 2:
+            reasons.append("Complex sender email pattern")
+        
+        # Time-based reasons
+        try:
+            time_str = email.get('_time', '')
+            if time_str:
+                hour_of_day = int(time_str.split('T')[1].split(':')[0]) if 'T' in time_str else 12
+                if hour_of_day < 6 or hour_of_day > 22:
+                    reasons.append("Sent during off-hours")
+        except:
+            pass
+        
+        if not reasons:
+            reasons.append("Unusual email pattern detected")
+        
+        return "; ".join(reasons[:3])  # Return top 3 reasons
     
     def _extract_features(self, email_data):
         """Extract numerical features from email data"""
@@ -2115,7 +2271,7 @@ def security_operations_dashboard():
     with col1:
         status_filter = st.selectbox(
             "Filter by Status",
-            ["All", "Critical", "High", "Medium", "Low"]
+            ["All", "Critical", "High", "Medium", "Low", "Unclassified"]
         )
     
     with col2:
@@ -2141,6 +2297,67 @@ def security_operations_dashboard():
     
     if sender_filter != "All":
         filtered_records = [email for email in filtered_records if email.get('sender', '') == sender_filter]
+    
+    # Add intelligent filtering toggle
+    st.markdown("---")
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.subheader("🤖 Intelligent ML-Powered Review Assistant")
+    with col2:
+        use_intelligent_filter = st.toggle("Enable Smart Filtering", value=False, help="Use AI to filter and show only the most suspicious Medium, Low, and Unclassified events")
+    
+    # Apply intelligent filtering if enabled
+    if use_intelligent_filter:
+        anomaly_detector = AnomalyDetector()
+        suspicious_events = anomaly_detector.intelligent_filter_suspicious_events(filtered_records)
+        
+        if suspicious_events:
+            st.info(f"🎯 AI identified {len(suspicious_events)} suspicious events from {len(filtered_records)} records that need your attention")
+            
+            # Show smart filtered results
+            st.subheader("🔍 AI-Recommended Events to Review")
+            for i, event in enumerate(suspicious_events):
+                email = event['email']
+                email_id = str(hash(str(email)))
+                
+                with st.expander(f"🚨 Suspicious Event #{i+1} - {email.get('subject', 'No Subject')[:50]}...", expanded=False):
+                    col1, col2 = st.columns([3, 1])
+                    
+                    with col1:
+                        st.write(f"**Sender:** {email.get('sender', 'N/A')}")
+                        st.write(f"**Recipients:** {email.get('recipients', 'N/A')}")
+                        st.write(f"**Current Status:** {get_risk_indicator(email.get('status', 'unknown'))} {email.get('status', 'Unknown').title()}")
+                        st.write(f"**Suspicion Score:** {event['suspicion_score']:.2f}")
+                        st.write(f"**AI Reasoning:** {event['reason']}")
+                    
+                    with col2:
+                        # Status change functionality
+                        current_status = email.get('status', 'unclassified')
+                        new_status = st.selectbox(
+                            "Change Status:",
+                            ["critical", "high", "medium", "low", "unclassified"],
+                            index=["critical", "high", "medium", "low", "unclassified"].index(current_status.lower() if current_status.lower() in ["critical", "high", "medium", "low", "unclassified"] else "unclassified"),
+                            key=f"status_{email_id}"
+                        )
+                        
+                        if st.button(f"Update Status", key=f"update_{email_id}"):
+                            # Update the email status in the data
+                            for i, data_email in enumerate(st.session_state.data):
+                                if str(hash(str(data_email))) == email_id:
+                                    st.session_state.data[i]['status'] = new_status
+                                    # Save updated data to persistence
+                                    data_persistence = DataPersistence()
+                                    data_persistence.save_daily_data(st.session_state.data)
+                                    st.success(f"Status updated to {new_status.title()}")
+                                    st.rerun()
+                                    break
+                        
+                        if st.button(f"View Details", key=f"details_{email_id}"):
+                            show_email_details_modal(email)
+            
+            st.markdown("---")
+        else:
+            st.info("🎉 No suspicious events detected in the current filtered data!")
     
     st.subheader(f"Security Review Queue ({len(filtered_records):,} records)")
     
@@ -2212,7 +2429,7 @@ def security_operations_dashboard():
     # Sort groups by highest risk level
     def get_group_priority(group_emails):
         """Calculate priority score for group based on highest risk level"""
-        priority_map = {'critical': 4, 'high': 3, 'medium': 2, 'low': 1, 'unknown': 0}
+        priority_map = {'critical': 4, 'high': 3, 'medium': 2, 'low': 1, 'unclassified': 0, 'unknown': 0}
         max_priority = 0
         for email in group_emails:
             status = email.get('status', 'unknown').lower()
@@ -2228,7 +2445,7 @@ def security_operations_dashboard():
             continue
         
         # Sort emails within group by risk level (critical first)
-        priority_map = {'critical': 4, 'high': 3, 'medium': 2, 'low': 1, 'unknown': 0}
+        priority_map = {'critical': 4, 'high': 3, 'medium': 2, 'low': 1, 'unclassified': 0, 'unknown': 0}
         group_emails_sorted = sorted(group_emails, key=lambda x: priority_map.get(x.get('status', 'unknown').lower(), 0), reverse=True)
         
         # Risk distribution in group
@@ -2239,14 +2456,14 @@ def security_operations_dashboard():
         
         # Create professional risk summary with priority order
         risk_indicators = []
-        for status in ['critical', 'high', 'medium', 'low']:
+        for status in ['critical', 'high', 'medium', 'low', 'unclassified']:
             count = risk_counts.get(status, 0)
             if count > 0:
                 risk_indicators.append(f"{get_risk_indicator(status)} {count} {status.title()}")
         
         # Get highest risk level for styling
         highest_risk = 'low'
-        for status in ['critical', 'high', 'medium', 'low']:
+        for status in ['critical', 'high', 'medium', 'low', 'unclassified']:
             if risk_counts.get(status, 0) > 0:
                 highest_risk = status
                 break
@@ -2296,7 +2513,7 @@ def security_operations_dashboard():
                     """, unsafe_allow_html=True)
                 
                 # Pop-out window button for details
-                col1, col2, col3 = st.columns([2, 1, 1])
+                col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
                 
                 with col1:
                     if st.button(f"📋 View Details - {subject_preview}", key=f"details_{hash(str(email))}", use_container_width=True):
@@ -2305,6 +2522,29 @@ def security_operations_dashboard():
                         st.rerun()
                 
                 with col2:
+                    # Status change dropdown
+                    current_status = email.get('status', 'unclassified')
+                    new_status = st.selectbox(
+                        "Status:",
+                        ["critical", "high", "medium", "low", "unclassified"],
+                        index=["critical", "high", "medium", "low", "unclassified"].index(current_status.lower() if current_status.lower() in ["critical", "high", "medium", "low", "unclassified"] else "unclassified"),
+                        key=f"reg_status_{hash(str(email))}"
+                    )
+                    
+                    if new_status != current_status.lower():
+                        if st.button("Update", key=f"reg_update_{hash(str(email))}", use_container_width=True):
+                            # Update the email status in the data
+                            for idx, data_email in enumerate(st.session_state.data):
+                                if str(hash(str(data_email))) == str(hash(str(email))):
+                                    st.session_state.data[idx]['status'] = new_status
+                                    # Save updated data to persistence
+                                    data_persistence = DataPersistence()
+                                    data_persistence.save_daily_data(st.session_state.data)
+                                    st.success(f"Status updated to {new_status.title()}")
+                                    st.rerun()
+                                    break
+                
+                with col3:
                     if st.button("✅ Clear", key=f"dashboard_clear_{hash(str(email))}", type="secondary", use_container_width=True):
                         email_id = str(hash(str(email)))
                         st.session_state.completed_reviews[email_id] = {
@@ -2315,7 +2555,7 @@ def security_operations_dashboard():
                         st.success("Email marked as cleared!")
                         st.rerun()
                 
-                with col3:
+                with col4:
                     if st.button("🚨 Escalate", key=f"dashboard_escalate_{hash(str(email))}", type="primary", use_container_width=True):
                         email_id = str(hash(str(email)))
                         st.session_state.escalated_records[email_id] = {
