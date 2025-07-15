@@ -3287,30 +3287,41 @@ Attachments:        {attachment_text}
     return template
 
 def network_analysis_page():
-    """Enhanced Network Analysis page with advanced interactivity"""
-    st.title("🔗 Advanced Network Analysis")
+    """Advanced Network Analysis page with enhanced interactivity and visualization"""
+    st.markdown("""
+    <div class="data-container">
+        <h2 style="color: #2c3e50; margin-bottom: 1rem;">🔗 Advanced Network Analysis</h2>
+        <p style="color: #7f8c8d; font-size: 1.1rem; margin-bottom: 1.5rem;">
+            Discover hidden patterns, identify key players, and analyze communication flows using 
+            state-of-the-art network visualization and analysis techniques with advanced interactive features.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
     
     if not st.session_state.data:
-        st.warning("Please upload data first in the Data Upload & Preprocessing section.")
+        st.markdown("""
+        <div class="alert alert-warning">
+            <strong>⚠️ No Data Available</strong><br>
+            Please upload data first in the Data Upload & Preprocessing section to begin network analysis.
+        </div>
+        """, unsafe_allow_html=True)
         return
-    
-    st.markdown("""
-    🎯 **Advanced Email Communication Network Analysis**
-    
-    Discover hidden patterns, identify key players, and analyze communication flows using 
-    state-of-the-art network visualization and analysis techniques.
-    """)
     
     data = st.session_state.data
     
-    # Enhanced Network Configuration
-    st.subheader("🛠️ Network Configuration")
+    # Enhanced Network Configuration with Professional Styling
+    st.markdown("""
+    <div class="data-container">
+        <h3 style="color: #2c3e50; margin-bottom: 1rem;">🛠️ Advanced Network Configuration</h3>
+        <p style="color: #7f8c8d; margin-bottom: 1rem;">Configure network parameters for optimal visualization and analysis</p>
+    </div>
+    """, unsafe_allow_html=True)
     
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         source_field = st.selectbox(
-            "Source Field",
+            "🎯 Source Field",
             ["sender", "recipients", "recipients_email_domain"],
             index=0,
             help="Choose what represents the source of communication"
@@ -3318,7 +3329,7 @@ def network_analysis_page():
     
     with col2:
         target_field = st.selectbox(
-            "Target Field",
+            "🎯 Target Field",
             ["recipients", "recipients_email_domain", "sender"],
             index=0,
             help="Choose what represents the target of communication"
@@ -3326,32 +3337,46 @@ def network_analysis_page():
     
     with col3:
         layout_type = st.selectbox(
-            "Layout Algorithm",
-            ["spring", "kamada_kawai", "circular", "hierarchical", "force_directed", "spectral", "fruchterman_reingold"],
+            "🎨 Layout Algorithm",
+            ["spring", "force_directed", "hierarchical", "kamada_kawai", "circular", "spectral", "fruchterman_reingold"],
             index=0,
             help="Different algorithms create different visual patterns"
         )
     
     with col4:
-        if st.button("ℹ️ Layout Help", help="Learn about layout algorithms"):
-            st.info("""
-            **Layout Algorithms:**
-            - **Spring**: Good general purpose, nodes repel each other
-            - **Kamada-Kawai**: High quality for small-medium networks
-            - **Hierarchical**: Shows organizational structure
-            - **Force-Directed**: Enhanced spring with weighted edges
-            - **Circular**: Nodes arranged in a circle
-            - **Spectral**: Uses graph's eigenvalues for positioning
-            """)
+        visualization_style = st.selectbox(
+            "🎭 Visualization Style",
+            ["Risk-Based", "Centrality-Based", "Community-Based", "Standard"],
+            index=0,
+            help="How to color and style nodes and edges"
+        )
     
-    # Advanced Filters
-    st.subheader("🔍 Advanced Filters")
+    # Algorithm explanation in expander
+    with st.expander("ℹ️ Layout Algorithm Guide"):
+        st.markdown("""
+        **Layout Algorithms Explained:**
+        - **Spring**: General purpose, nodes repel each other naturally
+        - **Force-Directed**: Enhanced spring with weighted edges for better positioning
+        - **Hierarchical**: Shows organizational structure and communication levels
+        - **Kamada-Kawai**: High quality layout for small-medium networks
+        - **Circular**: Nodes arranged in a circle, good for symmetrical analysis
+        - **Spectral**: Uses graph's mathematical properties for positioning
+        - **Fruchterman-Reingold**: Balanced force-directed algorithm
+        """)
+    
+    # Advanced Filters with Professional Styling
+    st.markdown("""
+    <div class="data-container">
+        <h3 style="color: #2c3e50; margin-bottom: 1rem;">🔍 Advanced Filtering & Display Options</h3>
+        <p style="color: #7f8c8d; margin-bottom: 1rem;">Fine-tune your network analysis with advanced filtering and visualization options</p>
+    </div>
+    """, unsafe_allow_html=True)
     
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         min_connections = st.slider(
-            "Minimum Connections",
+            "⚖️ Minimum Connections",
             min_value=1,
             max_value=50,
             value=2,
@@ -3360,15 +3385,15 @@ def network_analysis_page():
     
     with col2:
         status_filter = st.multiselect(
-            "Risk Status",
-            ["critical", "high", "medium", "low"],
+            "🚨 Risk Status Filter",
+            ["critical", "high", "medium", "low", "unclassified"],
             default=["critical", "high", "medium", "low"],
             help="Include emails with these risk levels"
         )
     
     with col3:
         max_nodes = st.slider(
-            "Maximum Nodes",
+            "🎯 Maximum Nodes",
             min_value=10,
             max_value=500,
             value=100,
@@ -3376,10 +3401,41 @@ def network_analysis_page():
         )
     
     with col4:
+        node_size_metric = st.selectbox(
+            "📏 Node Size Based On",
+            ["Email Volume", "Risk Level", "Centrality", "Uniform"],
+            help="How to size nodes in the visualization"
+        )
+    
+    # Additional advanced options
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
         show_risk_edges = st.checkbox(
-            "Highlight Risk Edges",
+            "🎨 Color Edges by Risk",
             value=True,
-            help="Color edges by risk level"
+            help="Color edges based on risk level"
+        )
+    
+    with col2:
+        show_node_labels = st.checkbox(
+            "🏷️ Show Node Labels",
+            value=True,
+            help="Display node labels on the network"
+        )
+    
+    with col3:
+        enable_physics = st.checkbox(
+            "⚡ Enable Physics",
+            value=False,
+            help="Enable interactive physics simulation"
+        )
+    
+    with col4:
+        highlight_communities = st.checkbox(
+            "👥 Highlight Communities",
+            value=False,
+            help="Automatically detect and highlight communities"
         )
     
     # Filter data
@@ -3582,13 +3638,20 @@ def network_analysis_page():
                 st.plotly_chart(fig_centrality, use_container_width=True)
             
             elif analysis_mode == "Risk Analysis" and 'graph' in graph_data:
-                st.subheader("⚠️ Risk Analysis")
+                st.markdown("""
+                <div class="data-container">
+                    <h3 style="color: #2c3e50; margin-bottom: 1rem;">⚠️ Advanced Risk Analysis</h3>
+                    <p style="color: #7f8c8d; margin-bottom: 1rem;">Comprehensive risk assessment of network communications</p>
+                </div>
+                """, unsafe_allow_html=True)
                 
                 G = graph_data['graph']
                 
-                # Risk distribution analysis
-                risk_stats = {'critical': 0, 'high': 0, 'medium': 0, 'low': 0, 'unknown': 0}
+                # Enhanced risk distribution analysis
+                risk_stats = {'critical': 0, 'high': 0, 'medium': 0, 'low': 0, 'unclassified': 0}
                 total_emails = 0
+                high_risk_nodes = set()
+                high_risk_edges = []
                 
                 for edge in G.edges():
                     edge_data = G[edge[0]][edge[1]]
@@ -3599,9 +3662,15 @@ def network_analysis_page():
                         risk_lower = risk.lower()
                         if risk_lower in risk_stats:
                             risk_stats[risk_lower] += 1
+                        
+                        # Track high-risk nodes and edges
+                        if risk_lower in ['critical', 'high']:
+                            high_risk_nodes.add(edge[0])
+                            high_risk_nodes.add(edge[1])
+                            high_risk_edges.append((edge[0], edge[1], risk_lower))
                 
-                # Risk visualization
-                col1, col2 = st.columns(2)
+                # Risk visualization with enhanced metrics
+                col1, col2, col3 = st.columns(3)
                 
                 with col1:
                     fig_risk = px.pie(
@@ -3609,27 +3678,128 @@ def network_analysis_page():
                         names=list(risk_stats.keys()),
                         title="Risk Level Distribution",
                         color_discrete_map={
-                            'critical': '#ff4444',
-                            'high': '#ff8800',
-                            'medium': '#ffcc00',
-                            'low': '#44aa44',
-                            'unknown': '#888888'
+                            'critical': '#DC143C',
+                            'high': '#FF6347',
+                            'medium': '#FFD700',
+                            'low': '#32CD32',
+                            'unclassified': '#708090'
                         }
                     )
+                    fig_risk.update_traces(textposition='inside', textinfo='percent+label')
                     st.plotly_chart(fig_risk, use_container_width=True)
                 
                 with col2:
                     st.markdown("**🚨 Risk Summary**")
-                    st.metric("Total Emails", total_emails)
+                    st.metric("Total Emails", f"{total_emails:,}")
                     st.metric("High Risk Connections", risk_stats['critical'] + risk_stats['high'])
-                    st.metric("Risk Ratio", f"{((risk_stats['critical'] + risk_stats['high']) / max(sum(risk_stats.values()), 1) * 100):.1f}%")
-                    
+                    st.metric("High Risk Nodes", len(high_risk_nodes))
+                    risk_ratio = ((risk_stats['critical'] + risk_stats['high']) / max(sum(risk_stats.values()), 1) * 100)
+                    st.metric("Risk Ratio", f"{risk_ratio:.1f}%")
+                
+                with col3:
+                    st.markdown("**🎯 Risk Insights**")
                     if risk_stats['critical'] > 0:
                         st.error(f"⚠️ {risk_stats['critical']} critical risk connections found!")
                     elif risk_stats['high'] > 0:
                         st.warning(f"🔶 {risk_stats['high']} high risk connections found!")
                     else:
                         st.success("✅ No critical risk connections detected!")
+                    
+                    # Additional risk metrics
+                    if len(high_risk_nodes) > 0:
+                        st.info(f"📊 {len(high_risk_nodes)} nodes involved in high-risk communications")
+                
+                # High-risk connections details
+                if high_risk_edges:
+                    st.markdown("**🔥 High-Risk Connections**")
+                    for i, (source, target, risk_level) in enumerate(high_risk_edges[:10]):
+                        risk_color = "🔴" if risk_level == 'critical' else "🟠"
+                        st.write(f"{risk_color} **{source}** → **{target}** ({risk_level.upper()})")
+                    
+                    if len(high_risk_edges) > 10:
+                        st.caption(f"... and {len(high_risk_edges) - 10} more high-risk connections")
+            
+            elif analysis_mode == "Path Analysis" and 'graph' in graph_data:
+                st.markdown("""
+                <div class="data-container">
+                    <h3 style="color: #2c3e50; margin-bottom: 1rem;">🛤️ Path Analysis</h3>
+                    <p style="color: #7f8c8d; margin-bottom: 1rem;">Analyze communication paths and shortest routes between nodes</p>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                G = graph_data['graph']
+                nodes = list(G.nodes())
+                
+                col1, col2 = st.columns(2)
+                
+                with col1:
+                    source_node = st.selectbox(
+                        "Source Node",
+                        nodes,
+                        key="path_source"
+                    )
+                
+                with col2:
+                    target_node = st.selectbox(
+                        "Target Node", 
+                        nodes,
+                        key="path_target"
+                    )
+                
+                if source_node and target_node and source_node != target_node:
+                    try:
+                        if nx.has_path(G, source_node, target_node):
+                            shortest_path = nx.shortest_path(G, source_node, target_node)
+                            path_length = len(shortest_path) - 1
+                            
+                            st.success(f"✅ Path found! Length: {path_length} hops")
+                            
+                            # Display path
+                            st.markdown("**🛣️ Shortest Path:**")
+                            path_display = " → ".join([f"`{node[:30]}...`" if len(node) > 30 else f"`{node}`" for node in shortest_path])
+                            st.markdown(path_display)
+                            
+                            # Path risk analysis
+                            path_risks = []
+                            for i in range(len(shortest_path) - 1):
+                                edge_data = G[shortest_path[i]][shortest_path[i+1]]
+                                path_risks.extend(edge_data.get('risk_levels', []))
+                            
+                            if path_risks:
+                                risk_counts = {risk: path_risks.count(risk) for risk in set(path_risks)}
+                                st.markdown("**⚠️ Path Risk Analysis:**")
+                                for risk, count in risk_counts.items():
+                                    risk_color = {"critical": "🔴", "high": "🟠", "medium": "🟡", "low": "🟢"}.get(risk, "⚪")
+                                    st.write(f"{risk_color} {risk.title()}: {count} connections")
+                        else:
+                            st.error("❌ No path found between selected nodes")
+                    except Exception as e:
+                        st.error(f"❌ Error analyzing path: {str(e)}")
+                
+                # Additional path insights
+                st.markdown("**🔍 Path Insights**")
+                
+                # Most central nodes (potential communication hubs)
+                centrality = nx.betweenness_centrality(G)
+                top_central = sorted(centrality.items(), key=lambda x: x[1], reverse=True)[:5]
+                
+                st.markdown("**🌟 Communication Hubs (High Betweenness Centrality):**")
+                for node, score in top_central:
+                    st.write(f"• `{node[:40]}...` - Score: {score:.4f}")
+                
+                # Network diameter
+                try:
+                    if nx.is_strongly_connected(G):
+                        diameter = nx.diameter(G)
+                        st.metric("Network Diameter", f"{diameter} hops")
+                    else:
+                        st.info("Network is not strongly connected - calculating largest component diameter")
+                        largest_cc = max(nx.strongly_connected_components(G), key=len)
+                        subgraph = G.subgraph(largest_cc)
+                        diameter = nx.diameter(subgraph)
+                        st.metric("Largest Component Diameter", f"{diameter} hops")
+                except:
+                    st.info("Unable to calculate network diameter")
             
             elif analysis_mode == "Communities" and 'graph' in graph_data:
                 st.subheader("👥 Community Detection")
