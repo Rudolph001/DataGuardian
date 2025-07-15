@@ -1517,37 +1517,53 @@ def generate_followup_email(email):
     risk_level = email.get('status', 'Unknown').title()
     date_sent = email.get('_time', 'Unknown')
     
-    template = f"""SECURITY ALERT - Email Review Required
+    template = f"""🔒 SECURITY ALERT - Email Review Required
 
 Dear {sender_name},
 
 Our security monitoring system has flagged an email communication that requires your immediate attention and review.
 
-EMAIL DETAILS:
-From: {email.get('sender', 'Unknown')}
-To: {recipient}
-Subject: {subject}
-Date: {date_sent}
-Risk Level: {risk_level}
-Recipient Domain: {domain}
 
-REQUIRED ACTIONS:
-This email has been escalated due to potential security concerns. Please review the communication and confirm:
+📧 EMAIL DETAILS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+From:               {email.get('sender', 'Unknown')}
+To:                 {recipient}
+Subject:            {subject}
+Date Sent:          {date_sent}
+Risk Level:         {risk_level}
+Recipient Domain:   {domain}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-1. Was this email sent intentionally?
-2. Does the recipient have authorization to receive this information?
-3. Are there any sensitive data or attachments that should not have been shared?
 
-RESPONSE REQUIRED:
+⚠️  REQUIRED ACTIONS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+This email has been escalated due to potential security concerns. 
+Please review the communication and confirm the following:
+
+   1. Was this email sent intentionally?
+   
+   2. Does the recipient have authorization to receive this information?
+   
+   3. Are there any sensitive data or attachments that should not have been shared?
+
+
+📋 RESPONSE REQUIRED:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Please respond to this email within 24 hours with your confirmation and any additional context.
 
-If you have any questions or concerns, please contact the Security Team immediately.
+If you have any questions or concerns, please contact the Security Team immediately at security@company.com
+
 
 Best regards,
+
 Security Team
 ExfilEye Data Loss Prevention System
 
-This is an automated security alert from the ExfilEye DLP system."""
+═══════════════════════════════════════════════════════════
+This is an automated security alert from the ExfilEye DLP system.
+Alert ID: SEC-{hash(str(email)) % 100000}
+Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}
+═══════════════════════════════════════════════════════════"""
     
     return template
 
