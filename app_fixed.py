@@ -2855,19 +2855,6 @@ From:               {email.get('sender', 'Unknown')}
 To:                 {recipient}
 Subject:            {subject}
 Date Sent:          {date_sent}
-===============================================
-
-If you have any questions or concerns, please contact the Security Team immediately at security@company.com
-
-Best regards,
-
-Security Team
-ExfilEye Data Loss Prevention System
-
-===============================================
-This is an automated security alert from the ExfilEye DLP system.
-Alert ID: SEC-{hash(str(email)) % 100000}
-Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}
 ==============================================="""
     
     return template
