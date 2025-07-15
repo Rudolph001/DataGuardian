@@ -2530,15 +2530,84 @@ def followup_center_page():
                     st.subheader("Email Template Generated")
                     st.text_area("Email Content", template, height=200, key=f"template_{record_id}")
                     
-                    # Multiple options for opening/copying
+                    # Multiple options for opening/copying with enhanced functionality
                     col_a, col_b, col_c = st.columns(3)
+                    
                     with col_a:
-                        st.markdown(f'<a href="{mailto_link}" target="_blank">📧 Open in Email Client</a>', unsafe_allow_html=True)
+                        # Enhanced email client integration
+                        st.markdown("**📧 Open in Email Client**")
+                        
+                        # Primary mailto link with enhanced encoding
+                        if st.button("🔗 Open in Email Client", key=f"open_email_{record_id}", type="primary", use_container_width=True):
+                            # Create a more reliable mailto link
+                            import html
+                            # Encode special characters for better compatibility
+                            encoded_subject = html.escape(subject)
+                            encoded_body = html.escape(clean_body)
+                            
+                            # Create JavaScript to handle the mailto more reliably
+                            # Clean the body text for JavaScript
+                            js_safe_body = encoded_body.replace('\n', '\\n').replace('\r', '').replace('"', '\\"').replace("'", "\\'")
+                            js_code = f"""
+                            <script>
+                            function openEmail() {{
+                                const subject = "{encoded_subject}";
+                                const body = "{js_safe_body}";
+                                const recipient = "{sender_email}";
+                                
+                                // Try different approaches for better compatibility
+                                const mailtoUrl = `mailto:${{recipient}}?subject=${{encodeURIComponent(subject)}}&body=${{encodeURIComponent(body)}}`;
+                                
+                                // Try to open with window.open first
+                                const newWindow = window.open(mailtoUrl, '_blank');
+                                
+                                // Fallback: direct navigation
+                                if (!newWindow || newWindow.closed || typeof newWindow.closed == 'undefined') {{
+                                    window.location.href = mailtoUrl;
+                                }}
+                            }}
+                            openEmail();
+                            </script>
+                            """
+                            st.markdown(js_code, unsafe_allow_html=True)
+                            st.success("Opening email client... If it doesn't open, try the manual options below.")
+                        
+                        # Direct links for specific email clients
+                        st.markdown("**Quick Access:**")
+                        # Outlook Web App link
+                        outlook_web_url = f"https://outlook.office.com/mail/deeplink/compose?to={sender_email}&subject={quote(subject)}&body={quote(clean_body[:1000])}"
+                        st.markdown(f'<a href="{outlook_web_url}" target="_blank" style="color: #0078d4;">🌐 Outlook Web</a>', unsafe_allow_html=True)
+                        
+                        # Gmail web link
+                        gmail_url = f"https://mail.google.com/mail/?view=cm&to={sender_email}&su={quote(subject)}&body={quote(clean_body[:1000])}"
+                        st.markdown(f'<a href="{gmail_url}" target="_blank" style="color: #ea4335;">📧 Gmail Web</a>', unsafe_allow_html=True)
+                    
                     with col_b:
-                        if st.button("Copy Template", key=f"copy_template_{record_id}"):
-                            st.code(f"To: {sender_email}\nSubject: {subject}\n\n{template}", language="text")
-                            st.success("Template shown above - copy and paste into your email client!")
+                        st.markdown("**📋 Copy Template**")
+                        if st.button("Copy to Clipboard", key=f"copy_template_{record_id}", use_container_width=True):
+                            full_template = f"To: {sender_email}\nSubject: {subject}\n\n{template}"
+                            st.code(full_template, language="text")
+                            st.success("✅ Template displayed above - copy and paste into your email client!")
+                            
+                            # Add JavaScript to copy to clipboard if possible
+                            # Escape backticks for JavaScript template literal
+                            js_safe_template = full_template.replace('`', '\\`').replace('\\', '\\\\').replace('\n', '\\n')
+                            copy_js = f"""
+                            <script>
+                            const emailText = `{js_safe_template}`;
+                            if (navigator.clipboard) {{
+                                navigator.clipboard.writeText(emailText).then(function() {{
+                                    console.log('Email template copied to clipboard!');
+                                }}).catch(function(err) {{
+                                    console.error('Could not copy text: ', err);
+                                }});
+                            }}
+                            </script>
+                            """
+                            st.markdown(copy_js, unsafe_allow_html=True)
+                    
                     with col_c:
+                        st.markdown("**💾 Download**")
                         # Download as .txt file
                         email_content = f"To: {sender_email}\nSubject: {subject}\n\n{template}"
                         st.download_button(
@@ -2546,7 +2615,25 @@ def followup_center_page():
                             data=email_content,
                             file_name=f"security_alert_{record_id}.txt",
                             mime="text/plain",
-                            key=f"download_{record_id}"
+                            key=f"download_{record_id}",
+                            use_container_width=True
+                        )
+                        
+                        # Also create an .eml file for better email client compatibility
+                        eml_content = f"""From: security@company.com
+To: {sender_email}
+Subject: {subject}
+Content-Type: text/plain; charset=utf-8
+
+{template}"""
+                        
+                        st.download_button(
+                            label="Download .eml",
+                            data=eml_content,
+                            file_name=f"security_alert_{record_id}.eml",
+                            mime="message/rfc822",
+                            key=f"download_eml_{record_id}",
+                            use_container_width=True
                         )
             
             with col2:
