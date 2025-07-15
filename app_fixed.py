@@ -268,8 +268,8 @@ class NetworkAnalyzer:
         return fig
     
     def build_network_from_data(self, data, source_field, target_field):
-        """Build NetworkX graph from email data"""
-        G = nx.Graph()
+        """Build NetworkX directed graph from email data"""
+        G = nx.DiGraph()  # Use directed graph to show email flow direction
         
         for email in data:
             source = email.get(source_field, '')
@@ -319,21 +319,48 @@ class NetworkAnalyzer:
             return nx.spring_layout(G)
     
     def _create_plotly_network(self, G, pos, config):
-        """Create Plotly network visualization"""
-        # Extract node and edge information
+        """Create Plotly network visualization with directional arrows"""
+        # Extract node and edge information with arrow support
         edge_x = []
         edge_y = []
+        arrow_annotations = []
         
         for edge in G.edges():
             x0, y0 = pos[edge[0]]
             x1, y1 = pos[edge[1]]
             edge_x.extend([x0, x1, None])
             edge_y.extend([y0, y1, None])
+            
+            # Calculate arrow position (80% along the edge)
+            arrow_x = x0 + 0.8 * (x1 - x0)
+            arrow_y = y0 + 0.8 * (y1 - y0)
+            
+            # Calculate arrow direction
+            dx = x1 - x0
+            dy = y1 - y0
+            length = np.sqrt(dx**2 + dy**2)
+            
+            if length > 0:
+                # Normalize and create arrow annotation
+                arrow_annotations.append(
+                    dict(
+                        x=arrow_x, y=arrow_y,
+                        ax=x0, ay=y0,
+                        xref='x', yref='y',
+                        axref='x', ayref='y',
+                        text="",
+                        arrowhead=2,
+                        arrowsize=1.5,
+                        arrowwidth=2,
+                        arrowcolor='#666',
+                        standoff=5
+                    )
+                )
         
-        # Create edge trace
+        # Create edge trace (without arrows, arrows are handled by annotations)
         edge_trace = go.Scatter(
             x=edge_x, y=edge_y,
-            line=dict(width=0.5, color='#888'),
+            line=dict(width=1, color='#888'),
             hoverinfo='none',
             mode='lines'
         )
@@ -349,10 +376,13 @@ class NetworkAnalyzer:
             node_x.append(x)
             node_y.append(y)
             
-            # Node information
-            adjacencies = list(G.neighbors(node))
-            node_text.append(f'{node}<br>Connections: {len(adjacencies)}')
-            node_info.append(f'Node: {node}<br>Degree: {G.degree(node)}')
+            # Node information for directed graph
+            in_degree = G.in_degree(node)
+            out_degree = G.out_degree(node)
+            total_degree = in_degree + out_degree
+            
+            node_text.append(f'{node}<br>In: {in_degree} | Out: {out_degree}')
+            node_info.append(f'Node: {node}<br>Emails Received: {in_degree}<br>Emails Sent: {out_degree}<br>Total: {total_degree}')
         
         node_trace = go.Scatter(
             x=node_x, y=node_y,
@@ -362,28 +392,31 @@ class NetworkAnalyzer:
             hovertext=node_info,
             marker=dict(
                 size=10,
-                color=[G.degree(node) for node in G.nodes()],
+                color=[G.in_degree(node) + G.out_degree(node) for node in G.nodes()],
                 colorscale='Viridis',
                 showscale=True,
-                colorbar=dict(title="Node Connections")
+                colorbar=dict(title="Total Email Traffic")
             )
         )
         
-        # Create figure
+        # Combine arrow annotations with info annotation
+        all_annotations = arrow_annotations + [dict(
+            text="Arrows show email direction: Sender → Recipient",
+            showarrow=False,
+            xref="paper", yref="paper",
+            x=0.005, y=-0.002,
+            xanchor="left", yanchor="bottom",
+            font=dict(color="#888", size=12)
+        )]
+        
+        # Create figure with directional arrows
         fig = go.Figure(data=[edge_trace, node_trace],
                        layout=go.Layout(
-                           title=dict(text='Email Communication Network', font=dict(size=16)),
+                           title=dict(text='Email Communication Network (Directional)', font=dict(size=16)),
                            showlegend=False,
                            hovermode='closest',
                            margin=dict(b=20,l=5,r=5,t=40),
-                           annotations=[dict(
-                               text="Click on nodes to see details",
-                               showarrow=False,
-                               xref="paper", yref="paper",
-                               x=0.005, y=-0.002,
-                               xanchor="left", yanchor="bottom",
-                               font=dict(color="#888", size=12)
-                           )],
+                           annotations=all_annotations,
                            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
                            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
                        ))
