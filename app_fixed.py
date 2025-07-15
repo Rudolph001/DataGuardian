@@ -71,7 +71,7 @@ class CSVProcessor:
         self.required_fields = [
             '_time', 'sender', 'subject', 'attachments', 'recipients',
             'recipients_email_domain', 'minecast', 'tessian', 'leaver', 
-            'Termination', '_time_month', 'account_type', 'wordlist_attachment',
+            'Termination', 'time_month', 'account_type', 'wordlist_attachment',
             'wordlist_subject', 'bunit', 'department', 'status', 
             'tessian_status_A', 'tessian_status_B'
         ]
@@ -1091,7 +1091,7 @@ class ReportGenerator:
             
             # Calculate time period
             time_stamps = [email.get('_time', '') for email in data if email.get('_time')]
-            time_period = f"Data covers {len(set(email.get('_time_month', '') for email in data if email.get('_time_month')))} months" if time_stamps else "Time period unknown"
+            time_period = f"Data covers {len(set(email.get('time_month', '') for email in data if email.get('time_month')))} months" if time_stamps else "Time period unknown"
             
             summary_text = f"""
             This security review report analyzes {total_emails:,} email communications processed through the ExfilEye DLP system. 
@@ -1160,7 +1160,7 @@ class ReportGenerator:
                 ['High-Risk Detection', f"{(critical_count + high_count) / max(total_emails, 1) * 100:.1f}%", '<10%', 
                  '✅ GOOD' if (critical_count + high_count) / max(total_emails, 1) * 100 < 10 else '⚠️ ELEVATED', 
                  'Continue monitoring' if (critical_count + high_count) / max(total_emails, 1) * 100 < 10 else 'Investigate patterns'],
-                ['Data Coverage', f"{len(set(email.get('_time_month', '') for email in data if email.get('_time_month')))} months", 'Ongoing', 
+                ['Data Coverage', f"{len(set(email.get('time_month', '') for email in data if email.get('time_month')))} months", 'Ongoing', 
                  '✅ ACTIVE', 'Maintain data collection']
             ]
             
@@ -1350,7 +1350,7 @@ class ReportGenerator:
             # Group by month if available
             monthly_data = {}
             for email in data:
-                month = email.get('_time_month', 'Unknown')
+                month = email.get('time_month', 'Unknown')
                 if month not in monthly_data:
                     monthly_data[month] = {'total': 0, 'high_risk': 0}
                 monthly_data[month]['total'] += 1
@@ -1704,7 +1704,7 @@ def show_email_details_modal(email):
                 <p><strong>📥 To:</strong> {email.get('recipients', 'Unknown')}</p>
                 <p><strong>📝 Subject:</strong> {email.get('subject', 'No Subject')}</p>
                 <p><strong>⏰ Time:</strong> {email.get('_time', 'Unknown')}</p>
-                <p><strong>📅 Time Month:</strong> {email.get('_time_month', 'Unknown')}</p>
+                <p><strong>📅 Time Month:</strong> {email.get('time_month', 'Unknown')}</p>
             </div>
             """, unsafe_allow_html=True)
         
@@ -1808,7 +1808,7 @@ def show_email_details_modal(email):
         
         # Get all fields that weren't already displayed
         displayed_fields = {
-            'sender', 'recipients', 'subject', '_time', '_time_month', 
+            'sender', 'recipients', 'subject', '_time', 'time_month', 
             'recipients_email_domain', 'attachments', 'status', 'minecast', 
             'tessian', 'tessian_status_A', 'tessian_status_B', 'wordlist_attachment', 
             'wordlist_subject', 'leaver', 'Termination', 'department', 'bunit', 
@@ -2097,7 +2097,7 @@ def security_operations_dashboard():
     elif view_option == "Time":
         grouped_records = {}
         for email in filtered_records:
-            time_month = email.get('_time_month', 'Unknown')
+            time_month = email.get('time_month', 'Unknown')
             if time_month not in grouped_records:
                 grouped_records[time_month] = []
             grouped_records[time_month].append(email)
