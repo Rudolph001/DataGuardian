@@ -3764,8 +3764,8 @@ def main():
     pages = {
         "📁 Data Upload & Preprocessing": data_upload_page,
         "🛡️ Security Operations Dashboard": security_operations_dashboard,
-        "✅ Email Check Completed": email_check_completed_page,
         "📨 Follow-up Center": followup_center_page,
+        "✅ Email Check Completed": email_check_completed_page,
         "🔗 Network Analysis": network_analysis_page,
         "🌐 Domain Classification": domain_classification_page
     }
