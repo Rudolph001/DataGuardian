@@ -2595,7 +2595,41 @@ def followup_center_page():
                             </div>
                             """, unsafe_allow_html=True)
                             
-                            st.info("Click either button above to open Outlook with your email. If neither works, check that Outlook is set as your default email client in Windows Settings.")
+                            st.success("✅ When the browser asks permission, click 'Open Outlook 2016' to launch your email client!")
+                            
+                            # Backup manual copy option
+                            with st.expander("📋 Manual Copy (if Outlook doesn't open)"):
+                                st.markdown("**Copy this email information and paste into Outlook manually:**")
+                                
+                                manual_email = f"""To: {sender_email}
+Subject: {subject}
+
+{edited_template}"""
+                                
+                                st.code(manual_email, language="text")
+                                
+                                if st.button("Copy to Clipboard", key=f"manual_copy_{record_id}"):
+                                    st.success("Email content displayed above - highlight and copy (Ctrl+C) to paste into Outlook!")
+                                    # Try to use clipboard API safely
+                                    safe_email = manual_email.replace('`', '\\`').replace('\\', '\\\\').replace('\n', '\\n')
+                                    st.markdown(f"""
+                                    <script>
+                                    const emailContent = `{safe_email}`;
+                                    if (navigator.clipboard) {{
+                                        navigator.clipboard.writeText(emailContent);
+                                    }}
+                                    </script>
+                                    """, unsafe_allow_html=True)
+                                
+                                st.markdown("""
+                                **Steps to manually send:**
+                                1. Copy the text above
+                                2. Open Outlook manually
+                                3. Click 'New Email'
+                                4. Paste the copied content
+                                5. Adjust formatting as needed
+                                6. Send the email
+                                """)
                         
                         with col_send2:
                             # Reset/regenerate template
