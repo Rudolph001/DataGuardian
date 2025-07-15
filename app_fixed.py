@@ -760,7 +760,7 @@ class NetworkAnalyzer:
         return go.Layout(
             title=dict(
                 text='📧 Email Communication Network Analysis',
-                font=dict(size=20, color='#2c3e50'),
+                font=dict(size=20, color='white'),
                 x=0.5
             ),
             showlegend=True,
@@ -784,9 +784,9 @@ class NetworkAnalyzer:
                     xref="paper", yref="paper",
                     x=0.02, y=-0.02,
                     xanchor="left", yanchor="bottom",
-                    font=dict(color="#7f8c8d", size=11),
-                    bgcolor="rgba(255,255,255,0.8)",
-                    bordercolor="#bdc3c7",
+                    font=dict(color="white", size=11),
+                    bgcolor="rgba(0,0,0,0.8)",
+                    bordercolor="white",
                     borderwidth=1
                 )
             ],
@@ -802,8 +802,8 @@ class NetworkAnalyzer:
                 showticklabels=False,
                 title=""
             ),
-            plot_bgcolor='rgba(248,249,250,1)',
-            paper_bgcolor='white'
+            plot_bgcolor='black',
+            paper_bgcolor='black'
         )
     
     def get_network_statistics(self, G):
@@ -2859,7 +2859,7 @@ def network_analysis_page():
                     title="Centrality Measures Comparison (Top 10 Nodes)",
                     barmode='group'
                 )
-                fig_centrality.update_xaxis(tickangle=45)
+                fig_centrality.update_xaxes(tickangle=45)
                 st.plotly_chart(fig_centrality, use_container_width=True)
             
             elif analysis_mode == "Risk Analysis" and 'graph' in graph_data:
