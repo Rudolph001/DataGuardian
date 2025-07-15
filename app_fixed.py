@@ -1441,22 +1441,23 @@ def followup_center_page():
             st.subheader("Follow-up Actions")
             
             # Add troubleshooting info
-            with st.expander("📧 Email Troubleshooting"):
+            with st.expander("📧 Email Client Help"):
                 st.markdown("""
-                **If the email link doesn't work:**
+                **Multiple ways to send the security alert:**
                 
-                1. **Browser Settings**: Some browsers block mailto links by default
-                2. **Default Email Client**: Make sure you have a default email client set (Outlook, Gmail app, etc.)
-                3. **Manual Copy**: Use the "Copy Email Template" button to manually copy the content
-                4. **Alternative**: Copy the recipient email address and template text separately
+                1. **Click "Open in Email Client"** - Opens your default email program
+                2. **Use "Copy Template"** - Shows the full email to copy and paste
+                3. **Use "Download .txt"** - Downloads a text file you can open and copy from
                 
-                **For Outlook Web/Office 365:**
-                - The mailto link should open in your default browser with Outlook Web
-                - Make sure you're logged into Office 365 in your browser
+                **Troubleshooting email links:**
                 
-                **For Desktop Outlook:**
-                - Windows should automatically open desktop Outlook if it's installed
-                - Check Windows default apps settings if it doesn't work
+                - **Chrome/Edge**: Right-click link → "Copy link address" → paste in browser
+                - **Outlook Web**: Make sure you're logged into Office 365 in your browser
+                - **Desktop Outlook**: Set as default email app in Windows settings
+                - **Gmail**: Use Gmail's compose window and paste the template
+                - **Mac Mail**: Set as default in System Preferences
+                
+                **Still not working?** Use the "Copy Template" button and manually paste into any email client.
                 """)
             
             col1, col2, col3 = st.columns(3)
@@ -1464,24 +1465,39 @@ def followup_center_page():
             with col1:
                 if st.button("Generate Email Template", key=f"email_{record_id}"):
                     template = generate_followup_email(email)
-                    st.text_area("Email Template", template, height=200)
                     
                     # Create mailto link with better encoding
                     subject = f"Security Alert - {email.get('subject', 'Email Security Issue')}"
-                    # Clean template for mailto - remove extra line breaks and format properly
-                    clean_body = template.replace('\n\n', '\n').strip()
+                    # Clean template for mailto - remove extra formatting and keep it simple
+                    clean_body = template.replace('━', '-').replace('🔒', '').replace('📧', '').replace('⚠️', '').replace('📋', '')
+                    clean_body = clean_body.replace('\n\n\n', '\n\n').strip()
                     
                     # Create the mailto link with proper encoding
-                    mailto_link = f"mailto:{email.get('sender', '')}?subject={quote(subject)}&body={quote(clean_body)}"
+                    sender_email = email.get('sender', '')
+                    mailto_link = f"mailto:{sender_email}?subject={quote(subject)}&body={quote(clean_body)}"
                     
-                    # Display the mailto link with multiple options
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.markdown(f"[📧 Open in Email Client]({mailto_link})")
-                    with col2:
-                        if st.button("Copy Email Template", key=f"copy_template_{record_id}"):
-                            st.code(f"To: {email.get('sender', '')}\nSubject: {subject}\n\n{template}", language="text")
-                            st.success("Email template displayed above - copy and paste into your email client!")
+                    # Display email template and options
+                    st.subheader("Email Template Generated")
+                    st.text_area("Email Content", template, height=200, key=f"template_{record_id}")
+                    
+                    # Multiple options for opening/copying
+                    col_a, col_b, col_c = st.columns(3)
+                    with col_a:
+                        st.markdown(f'<a href="{mailto_link}" target="_blank">📧 Open in Email Client</a>', unsafe_allow_html=True)
+                    with col_b:
+                        if st.button("Copy Template", key=f"copy_template_{record_id}"):
+                            st.code(f"To: {sender_email}\nSubject: {subject}\n\n{template}", language="text")
+                            st.success("Template shown above - copy and paste into your email client!")
+                    with col_c:
+                        # Download as .txt file
+                        email_content = f"To: {sender_email}\nSubject: {subject}\n\n{template}"
+                        st.download_button(
+                            label="Download .txt",
+                            data=email_content,
+                            file_name=f"security_alert_{record_id}.txt",
+                            mime="text/plain",
+                            key=f"download_{record_id}"
+                        )
             
             with col2:
                 new_status = st.selectbox(
