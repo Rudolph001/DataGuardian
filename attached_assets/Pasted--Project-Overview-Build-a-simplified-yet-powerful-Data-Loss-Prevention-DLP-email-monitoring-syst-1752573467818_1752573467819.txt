@@ -1,0 +1,339 @@
+📘 Project Overview
+Build a simplified yet powerful Data Loss Prevention (DLP) email monitoring system named ExfilEye using Streamlit. This system emphasizes anomaly detection and domain classification over complex risk scoring.
+
+🧰 Core Tech Stack
+
+Framework: Streamlit (>=1.46.0)
+
+Visualization: Plotly (>=6.1.2)
+
+Graph Analysis: NetworkX (>=3.5)
+
+Numerical Ops: NumPy (>=2.3.0)
+
+Machine Learning: Scikit-learn (>=1.7.0)
+
+Others: SciPy, ReportLab, WeasyPrint
+
+Python: 3.11+
+
+🏗️ Application Architecture
+Main App (app_fixed.py) — Single-file Streamlit app with sidebar navigation for:
+
+📁 Data Upload & Preprocessing
+
+🛡️ Security Operations Dashboard
+
+✅ Email Check Completed
+
+📨 Follow-up Center
+
+🔗 Network Analysis
+
+🌐 Domain Classification
+
+📂 Data Upload & Preprocessing
+
+Upload CSVs up to 2GB with progress tracking
+
+Custom email metadata parser (no pandas)
+
+Validate required fields:
+
+lua
+Copy
+Edit
+_time, sender, subject, attachment, recipients,
+recipients_email_domain, minecast, tessian, leaver, Termination,
+_time_month, account_type, wordlist_attachment, wordlist_subject,
+bunit, department, status, tessian_status_A, tessian_status_B
+Use status field for risk level:
+
+🔴 Critical
+
+🟠 High
+
+🟡 Medium
+
+🟢 Low
+
+Domain classification applies only to recipient domains
+
+🛡️ Security Operations Dashboard
+
+Track review status: Clear, Escalate
+
+Visual risk indicators: 🔴🟠🟡🟢 (based on status)
+
+Timeline views:
+
+Group emails by sender or domain
+
+Group further by time and subject
+
+Show email details in pop-up/modal
+
+Track decision status:
+
+In Progress, Completed, Pending
+
+When a user selects Escalate for a record:
+
+The record must move to the Follow-up Center
+
+The record must no longer appear under the Security Operations Dashboard
+
+When a user selects Clear for a record:
+
+The record must move to Email Check Completed
+
+The record must no longer appear under the Security Operations Dashboard
+
+🤖 AI-Powered Event Insights
+
+Allow the user to select one or more fields (columns) from the uploaded data
+
+Run AI/ML analysis on the selected fields to generate insights and contextual information about the events
+
+Present AI-generated summaries, anomaly explanations, or pattern highlights relevant to those fields
+
+Support dynamic, on-demand AI queries based on user field selections
+
+✅ Email Check Completed
+
+Overview of completed reviews
+
+Summary tables for sender/domain decisions
+
+Export review logs as PDF reports
+
+📨 Follow-up Center
+
+Track follow-up actions after incidents
+
+Generate email templates using Streamlit
+
+Open templates in Outlook (mailto: link)
+➤ You (the user) will manually review and send
+
+Auto-fill email subject/body based on event
+
+Track follow-up as Pending or Completed
+
+🔗 Network Analysis
+
+Build interactive email communication graphs
+
+Use NetworkX layouts:
+
+Spring, circular, hierarchical, Fruchterman-Reingold
+
+Click on nodes to see sender/recipient details
+
+Filter views by:
+
+Connection count
+
+Anomaly status
+
+Domain category
+
+Detect communities and clusters of activity
+
+🌐 Domain Classification
+
+Auto-classify recipient domains into categories:
+
+Suspicious
+
+Free Email (Gmail, Yahoo, etc.)
+
+Business
+
+Government
+
+Financial
+
+Cloud Providers
+
+Maintain a detailed list for each classification, viewable in-app
+
+Support daily threat intelligence updates
+
+Manual override to add/remove domains
+
+Log all domain classification changes
+
+Show domain distribution via statistics dashboard
+
+📋 Each classification must show:
+
+Total count of domains
+
+Domain list table (filterable/sortable)
+
+Change log (last added/removed domains)
+
+Interactive filters to drill down by type
+
+📊 Visualization & Reporting
+
+Plotly for:
+
+Metrics dashboards
+
+Interactive charts
+
+Network graphs with community colors
+
+Generate PDF reports (ReportLab / WeasyPrint)
+
+🔐 Session State Variables
+
+python
+Copy
+Edit
+if 'data' not in st.session_state:
+    st.session_state.data = None
+if 'follow_up_decisions' not in st.session_state:
+    st.session_state.follow_up_decisions = {}
+if 'blocked_domains' not in st.session_state:
+    st.session_state.blocked_domains = []
+if 'sender_status' not in st.session_state:
+    st.session_state.sender_status = {}
+📚 Core Functions
+
+Data Processing
+
+process_csv_data(csv_content)
+
+classify_email_domain(email_address)
+
+detect_anomalies(email_data)
+
+extract_domain_from_email(email_field)
+
+Network
+
+create_network_graph(data, source, target, config)
+
+calculate_advanced_layout(G, layout_type)
+
+calculate_node_metrics(G, metric_type)
+
+build_network_from_data(data, source, target)
+
+Security Operations
+
+daily_checks_page()
+
+email_check_completed_page()
+
+followup_center_page()
+
+generate_followup_email(email)
+
+Visualization
+
+create_advanced_plotly_figure()
+
+show_email_details_modal(email)
+
+display_node_analysis()
+
+AI Insights
+
+run_ai_on_selected_fields(selected_fields, data)
+
+🛠️ Config Files
+.streamlit/config.toml
+
+toml
+Copy
+Edit
+[server]
+headless = true
+address = "0.0.0.0"
+port = 5000
+maxUploadSize = 2048
+requirements.txt
+
+shell
+Copy
+Edit
+streamlit>=1.46.0
+plotly>=6.1.2
+networkx>=3.5
+numpy>=2.3.0
+scikit-learn>=1.7.0
+scipy>=1.15.3
+pandas>=2.3.0
+reportlab>=4.4.2
+weasyprint>=65.1
+igraph>=0.11.9
+dash-cytoscape>=1.0.2
+openai>=0.27.0     # (or other AI packages you plan to use)
+🧱 File Structure
+
+bash
+Copy
+Edit
+project_root/
+├── app_fixed.py
+├── domain_classifier.py
+├── auth.py                # (disabled)
+├── security_config.py
+├── requirements.txt
+├── .streamlit/config.toml
+├── users.json             # (optional)
+└── README.md
+🧠 Design Principles
+
+Simplified Security Model
+
+Pattern-based anomaly detection (no complex scoring)
+
+Status tracking via Clear, Monitor, Block, Escalate
+
+Visual risk indicators only (no numerical scores)
+
+Performance
+
+Efficient handling of 158K+ records
+
+Non-pandas CSV parsing
+
+Memory-safe graph visualizations
+
+Async-friendly progress bars
+
+UI/UX Guidelines
+
+Professional, security-focused design
+
+Color-coded tags for risk levels
+
+Collapsible sections for email details
+
+Interactive tooltips & modals
+
+Responsive layouts
+
+✅ Success Criteria
+The app must:
+
+Upload large CSVs and validate email metadata
+
+Classify recipient domains with full breakdown lists
+
+Detect anomaly patterns effectively
+
+Render interactive network graphs
+
+Track decisions and status for each sender
+
+Generate follow-up emails via Outlook
+
+Provide intuitive dashboards
+
+Support user selection of fields to run AI on for event insights
