@@ -3713,6 +3713,9 @@ def main():
     # Auto-save work state periodically
     auto_save_work_state()
     
+    # Initialize auto-save timer
+    initialize_auto_save_timer()
+    
     # Sidebar navigation
     st.sidebar.title("🛡️ ExfilEye DLP")
     st.sidebar.markdown("Data Loss Prevention Email Monitoring")
@@ -3751,6 +3754,8 @@ def main():
         if st.button("💾 Save Work", help="Save current work state"):
             save_work_state()
             st.session_state.last_manual_save = datetime.now()
+            # Reset auto-save timer when manually saved
+            st.session_state.last_auto_save_time = datetime.now()
     
     with col2:
         available_dates = persistence.get_available_dates()
@@ -3859,25 +3864,55 @@ def save_work_state():
         import traceback
         traceback.print_exc()
 
-def auto_save_work_state():
-    """Auto-save work state periodically"""
-    # Check if we have any work to save
-    if (st.session_state.completed_reviews or 
-        st.session_state.escalated_records or 
-        st.session_state.follow_up_decisions):
-        
-        # Save every few interactions (simple approach)
-        if 'last_auto_save' not in st.session_state:
-            st.session_state.last_auto_save = 0
-        
-        current_count = (len(st.session_state.completed_reviews) + 
-                        len(st.session_state.escalated_records))
-        
-        # Auto-save every 5 actions
-        if current_count > 0 and current_count % 5 == 0 and current_count != st.session_state.last_auto_save:
+def initialize_auto_save_timer():
+    """Initialize auto-save timer that saves work every minute"""
+    import time
+    
+    # Initialize auto-save tracking
+    if 'auto_save_timer' not in st.session_state:
+        st.session_state.auto_save_timer = datetime.now()
+    
+    if 'last_auto_save_time' not in st.session_state:
+        st.session_state.last_auto_save_time = datetime.now()
+    
+    # Check if 1 minute has passed since last auto-save
+    current_time = datetime.now()
+    time_since_last_save = current_time - st.session_state.last_auto_save_time
+    
+    # Auto-save every 60 seconds (1 minute)
+    if time_since_last_save.total_seconds() >= 60:
+        # Check if we have any work to save
+        if (st.session_state.completed_reviews or 
+            st.session_state.escalated_records or 
+            st.session_state.follow_up_decisions or
+            st.session_state.data):
+            
             save_work_state()
-            st.session_state.last_auto_save = current_count
-            st.session_state.last_manual_save = datetime.now()  # Track auto-save time too
+            st.session_state.last_auto_save_time = current_time
+            st.session_state.last_manual_save = current_time
+            
+            # Show brief auto-save notification
+            auto_save_placeholder = st.sidebar.empty()
+            auto_save_placeholder.success("💾 Auto-saved!")
+            
+            # Clear notification after 2 seconds using a timer
+            import time
+            import threading
+            
+            def clear_notification():
+                time.sleep(2)
+                try:
+                    auto_save_placeholder.empty()
+                except:
+                    pass  # Ignore errors if placeholder no longer exists
+            
+            threading.Thread(target=clear_notification, daemon=True).start()
+
+def auto_save_work_state():
+    """Auto-save work state periodically (legacy function for compatibility)"""
+    # This function is kept for compatibility but the main auto-save logic
+    # is now handled by initialize_auto_save_timer()
+    pass
 
 if __name__ == "__main__":
     main()
