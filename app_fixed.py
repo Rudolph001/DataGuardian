@@ -4727,8 +4727,8 @@ def initialize_auto_save_timer():
     current_time = datetime.now()
     time_since_last_save = current_time - st.session_state.last_auto_save_time
     
-    # Auto-save every 60 seconds (1 minute)
-    if time_since_last_save.total_seconds() >= 60:
+    # Auto-save every 600 seconds (10 minutes)
+    if time_since_last_save.total_seconds() >= 600:
         # Check if we have any work to save
         if (st.session_state.completed_reviews or 
             st.session_state.escalated_records or 
