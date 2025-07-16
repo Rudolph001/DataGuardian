@@ -5009,7 +5009,7 @@ def apply_simple_filters(data, include_critical, include_high, include_medium, i
         
         # Apply attachment filter - handle empty/null values properly
         attachment_value = email.get('attachments', '')
-        has_attachments = bool(attachment_value and str(attachment_value).strip() and str(attachment_value).strip().lower() not in ['', 'null', 'none', 'false', '0'])
+        has_attachments = bool(attachment_value and str(attachment_value).strip() and str(attachment_value).strip().lower() not in ['', 'null', 'none', 'false', '0', '-'])
         
         if attachment_filter == "Only emails with attachments" and not has_attachments:
             include_email = False
@@ -5018,7 +5018,7 @@ def apply_simple_filters(data, include_critical, include_high, include_medium, i
         
         # Apply wordlist subject filter - handle empty/null values properly
         subject_wordlist_value = email.get('wordlist_subject', '')
-        has_subject_wordlist_match = bool(subject_wordlist_value and str(subject_wordlist_value).strip() and str(subject_wordlist_value).strip().lower() not in ['', 'null', 'none', 'false'])
+        has_subject_wordlist_match = bool(subject_wordlist_value and str(subject_wordlist_value).strip() and str(subject_wordlist_value).strip().lower() not in ['', 'null', 'none', 'false', '-'])
         
         if wordlist_subject_filter == "Only emails with subject keywords" and not has_subject_wordlist_match:
             include_email = False
@@ -5027,7 +5027,7 @@ def apply_simple_filters(data, include_critical, include_high, include_medium, i
         
         # Apply wordlist attachment filter - handle empty/null values properly
         attachment_wordlist_value = email.get('wordlist_attachment', '')
-        has_attachment_wordlist_match = bool(attachment_wordlist_value and str(attachment_wordlist_value).strip() and str(attachment_wordlist_value).strip().lower() not in ['', 'null', 'none', 'false'])
+        has_attachment_wordlist_match = bool(attachment_wordlist_value and str(attachment_wordlist_value).strip() and str(attachment_wordlist_value).strip().lower() not in ['', 'null', 'none', 'false', '-'])
         
         if wordlist_attachment_filter == "Only emails with attachment keywords" and not has_attachment_wordlist_match:
             include_email = False
