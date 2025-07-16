@@ -1,8 +1,15 @@
+import os
+import sys
+
+# Configure matplotlib backend before any imports
+import matplotlib
+matplotlib.use('Agg')  # Force non-GUI backend
+os.environ['MPLBACKEND'] = 'Agg'
+
 import streamlit as st
 import csv
 import io
 import json
-import os
 import base64
 from datetime import datetime, timedelta
 import numpy as np
@@ -19,8 +26,6 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, Tabl
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib import colors
-import matplotlib
-matplotlib.use('Agg')  # Use non-GUI backend
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import seaborn as sns
