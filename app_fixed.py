@@ -5397,17 +5397,28 @@ def main():
         st.session_state.selected_page = "📁 Data Upload & Preprocessing"
     
     st.sidebar.markdown("### 🧭 Navigation")
+    
+    # Get current page index safely
+    current_page_index = 0
+    try:
+        current_page_index = list(pages.keys()).index(st.session_state.selected_page)
+    except ValueError:
+        # If current page not found, default to first page
+        st.session_state.selected_page = list(pages.keys())[0]
+        current_page_index = 0
+    
     selected_page = st.sidebar.radio(
         "Select page:", 
         list(pages.keys()), 
-        index=list(pages.keys()).index(st.session_state.selected_page),
+        index=current_page_index,
         label_visibility="collapsed",
         key="page_selector"
     )
     
-    # Update session state when page changes
+    # Update session state when page changes and force rerun
     if selected_page != st.session_state.selected_page:
         st.session_state.selected_page = selected_page
+        st.rerun()
     
     # Professional data status card
     st.sidebar.markdown("### 📊 Data Status")
@@ -5531,8 +5542,14 @@ def main():
             </div>
             """, unsafe_allow_html=True)
     
-    # Run selected page
-    pages[selected_page]()
+    # Run selected page with error handling
+    try:
+        pages[st.session_state.selected_page]()
+    except Exception as e:
+        st.error(f"Error loading page: {str(e)}")
+        # Fall back to first page
+        st.session_state.selected_page = list(pages.keys())[0]
+        pages[st.session_state.selected_page]()
 
 def save_work_state():
     """Save current work state to JSON"""
