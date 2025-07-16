@@ -2118,6 +2118,12 @@ def data_upload_page():
                     
                     if loaded_data:
                         st.session_state.data = loaded_data
+                        # Since saved data is already filtered, set it as filtered_data too
+                        st.session_state.filtered_data = loaded_data
+                        st.session_state.filter_applied = True
+                        # Add timestamp to indicate data was loaded (pre-filtered)
+                        from datetime import datetime
+                        st.session_state.security_operations_data_timestamp = f"Loaded from {selected_date} at {datetime.now().strftime('%H:%M:%S')}"
                         st.success(f"✅ Loaded {len(loaded_data):,} records from {selected_date}")
                         
                         # Load work state if available
