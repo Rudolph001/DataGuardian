@@ -13,7 +13,7 @@ try:
 except ImportError:
     # Default performance settings if config file doesn't exist
     CACHE_TTL = 300
-    MAX_DISPLAY_RECORDS = 1000
+    MAX_DISPLAY_RECORDS = None
     CHART_ANIMATION_DISABLED = True
     LAZY_LOAD_THRESHOLD = 500
     ENABLE_GARBAGE_COLLECTION = True

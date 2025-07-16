@@ -5,7 +5,7 @@ Optimized settings for better localhost performance
 
 # Performance settings
 CACHE_TTL = 300  # 5 minutes cache
-MAX_DISPLAY_RECORDS = 1000  # Limit records shown in UI
+MAX_DISPLAY_RECORDS = None  # No limit on records shown in UI
 CHART_ANIMATION_DISABLED = True  # Disable chart animations
 LAZY_LOAD_THRESHOLD = 500  # Lazy load when > 500 records
 
