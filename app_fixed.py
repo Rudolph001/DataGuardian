@@ -4742,7 +4742,7 @@ def data_filtering_review_page():
         wordlist_filter = st.radio(
             "Security Wordlist Matches",
             ["All emails", "Only emails with security keywords", "Only emails without security keywords"],
-            help="Filter by security keyword matches"
+            help="Filter by wordlist_attachment and wordlist_subject field matches"
         )
         
         st.markdown("**Policy Name Filter:**")
