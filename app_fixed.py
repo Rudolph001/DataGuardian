@@ -30,7 +30,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import seaborn as sns
 from matplotlib.backends.backend_agg import FigureCanvasAgg
-from openai import OpenAI
+
 import re
 import webbrowser
 from urllib.parse import quote
@@ -40,11 +40,7 @@ from domain_classifier import DomainClassifier
 from security_config import SecurityConfig
 from data_persistence import DataPersistence
 
-# Initialize OpenAI client
-# the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
-# do not change this unless explicitly requested by the user
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
-openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
+
 
 # Page configuration
 st.set_page_config(
@@ -391,12 +387,11 @@ class CSVProcessor:
             return ''
 
 class AnomalyDetector:
-    """AI-powered anomaly detection for email patterns"""
+    """Machine learning-powered anomaly detection for email patterns"""
     
     def __init__(self):
         self.isolation_forest = IsolationForest(contamination=0.1, random_state=42)
         self.scaler = StandardScaler()
-        self.intelligent_filter = IsolationForest(contamination=0.05, random_state=42)
     
     def detect_anomalies(self, email_data):
         """Detect anomalies in email data using multiple techniques"""
@@ -430,173 +425,7 @@ class AnomalyDetector:
         
         return anomalies
     
-    def intelligent_filter_suspicious_events(self, email_data):
-        """Intelligently filter Medium, Low, and Unclassified events to highlight only suspicious ones"""
-        if not email_data:
-            return []
-        
-        # Filter only Medium, Low, and Unclassified events
-        filtered_events = [
-            email for email in email_data 
-            if email.get('status', '').lower() in ['medium', 'low', 'unclassified']
-        ]
-        
-        if len(filtered_events) < 2:
-            return filtered_events
-        
-        # Extract advanced features for intelligent filtering
-        features = self._extract_advanced_features(filtered_events)
-        
-        if len(features) < 2:
-            return filtered_events[:5]  # Return first 5 if not enough data
-        
-        # Normalize features
-        features_scaled = self.scaler.fit_transform(features)
-        
-        # Use more strict isolation forest for filtering
-        suspicious_scores = self.intelligent_filter.fit_predict(features_scaled)
-        
-        # Get anomaly scores for ranking
-        anomaly_scores = self.intelligent_filter.decision_function(features_scaled)
-        
-        # Combine events with their suspicion scores
-        suspicious_events = []
-        for i, (email, score, anomaly_score) in enumerate(zip(filtered_events, suspicious_scores, anomaly_scores)):
-            if score == -1:  # Anomaly detected
-                suspicious_events.append({
-                    'email': email,
-                    'suspicion_score': abs(anomaly_score),
-                    'reason': self._generate_suspicion_reason(email, features[i])
-                })
-        
-        # Sort by suspicion score and return top 10 most suspicious
-        suspicious_events.sort(key=lambda x: x['suspicion_score'], reverse=True)
-        return suspicious_events[:10]
-    
-    def _extract_advanced_features(self, email_data):
-        """Extract advanced features for intelligent filtering"""
-        features = []
-        
-        # Calculate baseline statistics
-        all_subject_lengths = [len(email.get('subject', '')) for email in email_data]
-        all_recipient_counts = [len(email.get('recipients', '').split(',')) for email in email_data]
-        
-        avg_subject_length = np.mean(all_subject_lengths) if all_subject_lengths else 0
-        avg_recipient_count = np.mean(all_recipient_counts) if all_recipient_counts else 0
-        
-        for email in email_data:
-            try:
-                subject = email.get('subject', '')
-                recipients = email.get('recipients', '')
-                sender = email.get('sender', '')
-                domain = email.get('recipients_email_domain', '')
-                
-                # Time-based features
-                time_str = email.get('_time', '')
-                hour_of_day = 12  # Default
-                try:
-                    if time_str:
-                        hour_of_day = int(time_str.split('T')[1].split(':')[0]) if 'T' in time_str else 12
-                except:
-                    hour_of_day = 12
-                
-                # Advanced feature vector
-                feature_vector = [
-                    # Basic features
-                    len(subject),
-                    len(recipients.split(',')),
-                    1 if email.get('attachments') else 0,
-                    len(sender),
-                    
-                    # Deviation from normal patterns
-                    abs(len(subject) - avg_subject_length),
-                    abs(len(recipients.split(',')) - avg_recipient_count),
-                    
-                    # Time-based features
-                    hour_of_day,
-                    1 if hour_of_day < 6 or hour_of_day > 22 else 0,  # Off-hours indicator
-                    
-                    # Content-based features
-                    1 if email.get('wordlist_attachment') else 0,
-                    1 if email.get('wordlist_subject') else 0,
-                    
-                    # Domain-based features
-                    hash(domain) % 1000,
-                    1 if domain.endswith('.com') else 0,
-                    1 if any(word in domain.lower() for word in ['temp', 'disposable', 'fake']) else 0,
-                    
-                    # Recipient pattern analysis
-                    1 if len(recipients.split(',')) > 5 else 0,
-                    1 if '@' in recipients and recipients.count('@') > 3 else 0,
-                    
-                    # Subject pattern analysis
-                    1 if any(word in subject.lower() for word in ['urgent', 'confidential', 'secret', 'private']) else 0,
-                    1 if subject.isupper() else 0,
-                    len([c for c in subject if c.isdigit()]) / max(len(subject), 1),
-                    
-                    # Sender pattern analysis
-                    1 if sender.count('.') > 2 else 0,
-                    1 if '@' in sender and any(char.isdigit() for char in sender.split('@')[0]) else 0,
-                    
-                    # New fields analysis
-                    1 if email.get('user_response') else 0,
-                    1 if email.get('final_outcome') else 0,
-                ]
-                
-                features.append(feature_vector)
-            except:
-                features.append([0] * 22)  # Default feature vector (updated count)
-        
-        return np.array(features)
-    
-    def _generate_suspicion_reason(self, email, features):
-        """Generate a human-readable reason for why this email is suspicious"""
-        reasons = []
-        
-        subject = email.get('subject', '')
-        recipients = email.get('recipients', '')
-        sender = email.get('sender', '')
-        domain = email.get('recipients_email_domain', '')
-        
-        # Check various suspicious patterns
-        if email.get('wordlist_attachment'):
-            reasons.append("Contains suspicious attachment keywords")
-        if email.get('wordlist_subject'):
-            reasons.append("Subject contains flagged keywords")
-        if len(recipients.split(',')) > 5:
-            reasons.append("Large number of recipients")
-        if any(word in subject.lower() for word in ['urgent', 'confidential', 'secret']):
-            reasons.append("Urgent/confidential language in subject")
-        if subject.isupper():
-            reasons.append("Subject in ALL CAPS")
-        if any(word in domain.lower() for word in ['temp', 'disposable', 'fake']):
-            reasons.append("Suspicious recipient domain")
-        if sender.count('.') > 2:
-            reasons.append("Complex sender email pattern")
-        
-        # Check user response and final outcome patterns
-        user_response = email.get('user_response', '')
-        final_outcome = email.get('final_outcome', '')
-        
-        if user_response and 'no response' in user_response.lower():
-            reasons.append("User did not respond to security inquiry")
-        if final_outcome and any(word in final_outcome.lower() for word in ['violation', 'breach', 'unauthorized']):
-            reasons.append("Security violation detected in final outcome")
-        
-        # Time-based reasons
-        try:
-            time_str = email.get('_time', '')
-            if time_str:
-                hour_of_day = int(time_str.split('T')[1].split(':')[0]) if 'T' in time_str else 12
-                if hour_of_day < 6 or hour_of_day > 22:
-                    reasons.append("Sent during off-hours")
-        except:
-            pass
-        
-        if not reasons:
-            reasons.append("Unusual email pattern detected")
-        
-        return "; ".join(reasons[:3])  # Return top 3 reasons
+
     
     def _extract_features(self, email_data):
         """Extract numerical features from email data"""
@@ -1760,129 +1589,7 @@ class ReportGenerator:
         
         return story
 
-class AIInsights:
-    """AI-powered insights for selected email fields"""
-    
-    def __init__(self):
-        self.client = openai_client
-    
-    def run_ai_on_selected_fields(self, selected_fields, data):
-        """Run AI analysis on user-selected fields"""
-        if not self.client:
-            return "OpenAI API key not configured. Please set OPENAI_API_KEY environment variable."
-        
-        if not selected_fields or not data:
-            return "No fields selected or no data available for analysis."
-        
-        # Prepare data for analysis
-        field_data = self._extract_field_data(selected_fields, data)
-        
-        # Generate insights using OpenAI
-        try:
-            prompt = self._create_analysis_prompt(selected_fields, field_data)
-            
-            response = self.client.chat.completions.create(
-                model="gpt-4o",  # the newest OpenAI model is "gpt-4o"
-                messages=[
-                    {"role": "system", "content": "You are a cybersecurity analyst expert in data loss prevention and email security. Provide detailed, actionable insights based on the email data provided."},
-                    {"role": "user", "content": prompt}
-                ],
-                response_format={"type": "json_object"},
-                max_tokens=2000
-            )
-            
-            result = json.loads(response.choices[0].message.content)
-            return self._format_ai_insights(result)
-            
-        except Exception as e:
-            return f"Error generating AI insights: {str(e)}"
-    
-    def _extract_field_data(self, selected_fields, data):
-        """Extract data for selected fields"""
-        field_data = {}
-        
-        for field in selected_fields:
-            field_values = []
-            for email in data[:1000]:  # Limit to first 1000 records for performance
-                value = email.get(field, '')
-                if value:
-                    field_values.append(str(value))
-            
-            field_data[field] = field_values
-        
-        return field_data
-    
-    def _create_analysis_prompt(self, selected_fields, field_data):
-        """Create analysis prompt for OpenAI"""
-        prompt = f"""
-        Analyze the following email security data for potential data loss prevention insights:
 
-        Selected Fields: {', '.join(selected_fields)}
-
-        Data Summary:
-        """
-        
-        for field, values in field_data.items():
-            unique_values = len(set(values))
-            total_values = len(values)
-            
-            prompt += f"\n{field}:"
-            prompt += f"\n  - Total entries: {total_values}"
-            prompt += f"\n  - Unique values: {unique_values}"
-            
-            if values:
-                sample_values = list(set(values))[:10]  # Show sample values
-                prompt += f"\n  - Sample values: {', '.join(sample_values)}"
-        
-        prompt += """
-
-        Please provide a JSON response with the following structure:
-        {
-            "summary": "Brief overview of the analysis",
-            "anomalies": ["List of potential anomalies or concerns"],
-            "patterns": ["List of notable patterns identified"],
-            "recommendations": ["List of actionable security recommendations"],
-            "risk_assessment": "Overall risk assessment (Low/Medium/High/Critical)"
-        }
-        """
-        
-        return prompt
-    
-    def _format_ai_insights(self, result):
-        """Format AI insights for display"""
-        formatted = f"## AI Analysis Results\n\n"
-        
-        if 'summary' in result:
-            formatted += f"### Summary\n{result['summary']}\n\n"
-        
-        if 'anomalies' in result and result['anomalies']:
-            formatted += "### Potential Anomalies\n"
-            for anomaly in result['anomalies']:
-                formatted += f"- {anomaly}\n"
-            formatted += "\n"
-        
-        if 'patterns' in result and result['patterns']:
-            formatted += "### Notable Patterns\n"
-            for pattern in result['patterns']:
-                formatted += f"- {pattern}\n"
-            formatted += "\n"
-        
-        if 'recommendations' in result and result['recommendations']:
-            formatted += "### Recommendations\n"
-            for rec in result['recommendations']:
-                formatted += f"- {rec}\n"
-            formatted += "\n"
-        
-        if 'risk_assessment' in result:
-            risk_color = {
-                'Low': '🟢',
-                'Medium': '🟡',
-                'High': '🟠',
-                'Critical': '🔴'
-            }.get(result['risk_assessment'], '⚪')
-            formatted += f"### Risk Assessment: {risk_color} {result['risk_assessment']}\n"
-        
-        return formatted
 
 def get_risk_indicator(status):
     """Get risk indicator emoji based on status"""
@@ -2414,125 +2121,8 @@ def security_operations_dashboard():
     if sender_filter != "All":
         filtered_records = [email for email in filtered_records if email.get('sender', '') == sender_filter]
     
-    # Add intelligent filtering toggle
-    st.markdown("---")
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        st.subheader("🤖 Intelligent ML-Powered Review Assistant")
-    with col2:
-        use_intelligent_filter = st.toggle("Enable Smart Filtering", value=False, help="Use AI to filter and show only the most suspicious Medium, Low, and Unclassified events")
-    
-    # Apply intelligent filtering if enabled
-    if use_intelligent_filter:
-        anomaly_detector = AnomalyDetector()
-        suspicious_events = anomaly_detector.intelligent_filter_suspicious_events(filtered_records)
-        
-        if suspicious_events:
-            st.info(f"🎯 AI identified {len(suspicious_events)} suspicious events from {len(filtered_records)} records that need your attention")
-            
-            # Show smart filtered results with Timeline View styling
-            st.subheader("🔍 AI-Recommended Events to Review")
-            
-            for i, event in enumerate(suspicious_events):
-                email = event['email']
-                email_id = str(hash(str(email)))
-                current_status = email.get('status', 'unclassified').lower()
-                
-                # Create styled expander with matching format
-                status_indicator = get_risk_indicator(current_status)
-                suspicion_score = f"0.{int(event['suspicion_score'] * 100):02d}"
-                
-                with st.expander(f"🚨 Suspicious Event #{i+1} - {email.get('subject', 'No Subject')[:50]}...", expanded=False):
-                    
-                    # Header section matching Timeline View
-                    st.markdown(f"""
-                    **Sender:** {email.get('sender', 'N/A')}
-                    
-                    **Recipients:** {email.get('recipients', 'N/A')}
-                    
-                    **Current Status:** {status_indicator} {current_status.title()}
-                    
-                    **Suspicion Score:** {suspicion_score}
-                    
-                    **AI Reasoning:** {event['reason']}
-                    """)
-                    
-                    # Create priority indicator with colored border (matching Timeline View style)
-                    priority_color = {
-                        'critical': '#ff4444',
-                        'high': '#ff8800', 
-                        'medium': '#ffcc00',
-                        'low': '#44aa44'
-                    }.get(current_status, '#888888')
-                    
-                    # Email content section with colored border
-                    st.markdown(f"""
-                    <div style="border-left: 4px solid {priority_color}; padding: 12px; margin: 8px 0; background-color: #f8f9fa; border-radius: 4px;">
-                        <div style="font-weight: bold; color: #333; margin-bottom: 8px;">{status_indicator} {current_status.upper()} PRIORITY</div>
-                        <div style="font-size: 1.1em; font-weight: 500; margin-bottom: 4px;">{email.get('subject', 'No Subject')}</div>
-                        <div style="color: #666; font-size: 0.9em;">
-                            <strong>From:</strong> {email.get('sender', 'N/A').split('@')[0]} → <strong>To:</strong> {email.get('recipients_email_domain', 'Unknown')}
-                        </div>
-                        <div style="color: #666; font-size: 0.9em; margin-top: 4px;">
-                            <strong>Time:</strong> {email.get('_time', 'Unknown')}
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-                    # Action buttons section (matching Timeline View layout)
-                    col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
-                    
-                    with col1:
-                        with st.popover("📋 View Details", use_container_width=True):
-                            show_email_details_modal(email)
-                    
-                    with col2:
-                        # Status change dropdown (matching Timeline View)
-                        new_status = st.selectbox(
-                            "Status:",
-                            ["critical", "high", "medium", "low", "unclassified"],
-                            index=["critical", "high", "medium", "low", "unclassified"].index(current_status if current_status in ["critical", "high", "medium", "low", "unclassified"] else "unclassified"),
-                            key=f"ai_status_{email_id}"
-                        )
-                        
-                        if new_status != current_status:
-                            if st.button("Update", key=f"ai_update_{email_id}", use_container_width=True):
-                                # Update the email status in the data
-                                for idx, data_email in enumerate(st.session_state.data):
-                                    if str(hash(str(data_email))) == email_id:
-                                        st.session_state.data[idx]['status'] = new_status
-                                        # Save updated data to persistence
-                                        data_persistence = DataPersistence()
-                                        data_persistence.save_daily_data(st.session_state.data)
-                                        st.success(f"Status updated to {new_status.title()}")
-                                        st.rerun()
-                                        break
-                    
-                    with col3:
-                        if st.button("✅ Clear", key=f"ai_clear_{email_id}", type="secondary", use_container_width=True):
-                            st.session_state.completed_reviews[email_id] = {
-                                'email': email,
-                                'decision': 'clear',
-                                'timestamp': datetime.now()
-                            }
-                            st.success("Email marked as cleared!")
-                            st.rerun()
-                    
-                    with col4:
-                        if st.button("🚨 Escalate", key=f"ai_escalate_{email_id}", type="primary", use_container_width=True):
-                            st.session_state.escalated_records[email_id] = {
-                                'email': email,
-                                'decision': 'escalate',
-                                'timestamp': datetime.now()
-                            }
-                            st.success("Email escalated for follow-up!")
-                            st.rerun()
-            
-            st.markdown("---")
-        else:
-            st.info("🎉 No suspicious events detected in the current filtered data!")
-    
     # Professional security review queue section
+    st.markdown("---")
     st.markdown("""
     <div class="data-container">
         <h3 style="color: #2c3e50; margin-bottom: 1rem;">🛡️ Security Review Queue</h3>

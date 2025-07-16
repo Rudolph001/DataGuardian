@@ -47,9 +47,9 @@ Preferred communication style: Simple, everyday language.
 - **Features**: Risk indicators, timeline views, decision tracking (Clear/Escalate)
 - **Visual Elements**: Color-coded risk levels (🔴🟠🟡🟢), modal pop-ups for details
 
-### 3. AI-Powered Event Insights
-- **Purpose**: Generate intelligent analysis of email patterns and anomalies
-- **Technology**: OpenAI GPT-4o integration for contextual analysis
+### 3. Machine Learning Event Insights
+- **Purpose**: Generate statistical analysis of email patterns and anomalies
+- **Technology**: Scikit-learn machine learning algorithms for pattern detection
 - **ML Components**: Isolation Forest for anomaly detection, DBSCAN for clustering
 
 ### 4. Network Analysis
@@ -80,8 +80,7 @@ Preferred communication style: Simple, everyday language.
 
 ## External Dependencies
 
-### AI/ML Services
-- **OpenAI API**: GPT-4o model for intelligent analysis and insights
+### ML Services
 - **Scikit-learn**: Machine learning algorithms for anomaly detection
 - **NetworkX**: Graph analysis and network visualization
 
@@ -113,7 +112,6 @@ Required packages for Windows:
 - matplotlib>=3.7.0 (essential for chart generation)
 - networkx>=3.1
 - numpy>=1.24.0
-- openai>=1.0.0
 - pandas>=2.0.0
 - plotly>=5.15.0
 - reportlab>=4.0.0
@@ -123,14 +121,12 @@ Required packages for Windows:
 - weasyprint>=60.0
 
 ### Configuration Management
-- **Environment Variables**: OPENAI_API_KEY for AI functionality
 - **Default Settings**: Preconfigured domain classifications and security policies
 - **Persistence**: JSON files for maintaining configuration across sessions
 
 ### Security Considerations
 - **Authentication**: Optional system (disabled by default for ease of use)
 - **File Handling**: Secure upload processing with size limits
-- **API Security**: OpenAI API key management through environment variables
 
 ### Scalability
 - **Single-user Design**: Optimized for individual analyst workflows
