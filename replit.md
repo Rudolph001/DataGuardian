@@ -52,6 +52,12 @@ Preferred communication style: Simple, everyday language.
 - **Technology**: Scikit-learn machine learning algorithms for pattern detection
 - **ML Components**: Isolation Forest for anomaly detection, DBSCAN for clustering
 
+### 3a. Suspicious Email Analysis (New)
+- **Purpose**: Specialized ML system for identifying suspicious patterns in Medium Low and unclassified emails
+- **Technology**: Custom ML pipeline with multiple detection methods
+- **Features**: Keyword analysis, pattern clustering, timing analysis, domain verification, suspicion scoring
+- **Output**: Ranked list of suspicious emails with explanations and actionable recommendations
+
 ### 4. Network Analysis
 - **Purpose**: Visualize email communication patterns and relationships
 - **Technology**: NetworkX for graph analysis, multiple layout algorithms

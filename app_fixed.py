@@ -386,12 +386,238 @@ class CSVProcessor:
         except:
             return ''
 
+class SuspiciousEmailDetector:
+    """Specialized ML detector for suspicious patterns in Medium Low and unclassified emails"""
+    
+    def __init__(self):
+        self.dbscan = DBSCAN(eps=0.5, min_samples=2)
+        self.scaler = StandardScaler()
+        self.suspicious_keywords = [
+            'urgent', 'confidential', 'secret', 'private', 'restricted', 'limited time',
+            'act now', 'immediate action', 'expires', 'deadline', 'exclusive',
+            'bonus', 'free', 'gift', 'winner', 'congratulations', 'selected',
+            'verify', 'confirm', 'update', 'suspended', 'locked', 'security alert',
+            'click here', 'download now', 'open attachment', 'wire transfer',
+            'payment', 'invoice', 'refund', 'tax', 'irs', 'bank', 'credit card'
+        ]
+    
+    def identify_suspicious_emails(self, email_data):
+        """Identify suspicious emails from Medium Low and unclassified data"""
+        if not email_data:
+            return []
+        
+        # Filter for Medium Low and unclassified emails
+        target_emails = []
+        for email in email_data:
+            status = email.get('status', '').lower().strip()
+            if status in ['medium', 'low', 'unclassified'] or not status:
+                target_emails.append(email)
+        
+        if not target_emails:
+            return []
+        
+        suspicious_emails = []
+        
+        # Apply multiple detection methods
+        keyword_suspicious = self._detect_suspicious_keywords(target_emails)
+        pattern_suspicious = self._detect_suspicious_patterns(target_emails)
+        timing_suspicious = self._detect_suspicious_timing(target_emails)
+        domain_suspicious = self._detect_suspicious_domains(target_emails)
+        
+        # Combine all suspicious indicators
+        all_suspicious_indices = set(keyword_suspicious + pattern_suspicious + timing_suspicious + domain_suspicious)
+        
+        for i in all_suspicious_indices:
+            if i < len(target_emails):
+                email = target_emails[i]
+                
+                # Calculate suspicion score
+                suspicion_score = self._calculate_suspicion_score(email, i, {
+                    'keyword': i in keyword_suspicious,
+                    'pattern': i in pattern_suspicious,
+                    'timing': i in timing_suspicious,
+                    'domain': i in domain_suspicious
+                })
+                
+                suspicious_emails.append({
+                    'email': email,
+                    'suspicion_score': suspicion_score,
+                    'reasons': self._get_suspicion_reasons(email, i, {
+                        'keyword': i in keyword_suspicious,
+                        'pattern': i in pattern_suspicious,
+                        'timing': i in timing_suspicious,
+                        'domain': i in domain_suspicious
+                    })
+                })
+        
+        # Sort by suspicion score (highest first)
+        suspicious_emails.sort(key=lambda x: x['suspicion_score'], reverse=True)
+        
+        return suspicious_emails
+    
+    def _detect_suspicious_keywords(self, emails):
+        """Detect emails with suspicious keywords in subject or content"""
+        suspicious_indices = []
+        
+        for i, email in enumerate(emails):
+            subject = email.get('subject', '').lower()
+            
+            keyword_count = 0
+            for keyword in self.suspicious_keywords:
+                if keyword in subject:
+                    keyword_count += 1
+            
+            # Flag if multiple suspicious keywords found
+            if keyword_count >= 2:
+                suspicious_indices.append(i)
+        
+        return suspicious_indices
+    
+    def _detect_suspicious_patterns(self, emails):
+        """Detect suspicious patterns using clustering"""
+        suspicious_indices = []
+        
+        if len(emails) < 2:
+            return suspicious_indices
+        
+        # Extract features for pattern detection
+        features = []
+        for email in emails:
+            feature_vector = [
+                len(email.get('subject', '')),
+                len(email.get('recipients', '').split(',')),
+                1 if email.get('attachments') else 0,
+                len(email.get('sender', '')),
+                hash(email.get('recipients_email_domain', '')) % 100,
+                1 if email.get('wordlist_attachment') else 0,
+                1 if email.get('wordlist_subject') else 0,
+                # Add suspicious pattern indicators
+                1 if any(keyword in email.get('subject', '').lower() for keyword in ['urgent', 'confidential', 'secret']) else 0,
+                1 if '@' not in email.get('sender', '') else 0,  # Suspicious sender format
+                len(email.get('subject', '').split()) if email.get('subject') else 0  # Subject word count
+            ]
+            features.append(feature_vector)
+        
+        # Normalize features
+        features_scaled = self.scaler.fit_transform(features)
+        
+        # Apply DBSCAN clustering to find outliers
+        clusters = self.dbscan.fit_predict(features_scaled)
+        
+        # Identify outliers (cluster label -1)
+        for i, cluster in enumerate(clusters):
+            if cluster == -1:  # Outlier
+                suspicious_indices.append(i)
+        
+        return suspicious_indices
+    
+    def _detect_suspicious_timing(self, emails):
+        """Detect suspicious timing patterns"""
+        suspicious_indices = []
+        
+        try:
+            # Group emails by hour to detect unusual sending patterns
+            hour_counts = {}
+            for i, email in enumerate(emails):
+                time_str = email.get('_time', '')
+                if time_str:
+                    # Extract hour from timestamp (assuming format includes time)
+                    hour = hash(time_str) % 24  # Simple hour extraction
+                    if hour not in hour_counts:
+                        hour_counts[hour] = []
+                    hour_counts[hour].append(i)
+            
+            # Flag emails sent during unusual hours (late night/early morning)
+            for hour, email_indices in hour_counts.items():
+                if hour < 6 or hour > 22:  # Suspicious hours
+                    suspicious_indices.extend(email_indices)
+        
+        except Exception:
+            pass  # Skip timing analysis if timestamp parsing fails
+        
+        return suspicious_indices
+    
+    def _detect_suspicious_domains(self, emails):
+        """Detect suspicious domain patterns"""
+        suspicious_indices = []
+        
+        # Common suspicious domain patterns
+        suspicious_patterns = [
+            'gmail.com', 'yahoo.com', 'hotmail.com', 'outlook.com',  # Free email providers
+            'temp', 'disposable', '10minute', 'guerrilla',  # Temporary email services
+            'bit.ly', 'tinyurl', 'goo.gl'  # URL shorteners (potential phishing)
+        ]
+        
+        for i, email in enumerate(emails):
+            domain = email.get('recipients_email_domain', '').lower()
+            sender_domain = email.get('sender', '').split('@')[-1].lower() if '@' in email.get('sender', '') else ''
+            
+            # Check recipient domain
+            if any(pattern in domain for pattern in suspicious_patterns):
+                suspicious_indices.append(i)
+            
+            # Check sender domain
+            if any(pattern in sender_domain for pattern in suspicious_patterns):
+                suspicious_indices.append(i)
+        
+        return suspicious_indices
+    
+    def _calculate_suspicion_score(self, email, index, indicators):
+        """Calculate suspicion score based on multiple indicators"""
+        score = 0.0
+        
+        # Base score for being Medium/Low/Unclassified
+        score += 0.3
+        
+        # Add points for each indicator
+        if indicators['keyword']:
+            score += 0.25
+        if indicators['pattern']:
+            score += 0.2
+        if indicators['timing']:
+            score += 0.15
+        if indicators['domain']:
+            score += 0.1
+        
+        # Additional factors
+        if email.get('attachments'):
+            score += 0.1
+        if email.get('wordlist_attachment'):
+            score += 0.15
+        if email.get('wordlist_subject'):
+            score += 0.1
+        
+        # Normalize to 0-1 range
+        return min(score, 1.0)
+    
+    def _get_suspicion_reasons(self, email, index, indicators):
+        """Get human-readable reasons for suspicion"""
+        reasons = []
+        
+        if indicators['keyword']:
+            reasons.append("Contains suspicious keywords in subject")
+        if indicators['pattern']:
+            reasons.append("Shows unusual email patterns")
+        if indicators['timing']:
+            reasons.append("Sent during unusual hours")
+        if indicators['domain']:
+            reasons.append("Uses suspicious domain")
+        if email.get('attachments'):
+            reasons.append("Contains attachments")
+        if email.get('wordlist_attachment'):
+            reasons.append("Attachment matches watchlist")
+        if email.get('wordlist_subject'):
+            reasons.append("Subject matches watchlist")
+        
+        return reasons
+
 class AnomalyDetector:
     """Machine learning-powered anomaly detection for email patterns"""
     
     def __init__(self):
         self.isolation_forest = IsolationForest(contamination=0.1, random_state=42)
         self.scaler = StandardScaler()
+        self.suspicious_detector = SuspiciousEmailDetector()
     
     def detect_anomalies(self, email_data):
         """Detect anomalies in email data using multiple techniques"""
@@ -1397,6 +1623,8 @@ class ReportGenerator:
             story.extend(self._generate_domain_analysis_content(data))
         elif report_type == 'network_analysis':
             story.extend(self._generate_network_analysis_content(data))
+        elif report_type == 'suspicious_email_analysis':
+            story.extend(self._generate_suspicious_email_analysis_content(data))
         
 
         
@@ -1588,7 +1816,106 @@ class ReportGenerator:
             story.append(Paragraph(stats_text, self.styles['Normal']))
         
         return story
-
+    
+    def _generate_suspicious_email_analysis_content(self, data):
+        """Generate suspicious email analysis report content"""
+        story = []
+        
+        story.append(Paragraph("Suspicious Email Analysis Report", self.header_style))
+        story.append(Spacer(1, 12))
+        
+        if data and 'suspicious_emails' in data:
+            suspicious_emails = data['suspicious_emails']
+            summary = data.get('summary', {})
+            
+            # Executive Summary
+            story.append(Paragraph("EXECUTIVE SUMMARY", self.subheader_style))
+            story.append(Spacer(1, 8))
+            
+            summary_text = f"""
+            <b>SUSPICIOUS EMAIL ANALYSIS OVERVIEW</b><br/><br/>
+            
+            This analysis examined <b>{summary.get('total_emails_analyzed', 0):,}</b> Medium Low and unclassified emails 
+            using advanced machine learning techniques to identify potential security threats.<br/><br/>
+            
+            <b>KEY FINDINGS:</b><br/>
+            • Total Emails Analyzed: <b>{summary.get('total_emails_analyzed', 0):,}</b><br/>
+            • Suspicious Emails Identified: <b>{summary.get('suspicious_emails_found', 0):,}</b><br/>
+            • High Priority Emails: <b>{len([e for e in suspicious_emails if e['suspicion_score'] >= 0.8]):,}</b><br/>
+            • Medium Priority Emails: <b>{len([e for e in suspicious_emails if 0.6 <= e['suspicion_score'] < 0.8]):,}</b><br/>
+            • Low Priority Emails: <b>{len([e for e in suspicious_emails if e['suspicion_score'] < 0.6]):,}</b><br/><br/>
+            
+            <b>RECOMMENDATION:</b><br/>
+            {"IMMEDIATE ACTION REQUIRED - Review high priority emails" if any(e['suspicion_score'] >= 0.8 for e in suspicious_emails) else "CONTINUE MONITORING - No immediate threats detected"}
+            """
+            
+            story.append(Paragraph(summary_text, self.summary_style))
+            story.append(Spacer(1, 20))
+            
+            # Top Suspicious Emails Table
+            story.append(Paragraph("Top Suspicious Emails", self.subheader_style))
+            story.append(Spacer(1, 10))
+            
+            # Create table with top 10 suspicious emails
+            table_data = [['Rank', 'Sender', 'Subject', 'Score', 'Primary Reason']]
+            
+            for i, email_data in enumerate(suspicious_emails[:10], 1):
+                email = email_data['email']
+                score = email_data['suspicion_score']
+                reasons = email_data['reasons']
+                
+                sender = email.get('sender', 'Unknown')[:30] + '...' if len(email.get('sender', '')) > 30 else email.get('sender', 'Unknown')
+                subject = email.get('subject', 'No Subject')[:40] + '...' if len(email.get('subject', '')) > 40 else email.get('subject', 'No Subject')
+                primary_reason = reasons[0] if reasons else 'Unknown'
+                
+                table_data.append([
+                    str(i),
+                    sender,
+                    subject,
+                    f"{score:.2f}",
+                    primary_reason
+                ])
+            
+            table = Table(table_data, colWidths=[0.5*inch, 2*inch, 2.5*inch, 0.7*inch, 2*inch])
+            table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.darkred),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+                ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+                ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ]))
+            story.append(table)
+            story.append(Spacer(1, 20))
+            
+            # Recommendations
+            story.append(Paragraph("SECURITY RECOMMENDATIONS", self.subheader_style))
+            story.append(Spacer(1, 10))
+            
+            high_risk_count = len([e for e in suspicious_emails if e['suspicion_score'] >= 0.8])
+            medium_risk_count = len([e for e in suspicious_emails if 0.6 <= e['suspicion_score'] < 0.8])
+            
+            recommendations = []
+            if high_risk_count > 0:
+                recommendations.append(f"• IMMEDIATE ACTION: Review {high_risk_count} high-risk emails within 24 hours")
+            if medium_risk_count > 0:
+                recommendations.append(f"• PRIORITY: Review {medium_risk_count} medium-risk emails within 48 hours")
+            
+            recommendations.append("• Consider implementing additional ML-based email monitoring")
+            recommendations.append("• Schedule regular review of Medium Low and unclassified emails")
+            
+            for rec in recommendations:
+                story.append(Paragraph(rec, self.summary_style))
+                story.append(Spacer(1, 6))
+            
+        else:
+            story.append(Paragraph("No suspicious email analysis data available.", self.summary_style))
+        
+        return story
 
 
 def get_risk_indicator(status):
@@ -3486,6 +3813,267 @@ def network_analysis_page():
     else:
         st.info("👆 Click 'Generate Enhanced Network' to start the analysis!")
 
+def suspicious_email_analysis_page():
+    """Suspicious Email Analysis page for Medium Low and unclassified emails"""
+    st.markdown("""
+    <div class="data-container">
+        <h2 style="color: #2c3e50; margin-bottom: 1rem;">🔍 Suspicious Email Analysis</h2>
+        <p style="color: #7f8c8d; font-size: 1.1rem; margin-bottom: 1.5rem;">
+            AI-powered analysis to identify suspicious patterns in Medium Low and unclassified emails. 
+            This tool filters through your data to show only the emails that need your attention.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if not st.session_state.data:
+        st.markdown("""
+        <div class="alert-card">
+            <div class="alert-icon">📤</div>
+            <div class="alert-content">
+                <h3>No Data Available</h3>
+                <p>Please upload your email data first using the Data Upload & Preprocessing page.</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        return
+    
+    # Initialize the suspicious email detector
+    detector = SuspiciousEmailDetector()
+    
+    # Analysis controls
+    st.markdown("### 🎯 Analysis Controls")
+    col1, col2, col3 = st.columns([2, 2, 2])
+    
+    with col1:
+        min_suspicion_score = st.slider(
+            "Minimum Suspicion Score",
+            min_value=0.0,
+            max_value=1.0,
+            value=0.5,
+            step=0.05,
+            help="Show only emails with suspicion score above this threshold"
+        )
+    
+    with col2:
+        max_results = st.selectbox(
+            "Maximum Results to Show",
+            options=[10, 25, 50, 100, 200],
+            index=1,
+            help="Limit the number of results to focus on the most suspicious emails"
+        )
+    
+    with col3:
+        status_filter = st.multiselect(
+            "Status Filter",
+            options=['medium', 'low', 'unclassified'],
+            default=['medium', 'low', 'unclassified'],
+            help="Select which status levels to analyze"
+        )
+    
+    # Run analysis button
+    if st.button("🔍 Run Suspicious Email Analysis", use_container_width=True):
+        with st.spinner("Analyzing emails for suspicious patterns..."):
+            # Filter data based on status selection
+            filtered_data = []
+            for email in st.session_state.data:
+                email_status = email.get('status', '').lower().strip()
+                if email_status in status_filter or (not email_status and 'unclassified' in status_filter):
+                    filtered_data.append(email)
+            
+            if not filtered_data:
+                st.warning("No emails found matching the selected status criteria.")
+                return
+            
+            # Run the suspicious email detection
+            suspicious_emails = detector.identify_suspicious_emails(filtered_data)
+            
+            # Filter by minimum suspicion score
+            filtered_suspicious = [
+                email for email in suspicious_emails 
+                if email['suspicion_score'] >= min_suspicion_score
+            ]
+            
+            # Limit results
+            final_results = filtered_suspicious[:max_results]
+            
+            # Store results in session state
+            st.session_state.suspicious_analysis_results = final_results
+            st.session_state.suspicious_analysis_summary = {
+                'total_emails_analyzed': len(filtered_data),
+                'suspicious_emails_found': len(suspicious_emails),
+                'emails_above_threshold': len(filtered_suspicious),
+                'emails_displayed': len(final_results)
+            }
+    
+    # Display results if available
+    if hasattr(st.session_state, 'suspicious_analysis_results') and st.session_state.suspicious_analysis_results:
+        results = st.session_state.suspicious_analysis_results
+        summary = st.session_state.suspicious_analysis_summary
+        
+        # Summary statistics
+        st.markdown("### 📊 Analysis Summary")
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Total Emails Analyzed", summary['total_emails_analyzed'])
+        with col2:
+            st.metric("Suspicious Emails Found", summary['suspicious_emails_found'])
+        with col3:
+            st.metric("Above Threshold", summary['emails_above_threshold'])
+        with col4:
+            st.metric("Displayed", summary['emails_displayed'])
+        
+        # Suspicion score distribution
+        st.markdown("### 📈 Suspicion Score Distribution")
+        scores = [result['suspicion_score'] for result in results]
+        
+        if scores:
+            fig = px.histogram(
+                x=scores,
+                nbins=20,
+                title="Distribution of Suspicion Scores",
+                labels={'x': 'Suspicion Score', 'y': 'Number of Emails'},
+                color_discrete_sequence=['#e74c3c']
+            )
+            fig.update_layout(
+                showlegend=False,
+                height=300,
+                margin=dict(l=0, r=0, t=40, b=0)
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # Detailed results
+        st.markdown("### 🚨 Suspicious Emails Details")
+        
+        for i, result in enumerate(results, 1):
+            email = result['email']
+            score = result['suspicion_score']
+            reasons = result['reasons']
+            
+            # Color-code based on suspicion score
+            if score >= 0.8:
+                card_color = "#e74c3c"  # Red
+                risk_level = "HIGH RISK"
+            elif score >= 0.6:
+                card_color = "#f39c12"  # Orange
+                risk_level = "MEDIUM RISK"
+            else:
+                card_color = "#f1c40f"  # Yellow
+                risk_level = "LOW RISK"
+            
+            with st.expander(f"#{i} - {email.get('subject', 'No Subject')[:50]}... - Score: {score:.2f} ({risk_level})", expanded=False):
+                col1, col2 = st.columns([2, 1])
+                
+                with col1:
+                    st.markdown("**📧 Email Details:**")
+                    st.write(f"**From:** {email.get('sender', 'Unknown')}")
+                    st.write(f"**To:** {email.get('recipients', 'Unknown')}")
+                    st.write(f"**Subject:** {email.get('subject', 'No Subject')}")
+                    st.write(f"**Domain:** {email.get('recipients_email_domain', 'Unknown')}")
+                    st.write(f"**Status:** {email.get('status', 'Unclassified').title()}")
+                    st.write(f"**Time:** {email.get('_time', 'Unknown')}")
+                    
+                    if email.get('attachments'):
+                        st.write(f"**Attachments:** {email.get('attachments', 'None')}")
+                
+                with col2:
+                    st.markdown("**🔍 Suspicion Analysis:**")
+                    st.metric("Suspicion Score", f"{score:.2f}")
+                    st.markdown("**Reasons:**")
+                    for reason in reasons:
+                        st.write(f"• {reason}")
+                
+                # Action buttons
+                col1, col2, col3 = st.columns(3)
+                
+                with col1:
+                    if st.button("✅ Mark as Safe", key=f"safe_{i}"):
+                        # Update email status to low
+                        for original_email in st.session_state.data:
+                            if (original_email.get('sender') == email.get('sender') and 
+                                original_email.get('subject') == email.get('subject')):
+                                original_email['status'] = 'Low'
+                                break
+                        st.success("Email marked as safe!")
+                        st.rerun()
+                
+                with col2:
+                    if st.button("⚠️ Escalate", key=f"escalate_{i}"):
+                        # Add to escalated records
+                        if 'escalated_records' not in st.session_state:
+                            st.session_state.escalated_records = {}
+                        
+                        record_id = f"susp_{i}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                        st.session_state.escalated_records[record_id] = {
+                            'email': email,
+                            'escalated_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                            'escalated_by': 'Suspicious Email Analysis',
+                            'followup_status': 'pending',
+                            'suspicion_score': score,
+                            'suspicion_reasons': reasons
+                        }
+                        st.success("Email escalated for follow-up!")
+                        st.rerun()
+                
+                with col3:
+                    if st.button("📋 View Details", key=f"details_{i}"):
+                        show_email_details_modal(email)
+        
+        # Export functionality
+        st.markdown("### 💾 Export Results")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if st.button("📊 Export to CSV", use_container_width=True):
+                # Create CSV data
+                csv_data = []
+                for result in results:
+                    email = result['email']
+                    csv_data.append({
+                        'Sender': email.get('sender', ''),
+                        'Recipients': email.get('recipients', ''),
+                        'Subject': email.get('subject', ''),
+                        'Status': email.get('status', ''),
+                        'Domain': email.get('recipients_email_domain', ''),
+                        'Suspicion_Score': result['suspicion_score'],
+                        'Reasons': '; '.join(result['reasons']),
+                        'Time': email.get('_time', '')
+                    })
+                
+                # Convert to CSV
+                import pandas as pd
+                df = pd.DataFrame(csv_data)
+                csv_string = df.to_csv(index=False)
+                
+                st.download_button(
+                    label="Download CSV",
+                    data=csv_string,
+                    file_name=f"suspicious_emails_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv"
+                )
+        
+        with col2:
+            if st.button("📄 Generate Report", use_container_width=True):
+                # Generate a summary report
+                report_data = {
+                    'analysis_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'summary': summary,
+                    'suspicious_emails': results
+                }
+                
+                report_generator = ReportGenerator()
+                pdf_buffer = report_generator.generate_pdf_report(report_data, 'suspicious_email_analysis')
+                
+                st.download_button(
+                    label="Download PDF Report",
+                    data=pdf_buffer,
+                    file_name=f"suspicious_email_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf",
+                    mime="application/pdf"
+                )
+    
+    else:
+        st.info("Click 'Run Suspicious Email Analysis' to identify suspicious patterns in your email data.")
+
 def domain_classification_page():
     """Domain Classification page"""
     st.title("🌐 Domain Classification")
@@ -3745,6 +4333,7 @@ def main():
     pages = {
         "📁 Data Upload & Preprocessing": data_upload_page,
         "🛡️ Security Operations Dashboard": security_operations_dashboard,
+        "🔍 Suspicious Email Analysis": suspicious_email_analysis_page,
         "📨 Follow-up Center": followup_center_page,
         "✅ Email Check Completed": email_check_completed_page,
         "🔗 Network Analysis": network_analysis_page,
