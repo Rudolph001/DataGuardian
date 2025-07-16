@@ -4140,28 +4140,46 @@ def suspicious_email_analysis_page():
                 card_color = "#f1c40f"  # Yellow
                 risk_level = "LOW RISK"
             
-            with st.expander(f"#{i} - {email.get('subject', 'No Subject')[:50]}... - Score: {score:.2f} ({risk_level})", expanded=False):
-                col1, col2 = st.columns([2, 1])
+            # Create a container for the email with consistent styling
+            with st.container():
+                # Add visual styling similar to Security Operations Dashboard
+                st.markdown(f"""
+                <div style="border-left: 4px solid {card_color}; padding: 12px; margin: 8px 0; background-color: #f8f9fa; border-radius: 4px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <div style="font-size: 0.9em; color: #666;">{email.get('_time', 'Unknown')}</div>
+                        <div style="font-size: 0.9em; color: #666;">{risk_level}</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                col1, col2, col3 = st.columns([3, 1, 1])
                 
                 with col1:
-                    st.markdown("**📧 Email Details:**")
+                    st.markdown(f"**#{i} - {email.get('subject', 'No Subject')[:50]}...**")
                     st.write(f"**From:** {email.get('sender', 'Unknown')}")
-                    st.write(f"**To:** {email.get('recipients', 'Unknown')}")
-                    st.write(f"**Subject:** {email.get('subject', 'No Subject')}")
                     st.write(f"**Domain:** {email.get('recipients_email_domain', 'Unknown')}")
-                    st.write(f"**Status:** {email.get('status', 'Unclassified').title()}")
-                    st.write(f"**Policy:** {email.get('policy_name', 'Unknown')}")
-                    st.write(f"**Time:** {email.get('_time', 'Unknown')}")
-                    
-                    if email.get('attachments'):
-                        st.write(f"**Attachments:** {email.get('attachments', 'None')}")
                 
                 with col2:
-                    st.markdown("**🔍 Suspicion Analysis:**")
                     st.metric("Suspicion Score", f"{score:.2f}")
-                    st.markdown("**Reasons:**")
-                    for reason in reasons:
-                        st.write(f"• {reason}")
+                    st.markdown(f"**Risk:** {risk_level}")
+                
+                with col3:
+                    # View Details button with same modal as Security Operations Dashboard
+                    with st.popover("📋 View Details", use_container_width=True):
+                        # Add suspicion-specific information before showing standard modal
+                        st.markdown("### 🔍 Suspicion Analysis")
+                        st.metric("Suspicion Score", f"{score:.2f}")
+                        st.markdown("**Reasons for Suspicion:**")
+                        for reason in reasons:
+                            st.write(f"• {reason}")
+                        
+                        st.markdown("---")
+                        
+                        # Show standard email details modal
+                        show_email_details_modal(email)
+                
+                # Add separator between emails
+                st.markdown("---")
                 
                 # Action buttons
                 col1, col2, col3 = st.columns(3)
