@@ -4708,32 +4708,54 @@ def data_filtering_review_page():
         include_unclassified = True
     
     with col2:
-        st.markdown("**Email Content Preferences:**")
+        # Enhanced Email Content Preferences with better styling
+        st.markdown("""
+        <div style="background-color: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+            <h4 style="color: #2c3e50; margin-bottom: 0.5rem; font-size: 1.1rem;">📧 Email Content Preferences</h4>
+        </div>
+        """, unsafe_allow_html=True)
         
+        # Attachments filter with improved styling
+        st.markdown("**📎 Attachments**")
         attachment_filter = st.radio(
-            "Attachments",
+            "Filter by attachments:",
             ["All emails", "Only emails with attachments", "Only emails without attachments"],
-            help="Filter by whether emails have attachments"
+            help="Filter by whether emails have attachments",
+            key="attachment_filter_radio"
         )
         
+        st.markdown("---")  # Visual separator
+        
+        # Security Wordlist filter with improved styling
+        st.markdown("**🔍 Security Wordlist Matches**")
         wordlist_filter = st.radio(
-            "Security Wordlist Matches",
+            "Filter by security keywords:",
             ["All emails", "Only emails with security keywords", "Only emails without security keywords"],
-            help="Filter by wordlist_attachment and wordlist_subject field matches"
+            help="Filter by wordlist_attachment and wordlist_subject field matches",
+            key="wordlist_filter_radio"
         )
         
-        st.markdown("**Policy Name Filter:**")
+        st.markdown("---")  # Visual separator
+        
+        # Policy Name Filter with enhanced layout
+        st.markdown("**📋 Policy Name Filter**")
         # Get unique policy names from data
         unique_policies = sorted(set(email.get('policy_name', 'Unknown') for email in st.session_state.data if email.get('policy_name')))
         
         if unique_policies:
             selected_policies = []
             
-            # Create columns for checkboxes (2 columns for better layout)
-            policy_cols = st.columns(2)
-            
-            for i, policy in enumerate(unique_policies):
-                with policy_cols[i % 2]:
+            # Create a more organized layout for policy checkboxes
+            if len(unique_policies) > 4:
+                # Use 2 columns for many policies
+                policy_cols = st.columns(2)
+                for i, policy in enumerate(unique_policies):
+                    with policy_cols[i % 2]:
+                        if st.checkbox(policy, value=True, key=f"policy_{policy}"):
+                            selected_policies.append(policy)
+            else:
+                # Single column for few policies
+                for policy in unique_policies:
                     if st.checkbox(policy, value=True, key=f"policy_{policy}"):
                         selected_policies.append(policy)
             
@@ -4743,18 +4765,26 @@ def data_filtering_review_page():
             st.info("No policy names found in data")
             st.session_state.selected_policy_names = []
         
-        st.markdown("**Whitelist Settings:**")
+        st.markdown("---")  # Visual separator
+        
+        # Whitelist Settings with enhanced styling
+        st.markdown("**✅ Whitelist Settings**")
         show_whitelist_domains = st.checkbox(
             "Show emails to whitelisted domains",
             value=True,
-            help="Include emails sent to whitelisted domains in results"
+            help="Include emails sent to whitelisted domains in results",
+            key="whitelist_checkbox"
         )
         
-        st.markdown("**Time Period:**")
+        st.markdown("---")  # Visual separator
+        
+        # Time Period with enhanced styling
+        st.markdown("**🕐 Time Period**")
         time_filter = st.selectbox(
-            "Show emails from",
+            "Show emails from:",
             ["All time", "Last 7 days", "Last 30 days", "Last 90 days"],
-            help="Filter by time period"
+            help="Filter by time period",
+            key="time_filter_select"
         )
     
     # Apply Simple Filters Button

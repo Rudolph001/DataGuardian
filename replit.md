@@ -15,12 +15,14 @@ Preferred communication style: Simple, everyday language.
 - **Visualization**: Plotly (>=6.1.2) for interactive charts and graphs
 - **Layout**: Wide layout with expandable sidebar for navigation
 - **Navigation**: Multi-page structure using Streamlit's built-in page system
+- **Deployment**: Configured for Replit environment with proper server settings
 
 ### Backend Architecture
 - **Main Application**: Single-file architecture in `app_fixed.py`
 - **Modular Components**: Separate modules for domain classification, security configuration, and authentication
 - **Data Processing**: Custom CSV parser without pandas dependency for handling large files (up to 2GB)
 - **Session Management**: Streamlit's session state for maintaining user data across interactions
+- **Data Persistence**: JSON-based daily data storage with DataPersistence class
 
 ### Data Storage Solutions
 - **Configuration Storage**: JSON files for persistent configuration
@@ -28,6 +30,7 @@ Preferred communication style: Simple, everyday language.
   - `security_config.json` - Security policies and thresholds
   - `users.json` - User authentication data (disabled by default)
 - **Runtime Data**: In-memory storage using Streamlit session state
+- **Daily Data Storage**: JSON files for filtered email data with date-based organization
 - **Export Capabilities**: PDF and CSV export for reports and data
 
 ### Authentication and Authorization
@@ -41,6 +44,7 @@ Preferred communication style: Simple, everyday language.
 - **Purpose**: Handle large CSV file uploads and validate email metadata
 - **Features**: Progress tracking, custom parser, field validation, risk distribution analysis
 - **Required Fields**: 20+ fields including _time, sender, subject, recipients, etc.
+- **Data Flow**: Processes data for filtering - save functionality moved to Data Filtering & Review
 
 ### 2. Security Operations Dashboard
 - **Purpose**: Main interface for reviewing and managing email security events
@@ -69,7 +73,13 @@ Preferred communication style: Simple, everyday language.
 - **Features**: Auto-classification, manual overrides, bulk operations
 - **Whitelist Feature**: Automatically filters out whitelisted domains during data upload, with persistent storage and management interface
 
-### 6. Follow-up Center
+### 6. Data Filtering & Review (Enhanced)
+- **Purpose**: Filter and refine email data before security operations
+- **Features**: Enhanced UI with professional styling, attachment filtering, wordlist filtering, policy filtering, time period selection
+- **Save Functionality**: Moved from Data Upload - users can now save filtered data to JSON after applying filters
+- **Workflow**: Filter → Review → Save → Send to Security Operations
+
+### 7. Follow-up Center
 - **Purpose**: Track escalated records and manage follow-up actions
 - **Integration**: Outlook email template generation
 - **Features**: Action tracking, automated email creation
@@ -78,12 +88,32 @@ Preferred communication style: Simple, everyday language.
 
 1. **Data Ingestion**: CSV files uploaded through Streamlit file uploader
 2. **Preprocessing**: Custom parser validates and structures email metadata
-3. **Risk Assessment**: Status field determines risk levels for each email
-4. **Analysis**: AI and ML algorithms analyze patterns and detect anomalies
-5. **Classification**: Domains are automatically categorized based on security policies
-6. **Review Process**: Security operations dashboard facilitates manual review
-7. **Decision Tracking**: Clear/Escalate decisions are recorded and managed
-8. **Reporting**: Export capabilities for compliance and documentation
+3. **Data Filtering**: Enhanced filtering interface with improved UI for refining data
+4. **Data Persistence**: Filtered data saved to JSON with date-based organization
+5. **Risk Assessment**: Status field determines risk levels for each email
+6. **Analysis**: AI and ML algorithms analyze patterns and detect anomalies
+7. **Classification**: Domains are automatically categorized based on security policies
+8. **Review Process**: Security operations dashboard facilitates manual review
+9. **Decision Tracking**: Clear/Escalate decisions are recorded and managed
+10. **Reporting**: Export capabilities for compliance and documentation
+
+## Recent Changes (2025-07-16)
+
+### Migration to Replit Environment
+- **Server Configuration**: Added proper Streamlit configuration for Replit deployment
+- **Package Installation**: Installed all required dependencies via Replit package manager
+- **Workflow Setup**: Configured ExfilEye DLP Server workflow for automatic startup
+
+### Data Filtering & Review Enhancements
+- **Improved UI**: Enhanced Email Content Preferences section with better styling and organization
+- **Visual Separators**: Added clear visual separators between filter sections
+- **Policy Layout**: Improved policy checkbox layout with responsive columns
+- **Professional Styling**: Added background styling and better section headers
+
+### Data Save Workflow Changes
+- **Moved Save Functionality**: Relocated data save from Data Upload to Data Filtering & Review
+- **Filtered Data Focus**: Users now save filtered data instead of raw uploaded data
+- **Improved Workflow**: Better user experience - filter first, then save processed data
 
 ## External Dependencies
 
