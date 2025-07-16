@@ -2823,7 +2823,7 @@ def security_operations_dashboard():
                                         st.write(f"**{field.replace('_', ' ').title()}:** {value}")
                 
                 # Pop-out window button for details
-                col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
+                col1, col2, col3, col4, col5 = st.columns([2, 1, 1, 1, 1])
                 
                 # Create unique key using group name and email index
                 unique_key = f"{group_name}_{i}_{hash(str(email))}"
@@ -2856,6 +2856,17 @@ def security_operations_dashboard():
                                     break
                 
                 with col3:
+                    # Whitelist domain button
+                    domain = email.get('recipients_email_domain', '')
+                    if domain and st.button("🔒 Whitelist", key=f"whitelist_{unique_key}", help=f"Add {domain} to whitelist", use_container_width=True):
+                        domain_classifier = st.session_state.domain_classifier
+                        if domain_classifier.add_to_whitelist(domain, reason=f"Added from Security Operations by user on {datetime.now().strftime('%Y-%m-%d %H:%M')}"):
+                            st.success(f"Domain {domain} added to whitelist!")
+                            st.rerun()
+                        else:
+                            st.warning(f"Domain {domain} is already whitelisted")
+                
+                with col4:
                     if st.button("✅ Clear", key=f"dashboard_clear_{unique_key}", type="secondary", use_container_width=True):
                         email_id = str(hash(str(email)))
                         st.session_state.completed_reviews[email_id] = {
@@ -2866,7 +2877,7 @@ def security_operations_dashboard():
                         st.success("Email marked as cleared!")
                         st.rerun()
                 
-                with col4:
+                with col5:
                     if st.button("🚨 Escalate", key=f"dashboard_escalate_{unique_key}", type="primary", use_container_width=True):
                         email_id = str(hash(str(email)))
                         st.session_state.escalated_records[email_id] = {
@@ -4274,7 +4285,7 @@ def suspicious_email_analysis_page():
                 """, unsafe_allow_html=True)
                 
                 # Action buttons row exactly like Security Operations Dashboard
-                col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
+                col1, col2, col3, col4, col5 = st.columns([2, 1, 1, 1, 1])
                 
                 # Create unique key using email index
                 unique_key = f"suspicious_{i}_{hash(str(email))}"
@@ -4314,6 +4325,17 @@ def suspicious_email_analysis_page():
                                     break
                 
                 with col3:
+                    # Whitelist domain button
+                    domain = email.get('recipients_email_domain', '')
+                    if domain and st.button("🔒 Whitelist", key=f"sus_whitelist_{unique_key}", help=f"Add {domain} to whitelist", use_container_width=True):
+                        domain_classifier = st.session_state.domain_classifier
+                        if domain_classifier.add_to_whitelist(domain, reason=f"Added from Suspicious Email Analysis by user on {datetime.now().strftime('%Y-%m-%d %H:%M')}"):
+                            st.success(f"Domain {domain} added to whitelist!")
+                            st.rerun()
+                        else:
+                            st.warning(f"Domain {domain} is already whitelisted")
+                
+                with col4:
                     if st.button("✅ Mark as Safe", key=f"sus_clear_{unique_key}", type="secondary", use_container_width=True):
                         email_id = str(hash(str(email)))
                         if not hasattr(st.session_state, 'completed_reviews'):
@@ -4326,7 +4348,7 @@ def suspicious_email_analysis_page():
                         st.success("Email marked as safe!")
                         st.rerun()
                 
-                with col4:
+                with col5:
                     if st.button("🚨 Escalate", key=f"sus_escalate_{unique_key}", type="primary", use_container_width=True):
                         email_id = str(hash(str(email)))
                         if not hasattr(st.session_state, 'escalated_records'):
@@ -4338,42 +4360,6 @@ def suspicious_email_analysis_page():
                         }
                         st.success("Email escalated for follow-up!")
                         st.rerun()
-                
-                # Action buttons
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    if st.button("✅ Mark as Safe", key=f"safe_{i}"):
-                        # Update email status to low
-                        for original_email in st.session_state.data:
-                            if (original_email.get('sender') == email.get('sender') and 
-                                original_email.get('subject') == email.get('subject')):
-                                original_email['status'] = 'Low'
-                                break
-                        st.success("Email marked as safe!")
-                        st.rerun()
-                
-                with col2:
-                    if st.button("⚠️ Escalate", key=f"escalate_{i}"):
-                        # Add to escalated records
-                        if 'escalated_records' not in st.session_state:
-                            st.session_state.escalated_records = {}
-                        
-                        record_id = f"susp_{i}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-                        st.session_state.escalated_records[record_id] = {
-                            'email': email,
-                            'escalated_date': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                            'escalated_by': 'Suspicious Email Analysis',
-                            'followup_status': 'pending',
-                            'suspicion_score': score,
-                            'suspicion_reasons': reasons
-                        }
-                        st.success("Email escalated for follow-up!")
-                        st.rerun()
-                
-                with col3:
-                    if st.button("📋 View Details", key=f"details_{i}"):
-                        show_email_details_modal(email)
         
         # Export functionality
         st.markdown("### 💾 Export Results")
