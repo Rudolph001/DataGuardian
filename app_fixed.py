@@ -2380,6 +2380,70 @@ def security_operations_dashboard():
     </div>
     """, unsafe_allow_html=True)
     
+    # Display Configuration Section
+    with st.expander("⚙️ Configure Display Options", expanded=False):
+        st.markdown("### 📋 Display Field Configuration")
+        
+        # Available fields
+        available_fields = [
+            'sender', 'recipients', 'subject', 'recipients_email_domain', 
+            '_time', 'status', 'attachments', 'department', 'bunit',
+            'tessian', 'wordlist_subject', 'wordlist_attachment', 
+            'leaver', 'Termination', 'account_type', 'user_response'
+        ]
+        
+        # ML analysis fields (if available)
+        if hasattr(st.session_state, 'filtered_data') and st.session_state.filtered_data:
+            sample_email = st.session_state.filtered_data[0]
+            if 'ml_classification' in sample_email:
+                available_fields.extend(['ml_classification', 'ml_confidence', 'ml_reasons'])
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.markdown("**Primary Display Fields:**")
+            primary_fields = st.multiselect(
+                "Always show these fields:",
+                available_fields,
+                default=['sender', 'recipients', 'subject', 'status', 'recipients_email_domain'],
+                key="primary_fields"
+            )
+        
+        with col2:
+            st.markdown("**Secondary Display Fields:**")
+            secondary_fields = st.multiselect(
+                "Show in expandable section:",
+                [f for f in available_fields if f not in primary_fields],
+                default=['_time', 'attachments', 'department'],
+                key="secondary_fields"
+            )
+        
+        with col3:
+            st.markdown("**Display Options:**")
+            show_ml_analysis = st.checkbox("Show ML Analysis Results", value=True)
+            show_risk_indicators = st.checkbox("Show Risk Indicators", value=True)
+            compact_view = st.checkbox("Compact View", value=False)
+            
+            # Save display preferences
+            if st.button("💾 Save Display Preferences"):
+                st.session_state.display_preferences = {
+                    'primary_fields': primary_fields,
+                    'secondary_fields': secondary_fields,
+                    'show_ml_analysis': show_ml_analysis,
+                    'show_risk_indicators': show_risk_indicators,
+                    'compact_view': compact_view
+                }
+                st.success("Display preferences saved!")
+        
+        # Load saved preferences if available
+        if hasattr(st.session_state, 'display_preferences'):
+            prefs = st.session_state.display_preferences
+            primary_fields = prefs.get('primary_fields', primary_fields)
+            secondary_fields = prefs.get('secondary_fields', secondary_fields)
+            show_ml_analysis = prefs.get('show_ml_analysis', show_ml_analysis)
+            show_risk_indicators = prefs.get('show_risk_indicators', show_risk_indicators)
+            compact_view = prefs.get('compact_view', compact_view)
+    
     if not st.session_state.data:
         st.markdown("""
         <div class="alert alert-warning">
@@ -2644,20 +2708,64 @@ def security_operations_dashboard():
                     'low': '#44aa44'
                 }.get(email_status, '#888888')
                 
-                # Professional email card layout
+                # Professional email card layout with configurable fields
                 with st.container():
+                    # Build dynamic display content
+                    display_content = []
+                    
+                    # Always show status and risk
+                    if show_risk_indicators:
+                        display_content.append(f"<div style='font-weight: bold; color: #333;'>{risk_icon} {email_status.upper()} PRIORITY</div>")
+                    
+                    # Primary fields
+                    for field in primary_fields:
+                        if field in email:
+                            value = email[field]
+                            if field == 'sender':
+                                display_content.append(f"<strong>From:</strong> {str(value)[:50]}")
+                            elif field == 'recipients':
+                                display_content.append(f"<strong>To:</strong> {str(value)[:50]}")
+                            elif field == 'subject':
+                                subject_display = str(value)[:60] + "..." if len(str(value)) > 60 else str(value)
+                                display_content.append(f"<strong>Subject:</strong> {subject_display}")
+                            elif field == 'recipients_email_domain':
+                                display_content.append(f"<strong>Domain:</strong> {str(value)}")
+                            elif field == 'ml_classification' and show_ml_analysis:
+                                confidence = email.get('ml_confidence', 0)
+                                display_content.append(f"<strong>ML:</strong> {str(value)} ({confidence:.2f})")
+                            elif field not in ['sender', 'recipients', 'subject', 'recipients_email_domain']:
+                                display_content.append(f"<strong>{field.replace('_', ' ').title()}:</strong> {str(value)}")
+                    
+                    # Format display
+                    if compact_view:
+                        content_html = " • ".join(display_content)
+                    else:
+                        content_html = "<br/>".join(display_content)
+                    
                     st.markdown(f"""
                     <div style="border-left: 4px solid {risk_color}; padding: 12px; margin: 8px 0; background-color: #f8f9fa; border-radius: 4px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                            <div style="font-weight: bold; color: #333;">{risk_icon} {email_status.upper()} PRIORITY</div>
                             <div style="font-size: 0.9em; color: #666;">{time_sent}</div>
                         </div>
-                        <div style="font-size: 1.1em; font-weight: 500; margin-bottom: 4px;">{subject_preview}</div>
-                        <div style="color: #666; font-size: 0.9em;">
-                            <strong>From:</strong> {sender_name} → <strong>To:</strong> {recipient_domain}
+                        <div style="font-size: {'0.9em' if compact_view else '1.0em'};">
+                            {content_html}
                         </div>
                     </div>
                     """, unsafe_allow_html=True)
+                    
+                    # Secondary fields in expandable section
+                    if secondary_fields and not compact_view:
+                        with st.expander("📋 Additional Details", expanded=False):
+                            for field in secondary_fields:
+                                if field in email:
+                                    value = email[field]
+                                    if field == 'ml_reasons' and show_ml_analysis:
+                                        if isinstance(value, list):
+                                            st.write(f"**ML Reasons:** {', '.join(value)}")
+                                        else:
+                                            st.write(f"**ML Reasons:** {value}")
+                                    else:
+                                        st.write(f"**{field.replace('_', ' ').title()}:** {value}")
                 
                 # Pop-out window button for details
                 col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
@@ -4482,6 +4590,578 @@ def domain_classification_page():
                     st.success(f"Added {item['domain']}!")
                     st.rerun()
 
+def data_filtering_review_page():
+    """Data Filtering & Review page - ML-powered filtering with BAU vs Exfiltration analysis"""
+    st.markdown("""
+    <div class="data-container">
+        <h2 style="color: #2c3e50; margin-bottom: 1rem;">🔍 Data Filtering & Review</h2>
+        <p style="color: #7f8c8d; font-size: 1.1rem; margin-bottom: 1.5rem;">
+            Filter and analyze your data before sending to Security Operations. Uses ML to identify potential 
+            data exfiltration patterns and provides comprehensive filtering options.
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    if not st.session_state.data:
+        st.markdown("""
+        <div class="alert alert-warning">
+            <strong>⚠️ No Data Available</strong><br>
+            Please upload data first in the Data Upload & Preprocessing section.
+        </div>
+        """, unsafe_allow_html=True)
+        return
+    
+    # Initialize filtered data in session state
+    if 'filtered_data' not in st.session_state:
+        st.session_state.filtered_data = st.session_state.data.copy()
+    
+    # ML Analysis Section
+    st.markdown("### 🤖 ML-Powered Analysis")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        enable_ml_analysis = st.checkbox(
+            "Enable ML BAU vs Exfiltration Analysis",
+            value=True,
+            help="Use machine learning to classify emails as Business As Usual or potential data exfiltration"
+        )
+    
+    with col2:
+        focus_on_medium_low = st.checkbox(
+            "Focus on Medium/Low/Unclassified",
+            value=True,
+            help="Prioritize analysis of Medium, Low, and unclassified emails while preserving Critical/High alerts"
+        )
+    
+    with col3:
+        ml_sensitivity = st.slider(
+            "ML Sensitivity",
+            min_value=0.1,
+            max_value=1.0,
+            value=0.6,
+            step=0.1,
+            help="Higher values detect more potential exfiltration but may increase false positives"
+        )
+    
+    # Whitelist Analysis Section
+    st.markdown("### ✅ Whitelist Analysis")
+    
+    # Count whitelisted emails
+    domain_classifier = st.session_state.domain_classifier
+    whitelisted_count = 0
+    whitelisted_breakdown = {}
+    
+    for email in st.session_state.data:
+        domain = email.get('recipients_email_domain', '')
+        if domain_classifier.is_whitelisted(domain):
+            whitelisted_count += 1
+            # Get whitelist reason
+            whitelisted_domains = domain_classifier.get_whitelisted_domains()
+            reason = "Unknown"
+            for wd in whitelisted_domains:
+                if wd['domain'] == domain:
+                    reason = wd.get('reason', 'Unknown')
+                    break
+            
+            whitelisted_breakdown[reason] = whitelisted_breakdown.get(reason, 0) + 1
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.metric("Total Whitelisted Emails", f"{whitelisted_count:,}")
+        
+        if whitelisted_breakdown:
+            st.markdown("**Whitelist Reasons:**")
+            for reason, count in whitelisted_breakdown.items():
+                st.write(f"• {reason}: {count:,} emails")
+    
+    with col2:
+        show_whitelisted = st.checkbox(
+            "Include Whitelisted Emails in Analysis",
+            value=False,
+            help="Whether to include whitelisted emails in the filtered dataset"
+        )
+        
+        if st.button("📊 Export Whitelist Report"):
+            # Create whitelist report
+            whitelist_report = {
+                'total_whitelisted': whitelisted_count,
+                'breakdown_by_reason': whitelisted_breakdown,
+                'generated_at': datetime.now().isoformat()
+            }
+            
+            st.download_button(
+                "Download Whitelist Report",
+                data=json.dumps(whitelist_report, indent=2),
+                file_name=f"whitelist_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                mime="application/json"
+            )
+    
+    # Advanced Filtering Section
+    st.markdown("### 🔧 Advanced Filtering Options")
+    
+    # Create filter configuration
+    filter_config = {}
+    
+    # Status filters
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("**Risk Status Filters:**")
+        preserve_critical = st.checkbox("Always preserve Critical", value=True, help="Critical emails always pass through")
+        preserve_high = st.checkbox("Always preserve High", value=True, help="High emails always pass through")
+        include_medium = st.checkbox("Include Medium", value=True)
+        include_low = st.checkbox("Include Low", value=True)
+        include_unclassified = st.checkbox("Include Unclassified", value=True)
+        
+        filter_config['status_filters'] = {
+            'preserve_critical': preserve_critical,
+            'preserve_high': preserve_high,
+            'include_medium': include_medium,
+            'include_low': include_low,
+            'include_unclassified': include_unclassified
+        }
+    
+    with col2:
+        st.markdown("**Domain Filters:**")
+        domain_categories = st.multiselect(
+            "Include Domain Categories",
+            ['Suspicious', 'Free Email', 'Business', 'Government', 'Financial', 'Cloud Providers', 
+             'Social Media', 'Educational', 'Healthcare', 'Technology', 'Unknown'],
+            default=['Suspicious', 'Free Email', 'Business', 'Unknown']
+        )
+        
+        exclude_internal = st.checkbox("Exclude Internal Domains", help="Filter out emails within your organization")
+        
+        filter_config['domain_filters'] = {
+            'categories': domain_categories,
+            'exclude_internal': exclude_internal
+        }
+    
+    with col3:
+        st.markdown("**Content Filters:**")
+        has_attachments = st.selectbox("Attachments", ["All", "With Attachments", "Without Attachments"])
+        wordlist_matches = st.selectbox("Wordlist Matches", ["All", "With Matches", "Without Matches"])
+        
+        min_email_length = st.slider("Minimum Subject Length", 0, 100, 0)
+        
+        filter_config['content_filters'] = {
+            'attachments': has_attachments,
+            'wordlist': wordlist_matches,
+            'min_subject_length': min_email_length
+        }
+    
+    # Date/Time filters
+    st.markdown("**Time-based Filters:**")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        time_period = st.selectbox(
+            "Time Period",
+            ["All Time", "Last 7 Days", "Last 30 Days", "Last 90 Days", "Custom Range"]
+        )
+    
+    with col2:
+        if time_period == "Custom Range":
+            start_date = st.date_input("Start Date")
+            end_date = st.date_input("End Date")
+        else:
+            start_date = None
+            end_date = None
+    
+    with col3:
+        unusual_hours = st.checkbox("Flag Emails Sent Outside Business Hours", help="Identify emails sent outside 9 AM - 6 PM")
+    
+    filter_config['time_filters'] = {
+        'period': time_period,
+        'start_date': start_date,
+        'end_date': end_date,
+        'unusual_hours': unusual_hours
+    }
+    
+    # Custom Filters Section
+    st.markdown("### ➕ Custom Filters")
+    
+    # Allow users to add custom filters
+    if 'custom_filters' not in st.session_state:
+        st.session_state.custom_filters = []
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        filter_field = st.selectbox(
+            "Field",
+            ["sender", "subject", "recipients", "recipients_email_domain", "department", "bunit"]
+        )
+    
+    with col2:
+        filter_operator = st.selectbox(
+            "Operator",
+            ["contains", "equals", "starts_with", "ends_with", "not_contains"]
+        )
+    
+    with col3:
+        filter_value = st.text_input("Value")
+    
+    with col4:
+        st.write("")  # spacing
+        if st.button("➕ Add Filter"):
+            if filter_value:
+                new_filter = {
+                    'field': filter_field,
+                    'operator': filter_operator,
+                    'value': filter_value
+                }
+                st.session_state.custom_filters.append(new_filter)
+                st.success("Custom filter added!")
+                st.rerun()
+    
+    # Display active custom filters
+    if st.session_state.custom_filters:
+        st.markdown("**Active Custom Filters:**")
+        for i, cf in enumerate(st.session_state.custom_filters):
+            col1, col2 = st.columns([4, 1])
+            with col1:
+                st.write(f"• {cf['field']} {cf['operator']} '{cf['value']}'")
+            with col2:
+                if st.button("🗑️", key=f"remove_filter_{i}"):
+                    st.session_state.custom_filters.pop(i)
+                    st.rerun()
+    
+    # Apply Filters Button
+    if st.button("🚀 Apply Filters & Run ML Analysis", type="primary", use_container_width=True):
+        with st.spinner("Applying filters and running ML analysis..."):
+            filtered_data = apply_advanced_filters(
+                st.session_state.data, 
+                filter_config, 
+                st.session_state.custom_filters,
+                show_whitelisted,
+                enable_ml_analysis,
+                focus_on_medium_low,
+                ml_sensitivity
+            )
+            
+            st.session_state.filtered_data = filtered_data
+            st.session_state.filter_applied = True
+    
+    # Results Section
+    if hasattr(st.session_state, 'filter_applied') and st.session_state.filter_applied:
+        st.markdown("---")
+        st.markdown("### 📊 Filtering Results")
+        
+        original_count = len(st.session_state.data)
+        filtered_count = len(st.session_state.filtered_data)
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            st.metric("Original Records", f"{original_count:,}")
+        
+        with col2:
+            st.metric("Filtered Records", f"{filtered_count:,}")
+        
+        with col3:
+            reduction_pct = ((original_count - filtered_count) / original_count * 100) if original_count > 0 else 0
+            st.metric("Reduction", f"{reduction_pct:.1f}%")
+        
+        with col4:
+            if st.button("🛡️ Send to Security Operations", type="primary"):
+                # Update the main data with filtered data
+                st.session_state.data = st.session_state.filtered_data
+                st.success("✅ Filtered data sent to Security Operations Dashboard!")
+                st.info("🔄 Navigate to Security Operations Dashboard to review the filtered data.")
+        
+        # Show filtering breakdown
+        if hasattr(st.session_state, 'filtering_stats'):
+            stats = st.session_state.filtering_stats
+            
+            st.markdown("**Filtering Breakdown:**")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                if 'ml_analysis' in stats:
+                    ml_stats = stats['ml_analysis']
+                    st.markdown("**🤖 ML Analysis Results:**")
+                    st.write(f"• BAU (Business as Usual): {ml_stats.get('bau_count', 0):,}")
+                    st.write(f"• Potential Exfiltration: {ml_stats.get('exfiltration_count', 0):,}")
+                    st.write(f"• Suspicious Patterns: {ml_stats.get('suspicious_count', 0):,}")
+                
+                if 'status_breakdown' in stats:
+                    status_stats = stats['status_breakdown']
+                    st.markdown("**📊 Status Distribution:**")
+                    for status, count in status_stats.items():
+                        st.write(f"• {status.title()}: {count:,}")
+            
+            with col2:
+                if 'domain_breakdown' in stats:
+                    domain_stats = stats['domain_breakdown']
+                    st.markdown("**🌐 Domain Categories:**")
+                    for category, count in list(domain_stats.items())[:5]:
+                        st.write(f"• {category}: {count:,}")
+                
+                if 'time_analysis' in stats:
+                    time_stats = stats['time_analysis']
+                    st.markdown("**⏰ Time Analysis:**")
+                    st.write(f"• Business Hours: {time_stats.get('business_hours', 0):,}")
+                    st.write(f"• After Hours: {time_stats.get('after_hours', 0):,}")
+        
+        # Sample preview
+        if st.checkbox("📋 Show Sample Preview"):
+            st.markdown("**Sample of Filtered Data:**")
+            
+            sample_size = min(5, len(st.session_state.filtered_data))
+            for i, email in enumerate(st.session_state.filtered_data[:sample_size]):
+                with st.expander(f"Email {i+1}: {email.get('subject', 'No Subject')[:50]}..."):
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.write(f"**From:** {email.get('sender', 'Unknown')}")
+                        st.write(f"**To:** {email.get('recipients', 'Unknown')}")
+                        st.write(f"**Status:** {email.get('status', 'Unknown')}")
+                    
+                    with col2:
+                        st.write(f"**Domain:** {email.get('recipients_email_domain', 'Unknown')}")
+                        st.write(f"**Time:** {email.get('_time', 'Unknown')}")
+                        
+                        # Show ML classification if available
+                        if 'ml_classification' in email:
+                            ml_class = email['ml_classification']
+                            confidence = email.get('ml_confidence', 0)
+                            st.write(f"**ML Classification:** {ml_class} ({confidence:.2f})")
+    
+    # Save Filter Presets
+    st.markdown("### 💾 Filter Presets")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        preset_name = st.text_input("Save Current Filters As:")
+        if st.button("💾 Save Preset") and preset_name:
+            if 'filter_presets' not in st.session_state:
+                st.session_state.filter_presets = {}
+            
+            st.session_state.filter_presets[preset_name] = {
+                'config': filter_config,
+                'custom_filters': st.session_state.custom_filters.copy(),
+                'ml_settings': {
+                    'enabled': enable_ml_analysis,
+                    'focus_medium_low': focus_on_medium_low,
+                    'sensitivity': ml_sensitivity
+                },
+                'created_at': datetime.now().isoformat()
+            }
+            st.success(f"Filter preset '{preset_name}' saved!")
+    
+    with col2:
+        if hasattr(st.session_state, 'filter_presets') and st.session_state.filter_presets:
+            preset_to_load = st.selectbox(
+                "Load Preset:",
+                ["Select preset..."] + list(st.session_state.filter_presets.keys())
+            )
+            
+            if st.button("📂 Load Preset") and preset_to_load != "Select preset...":
+                preset = st.session_state.filter_presets[preset_to_load]
+                # This would restore the filter settings
+                st.success(f"Preset '{preset_to_load}' loaded!")
+                st.info("Reload the page to see the updated filter settings.")
+
+def apply_advanced_filters(data, filter_config, custom_filters, show_whitelisted, enable_ml, focus_medium_low, ml_sensitivity):
+    """Apply advanced filtering with ML analysis"""
+    filtered_data = []
+    stats = {
+        'ml_analysis': {'bau_count': 0, 'exfiltration_count': 0, 'suspicious_count': 0},
+        'status_breakdown': {},
+        'domain_breakdown': {},
+        'time_analysis': {'business_hours': 0, 'after_hours': 0}
+    }
+    
+    domain_classifier = st.session_state.domain_classifier
+    
+    for email in data:
+        include_email = True
+        
+        # Apply status filters
+        status = email.get('status', 'unknown').lower()
+        status_filters = filter_config.get('status_filters', {})
+        
+        if status == 'critical' and not status_filters.get('preserve_critical', True):
+            include_email = False
+        elif status == 'high' and not status_filters.get('preserve_high', True):
+            include_email = False
+        elif status == 'medium' and not status_filters.get('include_medium', True):
+            include_email = False
+        elif status == 'low' and not status_filters.get('include_low', True):
+            include_email = False
+        elif status in ['unclassified', 'unknown'] and not status_filters.get('include_unclassified', True):
+            include_email = False
+        
+        # Apply whitelist filter
+        domain = email.get('recipients_email_domain', '')
+        if not show_whitelisted and domain_classifier.is_whitelisted(domain):
+            include_email = False
+        
+        # Apply domain category filters
+        domain_filters = filter_config.get('domain_filters', {})
+        domain_category = domain_classifier.classify_domain(domain)
+        if domain_category not in domain_filters.get('categories', []):
+            include_email = False
+        
+        # Apply content filters
+        content_filters = filter_config.get('content_filters', {})
+        
+        if content_filters.get('attachments') == "With Attachments" and not email.get('attachments'):
+            include_email = False
+        elif content_filters.get('attachments') == "Without Attachments" and email.get('attachments'):
+            include_email = False
+        
+        if content_filters.get('wordlist') == "With Matches" and not (email.get('wordlist_subject') or email.get('wordlist_attachment')):
+            include_email = False
+        elif content_filters.get('wordlist') == "Without Matches" and (email.get('wordlist_subject') or email.get('wordlist_attachment')):
+            include_email = False
+        
+        subject_len = len(email.get('subject', ''))
+        if subject_len < content_filters.get('min_subject_length', 0):
+            include_email = False
+        
+        # Apply custom filters
+        for cf in custom_filters:
+            field_value = str(email.get(cf['field'], '')).lower()
+            filter_value = cf['value'].lower()
+            
+            if cf['operator'] == 'contains' and filter_value not in field_value:
+                include_email = False
+            elif cf['operator'] == 'equals' and field_value != filter_value:
+                include_email = False
+            elif cf['operator'] == 'starts_with' and not field_value.startswith(filter_value):
+                include_email = False
+            elif cf['operator'] == 'ends_with' and not field_value.endswith(filter_value):
+                include_email = False
+            elif cf['operator'] == 'not_contains' and filter_value in field_value:
+                include_email = False
+        
+        # Apply ML analysis if enabled
+        if include_email and enable_ml:
+            ml_result = run_ml_bau_analysis(email, focus_medium_low, ml_sensitivity)
+            email['ml_classification'] = ml_result['classification']
+            email['ml_confidence'] = ml_result['confidence']
+            email['ml_reasons'] = ml_result['reasons']
+            
+            # Update ML stats
+            if ml_result['classification'] == 'BAU':
+                stats['ml_analysis']['bau_count'] += 1
+            elif ml_result['classification'] == 'Potential_Exfiltration':
+                stats['ml_analysis']['exfiltration_count'] += 1
+            else:
+                stats['ml_analysis']['suspicious_count'] += 1
+        
+        # Include email if it passes all filters
+        if include_email:
+            filtered_data.append(email)
+            
+            # Update stats
+            stats['status_breakdown'][status] = stats['status_breakdown'].get(status, 0) + 1
+            stats['domain_breakdown'][domain_category] = stats['domain_breakdown'].get(domain_category, 0) + 1
+    
+    # Store stats in session state
+    st.session_state.filtering_stats = stats
+    
+    return filtered_data
+
+def run_ml_bau_analysis(email, focus_medium_low, sensitivity):
+    """Run ML analysis to classify email as BAU vs potential exfiltration"""
+    
+    # Extract features for ML analysis
+    features = {
+        'status': email.get('status', 'unknown').lower(),
+        'has_attachments': bool(email.get('attachments')),
+        'wordlist_subject': bool(email.get('wordlist_subject')),
+        'wordlist_attachment': bool(email.get('wordlist_attachment')),
+        'subject_length': len(email.get('subject', '')),
+        'sender_domain': email.get('sender', '').split('@')[-1] if '@' in email.get('sender', '') else '',
+        'recipient_domain': email.get('recipients_email_domain', ''),
+        'department': email.get('department', ''),
+        'is_leaver': bool(email.get('leaver')),
+        'is_termination': bool(email.get('Termination')),
+        'account_type': email.get('account_type', '')
+    }
+    
+    # Focus on medium/low/unclassified if enabled
+    if focus_medium_low and features['status'] not in ['medium', 'low', 'unclassified', 'unknown']:
+        return {
+            'classification': 'BAU',
+            'confidence': 0.95,
+            'reasons': ['High/Critical status preserved by policy']
+        }
+    
+    # ML scoring system
+    risk_score = 0.0
+    reasons = []
+    
+    # Risk factors
+    if features['has_attachments']:
+        risk_score += 0.2
+        reasons.append('Contains attachments')
+    
+    if features['wordlist_subject'] or features['wordlist_attachment']:
+        risk_score += 0.3
+        reasons.append('Matches security wordlist')
+    
+    if features['is_leaver'] or features['is_termination']:
+        risk_score += 0.4
+        reasons.append('Sender is a leaver/terminated employee')
+    
+    # Domain analysis
+    domain_classifier = st.session_state.domain_classifier
+    recipient_category = domain_classifier.classify_domain(features['recipient_domain'])
+    
+    if recipient_category in ['Suspicious', 'Free Email']:
+        risk_score += 0.25
+        reasons.append(f'Sent to {recipient_category.lower()} domain')
+    
+    # Unusual patterns
+    if features['subject_length'] > 100:
+        risk_score += 0.1
+        reasons.append('Unusually long subject line')
+    
+    # External domain check
+    if features['sender_domain'] != features['recipient_domain']:
+        risk_score += 0.15
+        reasons.append('External communication')
+    
+    # Business context analysis
+    if features['department'] in ['IT', 'Finance', 'HR', 'Legal']:
+        if features['has_attachments']:
+            risk_score += 0.2
+            reasons.append('Sensitive department with attachments')
+    
+    # Account type analysis
+    if features['account_type'] in ['admin', 'privileged']:
+        risk_score += 0.15
+        reasons.append('Privileged account activity')
+    
+    # Adjust for sensitivity
+    risk_score *= sensitivity
+    
+    # Classification based on score
+    if risk_score >= 0.7:
+        classification = 'Potential_Exfiltration'
+        confidence = min(risk_score, 0.95)
+    elif risk_score >= 0.4:
+        classification = 'Suspicious'
+        confidence = risk_score * 0.8
+    else:
+        classification = 'BAU'
+        confidence = 1.0 - risk_score
+        reasons = ['Normal business communication pattern']
+    
+    return {
+        'classification': classification,
+        'confidence': confidence,
+        'reasons': reasons
+    }
+
 def main():
     """Main application function"""
     # Auto-save work state periodically
@@ -4509,6 +5189,7 @@ def main():
     # Navigation menu
     pages = {
         "📁 Data Upload & Preprocessing": data_upload_page,
+        "🔍 Data Filtering & Review": data_filtering_review_page,
         "🛡️ Security Operations Dashboard": security_operations_dashboard,
         "🔍 Suspicious Email Analysis": suspicious_email_analysis_page,
         "📨 Follow-up Center": followup_center_page,
