@@ -4700,6 +4700,13 @@ def data_filtering_review_page():
             help="Filter by security keyword matches"
         )
         
+        st.markdown("**Whitelist Settings:**")
+        show_whitelist_domains = st.checkbox(
+            "Show emails to whitelisted domains",
+            value=True,
+            help="Include emails sent to whitelisted domains in results"
+        )
+        
         st.markdown("**Time Period:**")
         time_filter = st.selectbox(
             "Show emails from",
@@ -4719,7 +4726,8 @@ def data_filtering_review_page():
                 include_unclassified,
                 attachment_filter,
                 wordlist_filter,
-                time_filter
+                time_filter,
+                show_whitelist_domains
             )
             
             st.session_state.filtered_data = filtered_data
@@ -4769,9 +4777,11 @@ def data_filtering_review_page():
             
             with col2:
                 if 'whitelist_filtered' in stats:
-                    st.markdown("**🔒 Whitelist Protection:**")
-                    st.write(f"• Critical/High whitelisted: {stats['whitelist_filtered'].get('critical_high', 0):,}")
-                    st.write(f"• Other whitelisted: {stats['whitelist_filtered'].get('other', 0):,}")
+                    st.markdown("**🔒 Whitelist Filtering:**")
+                    st.write(f"• Critical/High auto-filtered: {stats['whitelist_filtered'].get('critical_high', 0):,}")
+                    st.write(f"• Other whitelisted included: {stats['whitelist_filtered'].get('other', 0):,}")
+                    if stats['whitelist_filtered'].get('hidden_whitelist', 0) > 0:
+                        st.write(f"• Whitelisted hidden by choice: {stats['whitelist_filtered'].get('hidden_whitelist', 0):,}")
         
         # Sample preview
         if st.checkbox("📋 Show Sample Preview"):
@@ -4804,7 +4814,7 @@ def data_filtering_review_page():
     with col1:
         if st.button("🔥 High Priority Only", use_container_width=True):
             st.session_state.filtered_data = apply_simple_filters(
-                st.session_state.data, True, True, False, False, False, "All emails", "All emails", "All time"
+                st.session_state.data, True, True, False, False, False, "All emails", "All emails", "All time", True
             )
             st.session_state.filter_applied = True
             st.success("Applied High Priority filter!")
@@ -4813,7 +4823,7 @@ def data_filtering_review_page():
     with col2:
         if st.button("📎 Attachments Only", use_container_width=True):
             st.session_state.filtered_data = apply_simple_filters(
-                st.session_state.data, True, True, True, False, True, "Only emails with attachments", "All emails", "All time"
+                st.session_state.data, True, True, True, False, True, "Only emails with attachments", "All emails", "All time", True
             )
             st.session_state.filter_applied = True
             st.success("Applied Attachments filter!")
@@ -4822,18 +4832,18 @@ def data_filtering_review_page():
     with col3:
         if st.button("🔍 Last 7 Days", use_container_width=True):
             st.session_state.filtered_data = apply_simple_filters(
-                st.session_state.data, True, True, True, False, True, "All emails", "All emails", "Last 7 days"
+                st.session_state.data, True, True, True, False, True, "All emails", "All emails", "Last 7 days", True
             )
             st.session_state.filter_applied = True
             st.success("Applied Last 7 Days filter!")
             st.rerun()
 
-def apply_simple_filters(data, include_critical, include_high, include_medium, include_low, include_unclassified, attachment_filter, wordlist_filter, time_filter):
+def apply_simple_filters(data, include_critical, include_high, include_medium, include_low, include_unclassified, attachment_filter, wordlist_filter, time_filter, show_whitelist_domains=True):
     """Apply simple filtering with automatic whitelist protection for Critical/High emails"""
     filtered_data = []
     stats = {
         'status_breakdown': {},
-        'whitelist_filtered': {'critical_high': 0, 'other': 0}
+        'whitelist_filtered': {'critical_high': 0, 'other': 0, 'hidden_whitelist': 0}
     }
     
     domain_classifier = st.session_state.domain_classifier
@@ -4851,6 +4861,12 @@ def apply_simple_filters(data, include_critical, include_high, include_medium, i
         if is_whitelisted and status in ['critical', 'high']:
             stats['whitelist_filtered']['critical_high'] += 1
             continue  # Skip this email - it's filtered out
+        
+        # OPTIONAL WHITELIST FILTERING FOR OTHER PRIORITY LEVELS
+        # User can choose to hide all whitelisted emails regardless of priority
+        if is_whitelisted and not show_whitelist_domains:
+            stats['whitelist_filtered']['hidden_whitelist'] += 1
+            continue  # Skip this email - user chose to hide whitelisted emails
         
         # Apply status filters
         if status == 'critical' and not include_critical:
