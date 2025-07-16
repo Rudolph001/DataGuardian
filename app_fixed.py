@@ -1999,19 +1999,43 @@ def show_email_details_modal(email):
     col1, col2, col3 = st.columns(3)
     
     with col1:
+        # Handle wordlist attachment display
+        wordlist_attachment_value = email.get('wordlist_attachment', '')
+        if wordlist_attachment_value and str(wordlist_attachment_value).strip() and str(wordlist_attachment_value).strip().lower() not in ['', 'null', 'none', 'false', '-']:
+            wordlist_attachment_text = f"⚠️ {wordlist_attachment_value}"
+        else:
+            wordlist_attachment_text = "✅ No match"
+        
+        # Handle wordlist subject display
+        wordlist_subject_value = email.get('wordlist_subject', '')
+        if wordlist_subject_value and str(wordlist_subject_value).strip() and str(wordlist_subject_value).strip().lower() not in ['', 'null', 'none', 'false', '-']:
+            wordlist_subject_text = f"⚠️ {wordlist_subject_value}"
+        else:
+            wordlist_subject_text = "✅ No match"
+        
         st.error(f"""
         **🔍 Tessian:** {'✅ Yes' if email.get('tessian') else '❌ No'}
         
-        **📎 Wordlist Attachment:** {'⚠️ Yes' if email.get('wordlist_attachment') else '✅ No'}
+        **📎 Wordlist Attachment:** {wordlist_attachment_text}
         
-        **📝 Wordlist Subject:** {'⚠️ Yes' if email.get('wordlist_subject') else '✅ No'}
+        **📝 Wordlist Subject:** {wordlist_subject_text}
         """)
     
     with col2:
+        # Handle termination display
+        termination_value = email.get('Termination', '')
+        if termination_value and str(termination_value).strip() and str(termination_value).strip().lower() not in ['', 'null', 'none', 'false', '-']:
+            if str(termination_value).strip().lower() == 'true':
+                termination_text = "⚠️ Yes"
+            else:
+                termination_text = f"⚠️ {termination_value}"
+        else:
+            termination_text = "✅ No"
+        
         st.success(f"""
         **👋 Leaver:** {'⚠️ Yes' if email.get('leaver') else '✅ No'}
         
-        **🚪 Termination:** {'⚠️ Yes' if email.get('Termination') else '✅ No'}
+        **🚪 Termination:** {termination_text}
         
         **👤 User Response:** {email.get('user_response', 'Unknown')}
         """)

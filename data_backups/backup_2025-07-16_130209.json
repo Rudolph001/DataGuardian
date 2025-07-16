@@ -1,8 +1,8 @@
 {
-  "upload_date": "2025-07-15",
-  "upload_timestamp": "2025-07-15T20:55:08.838995",
-  "total_records": 10,
-  "data_hash": "8fc2863319f37d4adc6322ff8317915a7fc7d248ae86d744782459b3f044c0a2",
+  "upload_date": "2025-07-16",
+  "upload_timestamp": "2025-07-16T13:02:09.841114",
+  "total_records": 6,
+  "data_hash": "5e13e919686461092294dc147be9ec571632c888d10bcbc8eda5de5c14d84b83",
   "email_data": [
     {
       "_time": "2025-07-14T08:24:12.280583",
@@ -11,7 +11,6 @@
       "attachments": "letter.docx",
       "recipients": "dave@external.com",
       "recipients_email_domain": "external.com",
-      "minecast": "FALSE",
       "tessian": "TRUE",
       "leaver": "TRUE",
       "Termination": "2025-07",
@@ -22,29 +21,9 @@
       "bunit": "HR",
       "department": "Recruitment",
       "status": "Critical",
-      "tessian_status_A": "a",
-      "tessian_status_B": "f"
-    },
-    {
-      "_time": "2025-07-06T08:24:12.280656",
-      "sender": "alice@company.com",
-      "subject": "Resignation Letter",
-      "attachments": "report.pdf",
-      "recipients": "erin@partner.org",
-      "recipients_email_domain": "partner.org",
-      "minecast": "FALSE",
-      "tessian": "FALSE",
-      "leaver": "FALSE",
-      "Termination": "2025-08",
-      "time_month": "2025-07",
-      "account_type": "contractor",
-      "wordlist_attachment": "salary",
-      "wordlist_subject": "resignation",
-      "bunit": "Finance",
-      "department": "Accounting",
-      "status": "Low",
-      "tessian_status_A": "b",
-      "tessian_status_B": "g"
+      "user_response": "a",
+      "final_outcome": "f",
+      "policy_name": "policy_A"
     },
     {
       "_time": "2025-07-15T08:24:12.280685",
@@ -53,7 +32,6 @@
       "attachments": "letter.docx",
       "recipients": "erin@partner.org",
       "recipients_email_domain": "partner.org",
-      "minecast": "TRUE",
       "tessian": "FALSE",
       "leaver": "FALSE",
       "Termination": "2025-09",
@@ -64,29 +42,9 @@
       "bunit": "Finance",
       "department": "Development",
       "status": "Low",
-      "tessian_status_A": "c",
-      "tessian_status_B": "h"
-    },
-    {
-      "_time": "2025-07-07T08:24:12.280711",
-      "sender": "alice@company.com",
-      "subject": "Confidential Proposal",
-      "attachments": "letter.docx",
-      "recipients": "erin@partner.org",
-      "recipients_email_domain": "partner.org",
-      "minecast": "FALSE",
-      "tessian": "FALSE",
-      "leaver": "TRUE",
-      "Termination": "2025-10",
-      "time_month": "2025-07",
-      "account_type": "contractor",
-      "wordlist_attachment": "resignation",
-      "wordlist_subject": "salary",
-      "bunit": "Finance",
-      "department": "Accounting",
-      "status": "High",
-      "tessian_status_A": "a",
-      "tessian_status_B": "f"
+      "user_response": "c",
+      "final_outcome": "h",
+      "policy_name": "policy_A"
     },
     {
       "_time": "2025-07-10T08:24:12.280737",
@@ -95,7 +53,6 @@
       "attachments": "letter.docx",
       "recipients": "erin@partner.org",
       "recipients_email_domain": "partner.org",
-      "minecast": "TRUE",
       "tessian": "FALSE",
       "leaver": "TRUE",
       "Termination": "2025-11",
@@ -106,8 +63,9 @@
       "bunit": "HR",
       "department": "Recruitment",
       "status": "High",
-      "tessian_status_A": "b",
-      "tessian_status_B": "g"
+      "user_response": "b",
+      "final_outcome": "g",
+      "policy_name": "policy_A"
     },
     {
       "_time": "2025-07-02T08:24:12.280762",
@@ -116,7 +74,6 @@
       "attachments": "letter.docx",
       "recipients": "frank@vendor.com",
       "recipients_email_domain": "vendor.com",
-      "minecast": "FALSE",
       "tessian": "FALSE",
       "leaver": "FALSE",
       "Termination": "2025-12",
@@ -127,50 +84,9 @@
       "bunit": "HR",
       "department": "Accounting",
       "status": "Medium",
-      "tessian_status_A": "c",
-      "tessian_status_B": "h"
-    },
-    {
-      "_time": "2025-06-27T08:24:12.280787",
-      "sender": "carol@company.com",
-      "subject": "Quarterly Report",
-      "attachments": "report.pdf",
-      "recipients": "dave@gmail.com",
-      "recipients_email_domain": "gmail.com",
-      "minecast": "TRUE",
-      "tessian": "FALSE",
-      "leaver": "FALSE",
-      "Termination": "2025-13",
-      "time_month": "2025-06",
-      "account_type": "employee",
-      "wordlist_attachment": "salary",
-      "wordlist_subject": "salary",
-      "bunit": "Engineering",
-      "department": "Recruitment",
-      "status": "Medium",
-      "tessian_status_A": "a",
-      "tessian_status_B": "f"
-    },
-    {
-      "_time": "2025-06-23T08:24:12.280813",
-      "sender": "carol@company.com",
-      "subject": "Confidential Proposal",
-      "attachments": "",
-      "recipients": "erin@rdcomputers.co.za",
-      "recipients_email_domain": "rdcomputers.co.za",
-      "minecast": "FALSE",
-      "tessian": "TRUE",
-      "leaver": "TRUE",
-      "Termination": "2025-14",
-      "time_month": "2025-06",
-      "account_type": "employee",
-      "wordlist_attachment": "",
-      "wordlist_subject": "confidential",
-      "bunit": "Engineering",
-      "department": "Recruitment",
-      "status": "Medium",
-      "tessian_status_A": "b",
-      "tessian_status_B": "g"
+      "user_response": "c",
+      "final_outcome": "h",
+      "policy_name": "policy_A"
     },
     {
       "_time": "2025-06-17T08:24:12.280844",
@@ -179,7 +95,6 @@
       "attachments": "report.pdf",
       "recipients": "erin@partner.org",
       "recipients_email_domain": "partner.org",
-      "minecast": "FALSE",
       "tessian": "TRUE",
       "leaver": "FALSE",
       "Termination": "2025-15",
@@ -190,8 +105,9 @@
       "bunit": "Finance",
       "department": "Accounting",
       "status": "Low",
-      "tessian_status_A": "c",
-      "tessian_status_B": "h"
+      "user_response": "c",
+      "final_outcome": "h",
+      "policy_name": "policy_A"
     },
     {
       "_time": "2025-06-16T08:24:12.280868",
@@ -200,7 +116,6 @@
       "attachments": "proposal.pptx",
       "recipients": "frank@vendor.com",
       "recipients_email_domain": "vendor.com",
-      "minecast": "TRUE",
       "tessian": "TRUE",
       "leaver": "TRUE",
       "Termination": "2025-16",
@@ -211,8 +126,9 @@
       "bunit": "Engineering",
       "department": "Accounting",
       "status": "Critical",
-      "tessian_status_A": "a",
-      "tessian_status_B": "f"
+      "user_response": "a",
+      "final_outcome": "f",
+      "policy_name": "policy_A"
     }
   ]
 }
