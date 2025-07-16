@@ -71,13 +71,14 @@ Preferred communication style: Simple, everyday language.
 - **Purpose**: Categorize recipient domains for security assessment
 - **Categories**: Suspicious, Free Email, Business, Government, Financial, Cloud Providers, Social Media, News Media, Educational, Healthcare, Legal, Technology, Non-Profit, Personal, Unknown, Blocked, Whitelisted
 - **Features**: Auto-classification, manual overrides, bulk operations
-- **Whitelist Feature**: Automatically filters out whitelisted domains during data upload, with persistent storage and management interface
+- **Whitelist Feature**: Automatically filters out ALL emails to whitelisted domains during data upload, with persistent storage and management interface
 
 ### 6. Data Filtering & Review (Enhanced)
 - **Purpose**: Filter and refine email data before security operations
 - **Features**: Enhanced UI with professional styling, attachment filtering, wordlist filtering, policy filtering, time period selection
 - **Save Functionality**: Moved from Data Upload - users can now save filtered data to JSON after applying filters
 - **Workflow**: Filter → Review → Save → Send to Security Operations
+- **Whitelist Filtering**: All emails to whitelisted domains are automatically filtered out during upload
 
 ### 7. Follow-up Center
 - **Purpose**: Track escalated records and manage follow-up actions
@@ -114,6 +115,11 @@ Preferred communication style: Simple, everyday language.
 - **Moved Save Functionality**: Relocated data save from Data Upload to Data Filtering & Review
 - **Filtered Data Focus**: Users now save filtered data instead of raw uploaded data
 - **Improved Workflow**: Better user experience - filter first, then save processed data
+
+### Whitelist Filtering Enhancement
+- **Complete Whitelist Filtering**: Updated to filter out ALL emails to whitelisted domains during upload (not just Critical/High)
+- **Simplified UI**: Removed redundant whitelist checkbox from filter dashboard
+- **Improved Data Handling**: Enhanced filtering logic to properly handle empty/null values including "-", "null", "none", "false"
 
 ## External Dependencies
 

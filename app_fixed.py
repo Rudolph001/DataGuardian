@@ -373,14 +373,8 @@ class CSVProcessor:
                     st.session_state.whitelisted_emails_count = 0
                 st.session_state.whitelisted_emails_count += 1
                 
-                # AUTOMATIC FILTERING: Only filter out Critical/High whitelisted emails during upload
-                if status in ['critical', 'high']:
-                    # Track Critical/High whitelisted emails separately
-                    if not hasattr(st.session_state, 'whitelisted_critical_high_count'):
-                        st.session_state.whitelisted_critical_high_count = 0
-                    st.session_state.whitelisted_critical_high_count += 1
-                    return None  # Filter out Critical/High whitelisted emails
-                # Allow other whitelisted emails to pass through
+                # AUTOMATIC FILTERING: Filter out ALL whitelisted emails during upload
+                return None  # Filter out all emails to whitelisted domains
             
             # Normalize status field (keep original case but ensure valid values)
             valid_statuses = ['critical', 'high', 'medium', 'low', 'unclassified']
