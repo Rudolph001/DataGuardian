@@ -4726,13 +4726,25 @@ def data_filtering_review_page():
         
         st.markdown("---")  # Visual separator
         
-        # Security Wordlist filter with improved styling
+        # Security Wordlist filters with improved styling - separated into subject and attachment
         st.markdown("**🔍 Security Wordlist Matches**")
-        wordlist_filter = st.radio(
-            "Filter by security keywords:",
-            ["All emails", "Only emails with security keywords", "Only emails without security keywords"],
-            help="Filter by wordlist_attachment and wordlist_subject field matches",
-            key="wordlist_filter_radio"
+        
+        # Subject wordlist filter
+        st.markdown("**📝 Subject Wordlist**")
+        wordlist_subject_filter = st.radio(
+            "Filter by subject security keywords:",
+            ["All emails", "Only emails with subject keywords", "Only emails without subject keywords"],
+            help="Filter by wordlist_subject field matches",
+            key="wordlist_subject_filter_radio"
+        )
+        
+        # Attachment wordlist filter
+        st.markdown("**📎 Attachment Wordlist**")
+        wordlist_attachment_filter = st.radio(
+            "Filter by attachment security keywords:",
+            ["All emails", "Only emails with attachment keywords", "Only emails without attachment keywords"],
+            help="Filter by wordlist_attachment field matches",
+            key="wordlist_attachment_filter_radio"
         )
         
         st.markdown("---")  # Visual separator
@@ -4801,7 +4813,8 @@ def data_filtering_review_page():
                 include_low,
                 include_unclassified,
                 attachment_filter,
-                wordlist_filter,
+                wordlist_subject_filter,
+                wordlist_attachment_filter,
                 time_filter,
                 show_whitelist_domains,
                 selected_policies
@@ -4917,7 +4930,7 @@ def data_filtering_review_page():
             # Get all unique policies for preset filters
             all_policies = sorted(set(email.get('policy_name', 'Unknown') for email in st.session_state.data if email.get('policy_name')))
             st.session_state.filtered_data = apply_simple_filters(
-                st.session_state.data, True, True, False, False, False, "All emails", "All emails", "All time", True, all_policies
+                st.session_state.data, True, True, False, False, False, "All emails", "All emails", "All emails", "All time", True, all_policies
             )
             st.session_state.filter_applied = True
             st.success("Applied High Priority filter!")
@@ -4928,7 +4941,7 @@ def data_filtering_review_page():
             # Get all unique policies for preset filters
             all_policies = sorted(set(email.get('policy_name', 'Unknown') for email in st.session_state.data if email.get('policy_name')))
             st.session_state.filtered_data = apply_simple_filters(
-                st.session_state.data, True, True, True, False, True, "Only emails with attachments", "All emails", "All time", True, all_policies
+                st.session_state.data, True, True, True, False, True, "Only emails with attachments", "All emails", "All emails", "All time", True, all_policies
             )
             st.session_state.filter_applied = True
             st.success("Applied Attachments filter!")
@@ -4939,13 +4952,13 @@ def data_filtering_review_page():
             # Get all unique policies for preset filters
             all_policies = sorted(set(email.get('policy_name', 'Unknown') for email in st.session_state.data if email.get('policy_name')))
             st.session_state.filtered_data = apply_simple_filters(
-                st.session_state.data, True, True, True, False, True, "All emails", "All emails", "Last 7 days", True, all_policies
+                st.session_state.data, True, True, True, False, True, "All emails", "All emails", "All emails", "Last 7 days", True, all_policies
             )
             st.session_state.filter_applied = True
             st.success("Applied Last 7 Days filter!")
             st.rerun()
 
-def apply_simple_filters(data, include_critical, include_high, include_medium, include_low, include_unclassified, attachment_filter, wordlist_filter, time_filter, show_whitelist_domains=True, selected_policies=None):
+def apply_simple_filters(data, include_critical, include_high, include_medium, include_low, include_unclassified, attachment_filter, wordlist_subject_filter, wordlist_attachment_filter, time_filter, show_whitelist_domains=True, selected_policies=None):
     """Apply simple filtering with automatic whitelist protection for Critical/High emails"""
     filtered_data = []
     stats = {
@@ -4999,11 +5012,18 @@ def apply_simple_filters(data, include_critical, include_high, include_medium, i
         elif attachment_filter == "Only emails without attachments" and has_attachments:
             include_email = False
         
-        # Apply wordlist filter
-        has_wordlist_match = bool(email.get('wordlist_subject') or email.get('wordlist_attachment'))
-        if wordlist_filter == "Only emails with security keywords" and not has_wordlist_match:
+        # Apply wordlist subject filter
+        has_subject_wordlist_match = bool(email.get('wordlist_subject'))
+        if wordlist_subject_filter == "Only emails with subject keywords" and not has_subject_wordlist_match:
             include_email = False
-        elif wordlist_filter == "Only emails without security keywords" and has_wordlist_match:
+        elif wordlist_subject_filter == "Only emails without subject keywords" and has_subject_wordlist_match:
+            include_email = False
+        
+        # Apply wordlist attachment filter
+        has_attachment_wordlist_match = bool(email.get('wordlist_attachment'))
+        if wordlist_attachment_filter == "Only emails with attachment keywords" and not has_attachment_wordlist_match:
+            include_email = False
+        elif wordlist_attachment_filter == "Only emails without attachment keywords" and has_attachment_wordlist_match:
             include_email = False
         
         # Apply time filter (basic implementation - can be enhanced)
