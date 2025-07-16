@@ -4692,26 +4692,26 @@ def data_filtering_review_page():
     with col4:
         st.metric("Other Whitelisted", f"{whitelisted_other:,}")
     
-    # Simple Filtering Section
+    # Simple Filtering Section with better layout
     st.markdown("### 📊 Simple Filtering Options")
     
     st.info("✅ **Automatic Protection**: Critical and High priority emails to whitelisted domains are automatically filtered out to prevent false positives.")
     
-    col1, col2 = st.columns(2)
+    # Set default values - include all priority levels
+    include_critical = True
+    include_high = True
+    include_medium = True
+    include_low = True
+    include_unclassified = True
+    
+    # Create a 3-column layout to better utilize space
+    col1, col2, col3 = st.columns([1, 1, 1])
     
     with col1:
-        # Set default values without showing checkboxes - include all priority levels
-        include_critical = True
-        include_high = True
-        include_medium = True
-        include_low = True
-        include_unclassified = True
-    
-    with col2:
         # Enhanced Email Content Preferences with better styling
         st.markdown("""
         <div style="background-color: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-            <h4 style="color: #2c3e50; margin-bottom: 0.5rem; font-size: 1.1rem;">📧 Email Content Preferences</h4>
+            <h4 style="color: #2c3e50; margin-bottom: 0.5rem; font-size: 1.1rem;">📧 Email Content</h4>
         </div>
         """, unsafe_allow_html=True)
         
@@ -4726,8 +4726,22 @@ def data_filtering_review_page():
         
         st.markdown("---")  # Visual separator
         
-        # Security Wordlist filters with improved styling - separated into subject and attachment
-        st.markdown("**🔍 Security Wordlist Matches**")
+        # Time Period with enhanced styling
+        st.markdown("**🕐 Time Period**")
+        time_filter = st.selectbox(
+            "Show emails from:",
+            ["All time", "Last 7 days", "Last 30 days", "Last 90 days"],
+            help="Filter by time period",
+            key="time_filter_select"
+        )
+    
+    with col2:
+        # Security Wordlist filters with improved styling
+        st.markdown("""
+        <div style="background-color: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+            <h4 style="color: #2c3e50; margin-bottom: 0.5rem; font-size: 1.1rem;">🔍 Security Wordlists</h4>
+        </div>
+        """, unsafe_allow_html=True)
         
         # Subject wordlist filter
         st.markdown("**📝 Subject Wordlist**")
@@ -4738,6 +4752,8 @@ def data_filtering_review_page():
             key="wordlist_subject_filter_radio"
         )
         
+        st.markdown("---")  # Visual separator
+        
         # Attachment wordlist filter
         st.markdown("**📎 Attachment Wordlist**")
         wordlist_attachment_filter = st.radio(
@@ -4746,8 +4762,14 @@ def data_filtering_review_page():
             help="Filter by wordlist_attachment field matches",
             key="wordlist_attachment_filter_radio"
         )
-        
-        st.markdown("---")  # Visual separator
+    
+    with col3:
+        # Policy and Whitelist Settings
+        st.markdown("""
+        <div style="background-color: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+            <h4 style="color: #2c3e50; margin-bottom: 0.5rem; font-size: 1.1rem;">📋 Policy & Whitelist</h4>
+        </div>
+        """, unsafe_allow_html=True)
         
         # Policy Name Filter with enhanced layout
         st.markdown("**📋 Policy Name Filter**")
@@ -4758,18 +4780,9 @@ def data_filtering_review_page():
             selected_policies = []
             
             # Create a more organized layout for policy checkboxes
-            if len(unique_policies) > 4:
-                # Use 2 columns for many policies
-                policy_cols = st.columns(2)
-                for i, policy in enumerate(unique_policies):
-                    with policy_cols[i % 2]:
-                        if st.checkbox(policy, value=True, key=f"policy_{policy}"):
-                            selected_policies.append(policy)
-            else:
-                # Single column for few policies
-                for policy in unique_policies:
-                    if st.checkbox(policy, value=True, key=f"policy_{policy}"):
-                        selected_policies.append(policy)
+            for policy in unique_policies:
+                if st.checkbox(policy, value=True, key=f"policy_{policy}"):
+                    selected_policies.append(policy)
             
             # Store selected policies in session state for the filter function
             st.session_state.selected_policy_names = selected_policies
@@ -4786,17 +4799,6 @@ def data_filtering_review_page():
             value=True,
             help="Include emails sent to whitelisted domains in results",
             key="whitelist_checkbox"
-        )
-        
-        st.markdown("---")  # Visual separator
-        
-        # Time Period with enhanced styling
-        st.markdown("**🕐 Time Period**")
-        time_filter = st.selectbox(
-            "Show emails from:",
-            ["All time", "Last 7 days", "Last 30 days", "Last 90 days"],
-            help="Filter by time period",
-            key="time_filter_select"
         )
     
     # Apply Simple Filters Button
