@@ -3126,7 +3126,55 @@ def followup_center_page():
     
     st.markdown(f"**Total Escalated Records:** {len(escalated_records):,}")
     st.markdown(f"- From Security Operations (Critical/High): {security_ops_escalated:,}")
-    st.markdown(f"- From Suspicious Email Analysis (Medium/Low/Unclassified): {suspicious_analysis_escalated:,}")</old_str>
+    st.markdown(f"- From Suspicious Email Analysis (Medium/Low/Unclassified): {suspicious_analysis_escalated:,}")
+    
+    # Follow-up status tracking
+    st.subheader("Follow-up Status")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        pending_count = sum(1 for record in escalated_records.values() if record.get('followup_status', 'pending') == 'pending')
+        st.metric("🕐 Pending", f"{pending_count:,}")
+    
+    with col2:
+        in_progress_count = sum(1 for record in escalated_records.values() if record.get('followup_status', 'pending') == 'in_progress')
+        st.metric("⏳ In Progress", f"{in_progress_count:,}")
+    
+    with col3:
+        completed_count = sum(1 for record in escalated_records.values() if record.get('followup_status', 'pending') == 'completed')
+        st.metric("✅ Completed", f"{completed_count:,}")
+    
+    # Escalated records management
+    st.subheader("Escalated Records")
+    
+    for record_id, record in escalated_records.items():
+        email = record['email']
+        escalation_time = record['timestamp']
+        followup_status = record.get('followup_status', 'pending')
+        
+        # Handle both datetime objects and string timestamps
+        if hasattr(escalation_time, 'strftime'):
+            escalation_time_str = escalation_time.strftime('%Y-%m-%d %H:%M')
+        else:
+            escalation_time_str = str(escalation_time)
+        
+        with st.expander(f"📧 {email.get('subject', 'No Subject')[:50]}... - {followup_status.title()}"):
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.write(f"**From:** {email.get('sender', 'Unknown')}")
+                st.write(f"**To:** {email.get('recipients', 'Unknown')}")
+                st.write(f"**Domain:** {email.get('recipients_email_domain', 'Unknown')}")
+                st.write(f"**Status:** {get_risk_indicator(email.get('status', 'unknown'))} {email.get('status', 'Unknown').title()}")
+                st.write(f"**Escalated:** {escalation_time_str}")
+            
+            with col2:
+                st.write(f"**Follow-up Status:** {followup_status.title()}")
+                st.write(f"**Department:** {email.get('department', 'Unknown')}")
+                st.write(f"**Business Unit:** {email.get('bunit', 'Unknown')}")
+                st.write(f"**Account Type:** {email.get('account_type', 'Unknown')}")
+                st.write(f"**Policy:** {email.get('policy_name', 'Unknown')}")</old_str>
     
     # Follow-up status tracking
     st.subheader("Follow-up Status")
