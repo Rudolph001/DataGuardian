@@ -4723,13 +4723,12 @@ def data_filtering_review_page():
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown("**What emails do you want to review?**")
-        
-        include_critical = st.checkbox("🔴 Critical Priority", value=True, help="Always recommended for security review")
-        include_high = st.checkbox("🟠 High Priority", value=True, help="Important security alerts")
-        include_medium = st.checkbox("🟡 Medium Priority", value=True, help="Standard security monitoring")
-        include_low = st.checkbox("🟢 Low Priority", value=False, help="Optional - mostly routine emails")
-        include_unclassified = st.checkbox("⚪ Unclassified", value=True, help="Emails that need classification")
+        # Set default values without showing checkboxes - include all priority levels
+        include_critical = True
+        include_high = True
+        include_medium = True
+        include_low = True
+        include_unclassified = True
     
     with col2:
         st.markdown("**Email Content Preferences:**")
