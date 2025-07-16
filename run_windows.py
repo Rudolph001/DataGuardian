@@ -154,7 +154,7 @@ def check_package_status():
     return all_installed
 
 def install_requirements():
-    """Install required packages"""
+    """Install required packages and show status after installation"""
     requirements_file = Path("requirements_windows.txt")
     
     if not requirements_file.exists():
@@ -162,7 +162,26 @@ def install_requirements():
         return False
     
     venv_python = activate_venv()
-    return run_command(f'"{venv_python}" -m pip install -r requirements_windows.txt', "Installing required packages")
+    
+    # Install packages
+    install_success = run_command(f'"{venv_python}" -m pip install -r requirements_windows.txt', "Installing required packages")
+    
+    if install_success:
+        print("\n🔍 POST-INSTALLATION STATUS CHECK:")
+        print("=" * 60)
+        post_install_status = check_package_status()
+        
+        if post_install_status:
+            print("🎉 ALL PACKAGES SUCCESSFULLY INSTALLED AND VERIFIED!")
+        else:
+            print("⚠️  Some packages may need attention - please review the status above")
+        
+        print("=" * 60)
+        
+        return post_install_status
+    else:
+        print("❌ Installation failed - skipping post-installation check")
+        return False
 
 def create_streamlit_config():
     """Create Streamlit configuration"""
@@ -271,9 +290,6 @@ def main():
         if not install_requirements():
             input("Press Enter to exit...")
             return False
-        # Check status again after installation
-        print("\n🔍 Checking package status after installation...")
-        check_package_status()
     elif choice == "2":
         print("⏭️  Skipping package installation")
     elif choice == "3":
