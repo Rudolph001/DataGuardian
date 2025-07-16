@@ -308,7 +308,7 @@ class CSVProcessor:
             'recipients_email_domain', 'time_month', 'tessian', 'leaver', 
             'Termination', 'account_type', 'wordlist_attachment',
             'wordlist_subject', 'bunit', 'department', 'status',
-            'user_response', 'final_outcome'
+            'user_response', 'final_outcome', 'policy_name'
         ]
     
     def process_csv_data(self, csv_content):
@@ -1990,6 +1990,8 @@ def show_email_details_modal(email):
         
         **🏷️ Domain Classification:** {domain_classification}
         
+        **📋 Policy Name:** {email.get('policy_name', 'Unknown')}
+        
         **⚠️ Status:** {email.get('status', 'Unknown').title()}
         
         **📎 Attachments:** {attachment_text}
@@ -2444,7 +2446,7 @@ def security_operations_dashboard():
             'sender', 'recipients', 'subject', 'recipients_email_domain', 
             '_time', 'status', 'attachments', 'department', 'bunit',
             'tessian', 'wordlist_subject', 'wordlist_attachment', 
-            'leaver', 'Termination', 'account_type', 'user_response'
+            'leaver', 'Termination', 'account_type', 'user_response', 'policy_name'
         ]
         
         # ML analysis fields (if available)
@@ -2460,7 +2462,7 @@ def security_operations_dashboard():
             primary_fields = st.multiselect(
                 "Always show these fields:",
                 available_fields,
-                default=['sender', 'recipients', 'subject', 'status', 'recipients_email_domain'],
+                default=['sender', 'recipients', 'subject', 'status', 'recipients_email_domain', 'policy_name'],
                 key="primary_fields"
             )
         
@@ -2469,7 +2471,7 @@ def security_operations_dashboard():
             secondary_fields = st.multiselect(
                 "Show in expandable section:",
                 [f for f in available_fields if f not in primary_fields],
-                default=['_time', 'attachments', 'department'],
+                default=['_time', 'attachments', 'department', 'policy_name'] if 'policy_name' not in primary_fields else ['_time', 'attachments', 'department'],
                 key="secondary_fields"
             )
         
@@ -2783,10 +2785,12 @@ def security_operations_dashboard():
                                 display_content.append(f"<strong>Subject:</strong> {subject_display}")
                             elif field == 'recipients_email_domain':
                                 display_content.append(f"<strong>Domain:</strong> {str(value)}")
+                            elif field == 'policy_name':
+                                display_content.append(f"<strong>Policy:</strong> {str(value)}")
                             elif field == 'ml_classification' and show_ml_analysis:
                                 confidence = email.get('ml_confidence', 0)
                                 display_content.append(f"<strong>ML:</strong> {str(value)} ({confidence:.2f})")
-                            elif field not in ['sender', 'recipients', 'subject', 'recipients_email_domain']:
+                            elif field not in ['sender', 'recipients', 'subject', 'recipients_email_domain', 'policy_name']:
                                 display_content.append(f"<strong>{field.replace('_', ' ').title()}:</strong> {str(value)}")
                     
                     # Format display
@@ -3013,6 +3017,7 @@ def email_check_completed_page():
                     st.write(f"**Review Time:** {review_time_str}")
                     st.write(f"**Reviewer:** Security Analyst")
                     st.write(f"**Department:** {email.get('department', 'Unknown')}")
+                    st.write(f"**Policy:** {email.get('policy_name', 'Unknown')}")
                     
                     # Show additional info for escalated records
                     if decision == 'escalate':
@@ -3065,6 +3070,7 @@ def email_check_completed_page():
                         'subject': review['email'].get('subject', ''),
                         'domain': review['email'].get('recipients_email_domain', ''),
                         'status': review['email'].get('status', ''),
+                        'policy_name': review['email'].get('policy_name', ''),
                         'decision': review['decision'],
                         'timestamp': review['timestamp'].isoformat()
                     })
@@ -3142,6 +3148,7 @@ def followup_center_page():
                 st.write(f"**Department:** {email.get('department', 'Unknown')}")
                 st.write(f"**Business Unit:** {email.get('bunit', 'Unknown')}")
                 st.write(f"**Account Type:** {email.get('account_type', 'Unknown')}")
+                st.write(f"**Policy:** {email.get('policy_name', 'Unknown')}")
             
             # Follow-up actions
             st.subheader("Follow-up Actions")
@@ -3351,6 +3358,7 @@ def generate_followup_email(email):
     domain = email.get('recipients_email_domain', 'Unknown')
     risk_level = email.get('status', 'Unknown').title()
     date_sent = email.get('_time', 'Unknown')
+    policy_name = email.get('policy_name', 'Unknown')
     
     # Format attachment information
     attachment_info = email.get('attachments', '')
@@ -3381,6 +3389,7 @@ From:               {email.get('sender', 'Unknown')}
 To:                 {recipient}
 Subject:            {subject}
 Date Sent:          {date_sent}
+Policy:             {policy_name}
 Attachments:        {attachment_text}
 ==============================================="""
     
@@ -4147,6 +4156,7 @@ def suspicious_email_analysis_page():
                     st.write(f"**Subject:** {email.get('subject', 'No Subject')}")
                     st.write(f"**Domain:** {email.get('recipients_email_domain', 'Unknown')}")
                     st.write(f"**Status:** {email.get('status', 'Unclassified').title()}")
+                    st.write(f"**Policy:** {email.get('policy_name', 'Unknown')}")
                     st.write(f"**Time:** {email.get('_time', 'Unknown')}")
                     
                     if email.get('attachments'):
@@ -4211,6 +4221,7 @@ def suspicious_email_analysis_page():
                         'Subject': email.get('subject', ''),
                         'Status': email.get('status', ''),
                         'Domain': email.get('recipients_email_domain', ''),
+                        'Policy_Name': email.get('policy_name', ''),
                         'Suspicion_Score': result['suspicion_score'],
                         'Reasons': '; '.join(result['reasons']),
                         'Time': email.get('_time', '')
@@ -4837,6 +4848,7 @@ def data_filtering_review_page():
                     
                     with col2:
                         st.write(f"**Domain:** {email.get('recipients_email_domain', 'Unknown')}")
+                        st.write(f"**Policy:** {email.get('policy_name', 'Unknown')}")
                         st.write(f"**Time:** {email.get('_time', 'Unknown')}")
                         
                         # Show if whitelisted
