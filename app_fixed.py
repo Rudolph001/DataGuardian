@@ -4746,6 +4746,27 @@ def data_filtering_review_page():
             help="Filter by security keyword matches"
         )
         
+        st.markdown("**Policy Name Filter:**")
+        # Get unique policy names from data
+        unique_policies = sorted(set(email.get('policy_name', 'Unknown') for email in st.session_state.data if email.get('policy_name')))
+        
+        if unique_policies:
+            selected_policies = []
+            
+            # Create columns for checkboxes (2 columns for better layout)
+            policy_cols = st.columns(2)
+            
+            for i, policy in enumerate(unique_policies):
+                with policy_cols[i % 2]:
+                    if st.checkbox(policy, value=True, key=f"policy_{policy}"):
+                        selected_policies.append(policy)
+            
+            # Store selected policies in session state for the filter function
+            st.session_state.selected_policy_names = selected_policies
+        else:
+            st.info("No policy names found in data")
+            st.session_state.selected_policy_names = []
+        
         st.markdown("**Whitelist Settings:**")
         show_whitelist_domains = st.checkbox(
             "Show emails to whitelisted domains",
@@ -4763,6 +4784,9 @@ def data_filtering_review_page():
     # Apply Simple Filters Button
     if st.button("🚀 Apply Filters", type="primary", use_container_width=True):
         with st.spinner("Applying filters..."):
+            # Get selected policy names from session state
+            selected_policies = getattr(st.session_state, 'selected_policy_names', [])
+            
             filtered_data = apply_simple_filters(
                 st.session_state.data,
                 include_critical,
@@ -4773,7 +4797,8 @@ def data_filtering_review_page():
                 attachment_filter,
                 wordlist_filter,
                 time_filter,
-                show_whitelist_domains
+                show_whitelist_domains,
+                selected_policies
             )
             
             st.session_state.filtered_data = filtered_data
@@ -4831,6 +4856,10 @@ def data_filtering_review_page():
                     st.write(f"• Other whitelisted included: {stats['whitelist_filtered'].get('other', 0):,}")
                     if stats['whitelist_filtered'].get('hidden_whitelist', 0) > 0:
                         st.write(f"• Whitelisted hidden by choice: {stats['whitelist_filtered'].get('hidden_whitelist', 0):,}")
+                
+                if 'policy_filtered' in stats and stats['policy_filtered'] > 0:
+                    st.markdown("**📋 Policy Filtering:**")
+                    st.write(f"• Excluded by policy filter: {stats['policy_filtered']:,}")
         
         # Sample preview
         if st.checkbox("📋 Show Sample Preview"):
@@ -4863,8 +4892,10 @@ def data_filtering_review_page():
     
     with col1:
         if st.button("🔥 High Priority Only", use_container_width=True):
+            # Get all unique policies for preset filters
+            all_policies = sorted(set(email.get('policy_name', 'Unknown') for email in st.session_state.data if email.get('policy_name')))
             st.session_state.filtered_data = apply_simple_filters(
-                st.session_state.data, True, True, False, False, False, "All emails", "All emails", "All time", True
+                st.session_state.data, True, True, False, False, False, "All emails", "All emails", "All time", True, all_policies
             )
             st.session_state.filter_applied = True
             st.success("Applied High Priority filter!")
@@ -4872,8 +4903,10 @@ def data_filtering_review_page():
     
     with col2:
         if st.button("📎 Attachments Only", use_container_width=True):
+            # Get all unique policies for preset filters
+            all_policies = sorted(set(email.get('policy_name', 'Unknown') for email in st.session_state.data if email.get('policy_name')))
             st.session_state.filtered_data = apply_simple_filters(
-                st.session_state.data, True, True, True, False, True, "Only emails with attachments", "All emails", "All time", True
+                st.session_state.data, True, True, True, False, True, "Only emails with attachments", "All emails", "All time", True, all_policies
             )
             st.session_state.filter_applied = True
             st.success("Applied Attachments filter!")
@@ -4881,20 +4914,27 @@ def data_filtering_review_page():
     
     with col3:
         if st.button("🔍 Last 7 Days", use_container_width=True):
+            # Get all unique policies for preset filters
+            all_policies = sorted(set(email.get('policy_name', 'Unknown') for email in st.session_state.data if email.get('policy_name')))
             st.session_state.filtered_data = apply_simple_filters(
-                st.session_state.data, True, True, True, False, True, "All emails", "All emails", "Last 7 days", True
+                st.session_state.data, True, True, True, False, True, "All emails", "All emails", "Last 7 days", True, all_policies
             )
             st.session_state.filter_applied = True
             st.success("Applied Last 7 Days filter!")
             st.rerun()
 
-def apply_simple_filters(data, include_critical, include_high, include_medium, include_low, include_unclassified, attachment_filter, wordlist_filter, time_filter, show_whitelist_domains=True):
+def apply_simple_filters(data, include_critical, include_high, include_medium, include_low, include_unclassified, attachment_filter, wordlist_filter, time_filter, show_whitelist_domains=True, selected_policies=None):
     """Apply simple filtering with automatic whitelist protection for Critical/High emails"""
     filtered_data = []
     stats = {
         'status_breakdown': {},
-        'whitelist_filtered': {'critical_high': 0, 'other': 0, 'hidden_whitelist': 0}
+        'whitelist_filtered': {'critical_high': 0, 'other': 0, 'hidden_whitelist': 0},
+        'policy_filtered': 0
     }
+    
+    # If no policies selected, include all
+    if selected_policies is None:
+        selected_policies = []
     
     domain_classifier = st.session_state.domain_classifier
     
@@ -4948,6 +4988,13 @@ def apply_simple_filters(data, include_critical, include_high, include_medium, i
         if time_filter != "All time":
             # For now, include all emails. This can be enhanced with actual date parsing
             pass
+        
+        # Apply policy name filter
+        if selected_policies:  # Only filter if policies are selected
+            email_policy = email.get('policy_name', 'Unknown')
+            if email_policy not in selected_policies:
+                include_email = False
+                stats['policy_filtered'] += 1
         
         # Track other whitelisted emails that are included
         if is_whitelisted and include_email:
