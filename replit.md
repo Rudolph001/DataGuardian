@@ -104,6 +104,13 @@ Preferred communication style: Simple, everyday language.
 - **Server Configuration**: Added proper Streamlit configuration for Replit deployment
 - **Package Installation**: Installed all required dependencies via Replit package manager
 - **Workflow Setup**: Configured ExfilEye DLP Server workflow for automatic startup
+- **Navigation Fix**: Improved sidebar navigation reliability with better state management and auto-rerun functionality
+
+### Security Operations Dashboard Architecture Changes
+- **Critical/High Only**: Security Operations Dashboard now exclusively handles Critical and High priority emails
+- **Medium/Low/Unclassified Redirect**: Medium, Low, and Unclassified emails are now properly routed to Suspicious Email Analysis section
+- **UI Cleanup**: Removed Medium/Low/Unclassified cards from Security Review Queue, replaced with navigation to Suspicious Email Analysis
+- **Clear Separation**: Enforced proper separation of concerns between high-priority security operations and suspicious email analysis
 
 ### Data Filtering & Review Enhancements
 - **Improved UI**: Enhanced Email Content Preferences section with better styling and organization

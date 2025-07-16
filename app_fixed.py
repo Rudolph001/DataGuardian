@@ -2502,19 +2502,27 @@ def security_operations_dashboard():
     # Use filtered data instead of raw data
     data = st.session_state.filtered_data
     
+    # **IMPORTANT**: Security Operations Dashboard only handles Critical and High priority emails
+    # Filter to only include Critical and High priority emails
+    critical_high_data = []
+    for email in data:
+        status = email.get('status', '').lower()
+        if status in ['critical', 'high']:
+            critical_high_data.append(email)
+    
     # Show filtering information
     if hasattr(st.session_state, 'security_operations_data_timestamp'):
-        st.info(f"📊 **Filtered Data**: Ready for security operations (Last filtered: {st.session_state.security_operations_data_timestamp})")
+        st.info(f"📊 **Critical & High Priority Data**: {len(critical_high_data):,} records ready for security operations (Last filtered: {st.session_state.security_operations_data_timestamp})")
     else:
-        st.info("📊 **Filtered Data**: Ready for security operations")
+        st.info(f"📊 **Critical & High Priority Data**: {len(critical_high_data):,} records ready for security operations")
     
     # Filter out completed and escalated records
     completed_ids = set(st.session_state.completed_reviews.keys())
     escalated_ids = set(st.session_state.escalated_records.keys())
     
-    # Filter active records
+    # Filter active records (only Critical and High)
     active_records = []
-    for email in data:
+    for email in critical_high_data:
         email_id = str(hash(str(email)))
         if email_id not in completed_ids and email_id not in escalated_ids:
             active_records.append(email)
@@ -2553,7 +2561,8 @@ def security_operations_dashboard():
     with col1:
         status_filter = st.selectbox(
             "Filter by Status",
-            ["All", "Critical", "High", "Medium", "Low", "Unclassified"]
+            ["All", "Critical", "High"],
+            help="Security Operations only handles Critical and High priority emails"
         )
     
     with col2:
@@ -2589,14 +2598,14 @@ def security_operations_dashboard():
     </div>
     """, unsafe_allow_html=True)
     
-    # Professional risk metrics with cards
+    # Professional risk metrics with cards - Only Critical and High for Security Operations
     critical_count = sum(1 for email in filtered_records if email.get('status', '').lower() == 'critical')
     high_count = sum(1 for email in filtered_records if email.get('status', '').lower() == 'high')
-    medium_count = sum(1 for email in filtered_records if email.get('status', '').lower() == 'medium')
-    low_count = sum(1 for email in filtered_records if email.get('status', '').lower() == 'low')
-    unclassified_count = sum(1 for email in filtered_records if email.get('status', '').lower() == 'unclassified')
     
-    col1, col2, col3, col4, col5 = st.columns(5)
+    # Show note about Medium/Low/Unclassified being handled elsewhere
+    st.info("📍 **Note:** Medium, Low, and Unclassified emails are handled in the **Suspicious Email Analysis** section")
+    
+    col1, col2, col3 = st.columns([1, 1, 2])
     
     with col1:
         st.markdown(f"""
@@ -2617,31 +2626,22 @@ def security_operations_dashboard():
         """, unsafe_allow_html=True)
     
     with col3:
+        # Show link to Suspicious Email Analysis for Medium/Low/Unclassified
         st.markdown(f"""
-        <div class="metric-card" style="border-left: 4px solid #f1c40f;">
-            <h4 style="color: #f1c40f; margin-bottom: 0.5rem;">🟡 Medium</h4>
-            <p class="metric-value" style="color: #f1c40f;">{medium_count:,}</p>
-            <p style="color: #7f8c8d; margin: 0; font-size: 0.9rem;">Review within week</p>
+        <div class="metric-card" style="border-left: 4px solid #3498db; background: #ecf0f1;">
+            <h4 style="color: #3498db; margin-bottom: 0.5rem;">🔍 Other Priority Levels</h4>
+            <p style="color: #7f8c8d; margin: 0; font-size: 0.9rem;">Medium, Low, and Unclassified emails are handled in the <strong>Suspicious Email Analysis</strong> section</p>
+            <br>
+            <div style="text-align: center;">
+                <a href="#" style="color: #3498db; text-decoration: none; font-weight: 600;">➡️ Go to Suspicious Email Analysis</a>
+            </div>
         </div>
         """, unsafe_allow_html=True)
-    
-    with col4:
-        st.markdown(f"""
-        <div class="metric-card" style="border-left: 4px solid #27ae60;">
-            <h4 style="color: #27ae60; margin-bottom: 0.5rem;">🟢 Low</h4>
-            <p class="metric-value" style="color: #27ae60;">{low_count:,}</p>
-            <p style="color: #7f8c8d; margin: 0; font-size: 0.9rem;">Monitor as needed</p>
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col5:
-        st.markdown(f"""
-        <div class="metric-card" style="border-left: 4px solid #95a5a6;">
-            <h4 style="color: #95a5a6; margin-bottom: 0.5rem;">⚪ Unclassified</h4>
-            <p class="metric-value" style="color: #95a5a6;">{unclassified_count:,}</p>
-            <p style="color: #7f8c8d; margin: 0; font-size: 0.9rem;">Needs classification</p>
-        </div>
-        """, unsafe_allow_html=True)
+        
+        # Add button to navigate to Suspicious Email Analysis
+        if st.button("🔍 Go to Suspicious Email Analysis", use_container_width=True):
+            st.session_state.selected_page = "🔍 Suspicious Email Analysis"
+            st.rerun()
     
     # Professional timeline view section
     st.markdown("""
