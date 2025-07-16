@@ -66,122 +66,16 @@ def activate_venv():
         print("⚠️  Virtual environment not found, using system Python")
         return sys.executable
 
-def check_package_status():
-    """Check the installation status of each required package"""
-    requirements_file = Path("requirements_windows.txt")
-    
-    if not requirements_file.exists():
-        print("❌ ERROR: requirements_windows.txt not found")
-        return False
-    
-    print("\n📦 PACKAGE INSTALLATION STATUS:")
-    print("=" * 50)
-    
-    venv_python = activate_venv()
-    
-    # Read requirements from file
-    try:
-        with open(requirements_file, 'r') as f:
-            requirements = f.readlines()
-    except Exception as e:
-        print(f"❌ ERROR: Cannot read requirements file: {e}")
-        return False
-    
-    all_installed = True
-    
-    for req in requirements:
-        req = req.strip()
-        if not req or req.startswith('#'):
-            continue
-            
-        # Extract package name (remove version constraints)
-        package_name = req.split('>=')[0].split('==')[0].split('<=')[0].split('>')[0].split('<')[0].split('!')[0]
-        
-        try:
-            # Check if package is installed
-            result = subprocess.run(
-                f'"{venv_python}" -c "import {package_name}; print(__import__(\'{package_name}\').__version__)"',
-                shell=True, capture_output=True, text=True, timeout=10
-            )
-            
-            if result.returncode == 0:
-                version = result.stdout.strip()
-                print(f"✅ {package_name:<15} - Version: {version}")
-            else:
-                print(f"❌ {package_name:<15} - NOT INSTALLED")
-                all_installed = False
-                
-        except subprocess.TimeoutExpired:
-            print(f"⏰ {package_name:<15} - TIMEOUT (checking took too long)")
-            all_installed = False
-        except Exception as e:
-            # Try alternative import names for some packages
-            alt_names = {
-                'scikit-learn': 'sklearn',
-                'pillow': 'PIL',
-                'opencv-python': 'cv2'
-            }
-            
-            if package_name in alt_names:
-                alt_name = alt_names[package_name]
-                try:
-                    result = subprocess.run(
-                        f'"{venv_python}" -c "import {alt_name}; print(__import__(\'{alt_name}\').__version__)"',
-                        shell=True, capture_output=True, text=True, timeout=10
-                    )
-                    
-                    if result.returncode == 0:
-                        version = result.stdout.strip()
-                        print(f"✅ {package_name:<15} - Version: {version}")
-                    else:
-                        print(f"❌ {package_name:<15} - NOT INSTALLED")
-                        all_installed = False
-                except:
-                    print(f"❌ {package_name:<15} - NOT INSTALLED")
-                    all_installed = False
-            else:
-                print(f"❌ {package_name:<15} - NOT INSTALLED")
-                all_installed = False
-    
-    print("=" * 50)
-    
-    if all_installed:
-        print("✅ ALL PACKAGES INSTALLED SUCCESSFULLY!")
-    else:
-        print("⚠️  SOME PACKAGES ARE MISSING - Installation needed")
-    
-    print()
-    return all_installed
-
 def install_requirements():
-    """Install required packages and show status after installation"""
-    requirements_file = Path("requirements_windows.txt")
+    """Install required packages"""
+    requirements_file = Path("local_requirements.txt")
     
     if not requirements_file.exists():
-        print("❌ ERROR: requirements_windows.txt not found")
+        print("❌ ERROR: local_requirements.txt not found")
         return False
     
     venv_python = activate_venv()
-    
-    # Install packages
-    install_success = run_command(f'"{venv_python}" -m pip install -r requirements_windows.txt', "Installing required packages")
-    
-    if install_success:
-        print("\n🔍 POST-INSTALLATION STATUS CHECK:")
-        print("=" * 60)
-        post_install_status = check_package_status()
-        
-        if post_install_status:
-            print("🎉 ALL PACKAGES SUCCESSFULLY INSTALLED AND VERIFIED!")
-        else:
-            print("⚠️  Some packages may need attention - please review the status above")
-        
-        print("=" * 60)
-        
-        return post_install_status
-    else:
-        print("❌ Installation failed - skipping post-installation check")
-        return False
+    return run_command(f'"{venv_python}" -m pip install -r local_requirements.txt', "Installing required packages")
 
 def create_streamlit_config():
     """Create Streamlit configuration"""
@@ -220,14 +114,20 @@ gatherUsageStats = false
         print("📁 Streamlit configuration already exists")
         return True
 
-def check_environment():
-    """Check environment setup"""
-    print("\n🔧 ENVIRONMENT CHECK:")
-    print("=" * 30)
-    print("✅ All required packages are installed")
-    print("✅ ExfilEye DLP is ready to run")
-    print("✅ No external API keys required")
-    print("=" * 30)
+def check_openai_key():
+    """Check for OpenAI API key"""
+    api_key = os.environ.get("OPENAI_API_KEY", "")
+    
+    if not api_key:
+        print("\n⚠️  WARNING: OPENAI_API_KEY environment variable is not set")
+        print("   AI features will not work without this key")
+        print("   To set it:")
+        print("   Windows: set OPENAI_API_KEY=your_api_key_here")
+        print("   Or create a .env file with: OPENAI_API_KEY=your_api_key_here")
+        print("   Get your API key from: https://platform.openai.com/api-keys")
+        print()
+    else:
+        print("✅ OpenAI API key found")
 
 def start_application():
     """Start the ExfilEye application"""
@@ -274,29 +174,9 @@ def main():
         input("Press Enter to exit...")
         return False
     
-    # Check current package status
-    print("\n🔍 Checking current package installation status...")
-    check_package_status()
-    
-    # Ask user if they want to install/update packages
-    print("📦 Package Installation Options:")
-    print("1. Install/Update all packages")
-    print("2. Skip installation (use existing packages)")
-    print("3. Exit")
-    
-    choice = input("\nEnter your choice (1-3): ").strip()
-    
-    if choice == "1":
-        if not install_requirements():
-            input("Press Enter to exit...")
-            return False
-    elif choice == "2":
-        print("⏭️  Skipping package installation")
-    elif choice == "3":
-        print("👋 Exiting setup")
-        return False
-    else:
-        print("❌ Invalid choice, exiting")
+    # Install requirements
+    if not install_requirements():
+        input("Press Enter to exit...")
         return False
     
     # Create Streamlit config
@@ -304,8 +184,8 @@ def main():
         input("Press Enter to exit...")
         return False
     
-    # Check environment
-    check_environment()
+    # Check OpenAI API key
+    check_openai_key()
     
     # Start application
     start_application()
