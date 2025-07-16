@@ -5198,8 +5198,22 @@ def main():
         "🌐 Domain Classification": domain_classification_page
     }
     
+    # Initialize selected page in session state if not exists
+    if 'selected_page' not in st.session_state:
+        st.session_state.selected_page = "📁 Data Upload & Preprocessing"
+    
     st.sidebar.markdown("### 🧭 Navigation")
-    selected_page = st.sidebar.radio("Select page:", list(pages.keys()), label_visibility="collapsed")
+    selected_page = st.sidebar.radio(
+        "Select page:", 
+        list(pages.keys()), 
+        index=list(pages.keys()).index(st.session_state.selected_page),
+        label_visibility="collapsed",
+        key="page_selector"
+    )
+    
+    # Update session state when page changes
+    if selected_page != st.session_state.selected_page:
+        st.session_state.selected_page = selected_page
     
     # Professional data status card
     st.sidebar.markdown("### 📊 Data Status")
