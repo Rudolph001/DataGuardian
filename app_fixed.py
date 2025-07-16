@@ -1,10 +1,22 @@
 import os
 import sys
+import gc
 
 # Configure matplotlib backend before any imports
 import matplotlib
 matplotlib.use('Agg')  # Force non-GUI backend
 os.environ['MPLBACKEND'] = 'Agg'
+
+# Performance configuration
+try:
+    from performance_config import *
+except ImportError:
+    # Default performance settings if config file doesn't exist
+    CACHE_TTL = 300
+    MAX_DISPLAY_RECORDS = 1000
+    CHART_ANIMATION_DISABLED = True
+    LAZY_LOAD_THRESHOLD = 500
+    ENABLE_GARBAGE_COLLECTION = True
 
 import streamlit as st
 import csv
@@ -35,10 +47,24 @@ import re
 import webbrowser
 from urllib.parse import quote
 
-# Import custom modules
-from domain_classifier import DomainClassifier
-from security_config import SecurityConfig
-from data_persistence import DataPersistence
+# Import custom modules - lazy loading for better performance
+@st.cache_resource
+def get_domain_classifier():
+    """Get domain classifier instance with caching"""
+    from domain_classifier import DomainClassifier
+    return DomainClassifier()
+
+@st.cache_resource
+def get_security_config():
+    """Get security config instance with caching"""
+    from security_config import SecurityConfig
+    return SecurityConfig()
+
+@st.cache_resource
+def get_data_persistence():
+    """Get data persistence instance with caching"""
+    from data_persistence import DataPersistence
+    return DataPersistence()
 
 
 
@@ -50,166 +76,30 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for professional styling
-st.markdown("""
-<style>
-/* Main container styling */
-.main .block-container {
-    padding-top: 2rem;
-    padding-bottom: 2rem;
-}
+# Load CSS only once with caching
+@st.cache_data
+def load_custom_css():
+    """Load custom CSS with caching to improve performance"""
+    return """
+    <style>
+    .main .block-container { padding-top: 2rem; padding-bottom: 2rem; }
+    .main-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 15px; margin-bottom: 2rem; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .main-header h1 { color: white; margin: 0; font-size: 2.5rem; font-weight: 700; text-align: center; }
+    .main-header p { color: #f0f0f0; text-align: center; font-size: 1.2rem; margin: 0.5rem 0 0 0; }
+    .metric-card { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border: 1px solid #e6e6e6; margin-bottom: 1rem; }
+    .status-critical { color: #e74c3c; font-weight: 600; }
+    .status-high { color: #f39c12; font-weight: 600; }
+    .status-medium { color: #f1c40f; font-weight: 600; }
+    .status-low { color: #27ae60; font-weight: 600; }
+    .stButton > button { border-radius: 8px; border: none; font-weight: 500; transition: all 0.3s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .data-container { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); border: 1px solid #e6e6e6; margin-bottom: 1.5rem; }
+    .dataframe { border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .chart-container { background: white; padding: 1.5rem; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); margin-bottom: 1.5rem; }
+    </style>
+    """
 
-/* Header styling */
-.main-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 2rem;
-    border-radius: 15px;
-    margin-bottom: 2rem;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-}
-
-.main-header h1 {
-    color: white;
-    margin: 0;
-    font-size: 2.5rem;
-    font-weight: 700;
-    text-align: center;
-}
-
-.main-header p {
-    color: #f0f0f0;
-    text-align: center;
-    font-size: 1.2rem;
-    margin: 0.5rem 0 0 0;
-}
-
-/* Card styling */
-.metric-card {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-    border: 1px solid #e6e6e6;
-    margin-bottom: 1rem;
-}
-
-.metric-card h3 {
-    color: #2c3e50;
-    margin-bottom: 0.5rem;
-    font-size: 1.1rem;
-}
-
-.metric-card .metric-value {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #3498db;
-    margin: 0;
-}
-
-/* Status indicators */
-.status-critical { color: #e74c3c; font-weight: 600; }
-.status-high { color: #f39c12; font-weight: 600; }
-.status-medium { color: #f1c40f; font-weight: 600; }
-.status-low { color: #27ae60; font-weight: 600; }
-
-/* Professional buttons */
-.stButton > button {
-    border-radius: 8px;
-    border: none;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-.stButton > button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-/* Sidebar styling */
-.sidebar .sidebar-content {
-    background: #f8f9fa;
-}
-
-/* Data containers */
-.data-container {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-    border: 1px solid #e6e6e6;
-    margin-bottom: 1.5rem;
-}
-
-/* Table styling */
-.dataframe {
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-/* Modal styling */
-.modal-content {
-    background: white;
-    border-radius: 15px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-}
-
-/* Alert styling */
-.alert {
-    border-radius: 8px;
-    padding: 1rem;
-    margin: 1rem 0;
-    border-left: 4px solid #3498db;
-}
-
-.alert-success { border-left-color: #27ae60; background-color: #d4edda; }
-.alert-warning { border-left-color: #f39c12; background-color: #fff3cd; }
-.alert-error { border-left-color: #e74c3c; background-color: #f8d7da; }
-.alert-info { border-left-color: #3498db; background-color: #d1ecf1; }
-
-/* Navigation improvements */
-.nav-section {
-    background: white;
-    padding: 1rem;
-    border-radius: 8px;
-    margin-bottom: 1rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-
-/* Charts and visualizations */
-.chart-container {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-    margin-bottom: 1.5rem;
-}
-
-/* Loading states */
-.loading-spinner {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 2rem;
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-    .main-header h1 {
-        font-size: 2rem;
-    }
-    
-    .main-header p {
-        font-size: 1rem;
-    }
-    
-    .metric-card {
-        padding: 1rem;
-    }
-}
-</style>
-""", unsafe_allow_html=True)
+# Apply CSS
+st.markdown(load_custom_css(), unsafe_allow_html=True)
 
 # Initialize session state
 def initialize_session_state():
@@ -289,13 +179,13 @@ def initialize_session_state():
     if 'modal_states' not in st.session_state:
         st.session_state.modal_states = {}
     
-    # System components
+    # System components with caching for better performance
     if 'domain_classifier' not in st.session_state:
-        st.session_state.domain_classifier = DomainClassifier()
+        st.session_state.domain_classifier = get_domain_classifier()
     if 'security_config' not in st.session_state:
-        st.session_state.security_config = SecurityConfig()
+        st.session_state.security_config = get_security_config()
     if 'data_persistence' not in st.session_state:
-        st.session_state.data_persistence = DataPersistence()
+        st.session_state.data_persistence = get_data_persistence()
 
 initialize_session_state()
 
@@ -392,6 +282,11 @@ class AnomalyDetector:
     def __init__(self):
         self.isolation_forest = IsolationForest(contamination=0.1, random_state=42)
         self.scaler = StandardScaler()
+    
+    @st.cache_data(ttl=300)  # Cache for 5 minutes
+    def _get_cached_anomalies(_self, email_data_hash):
+        """Cache anomaly detection results for better performance"""
+        pass
     
     def detect_anomalies(self, email_data):
         """Detect anomalies in email data using multiple techniques"""
