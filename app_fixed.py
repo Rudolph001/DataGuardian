@@ -2395,7 +2395,7 @@ def security_operations_dashboard():
             📍 <strong>Note:</strong> Medium, Low, and Unclassified events are handled in the Suspicious Email Analysis section
         </p>
     </div>
-    """, unsafe_allow_html=True)</old_str>
+    """, unsafe_allow_html=True)
     
     # Check if filtered data is available
     if not hasattr(st.session_state, 'filtered_data') or not st.session_state.filtered_data:
@@ -2410,7 +2410,7 @@ def security_operations_dashboard():
             4. Medium/Low/Unclassified events will be sent to Suspicious Email Analysis<br>
             5. Return here to begin security review operations for Critical/High events
         </div>
-        """, unsafe_allow_html=True)</old_str>
+        """, unsafe_allow_html=True)
         
         # Show helpful navigation
         col1, col2 = st.columns(2)
@@ -2909,7 +2909,7 @@ def email_check_completed_page():
     
     st.markdown(f"**Total Completed Reviews:** {len(completed_reviews):,}")
     st.markdown(f"- Security Operations (Critical/High): {security_ops_reviews:,}")
-    st.markdown(f"- Suspicious Email Analysis (Medium/Low/Unclassified): {suspicious_analysis_reviews:,}")</old_str>
+    st.markdown(f"- Suspicious Email Analysis (Medium/Low/Unclassified): {suspicious_analysis_reviews:,}")
     
     # Summary statistics
     st.subheader("Review Summary")
@@ -3174,7 +3174,7 @@ def followup_center_page():
                 st.write(f"**Department:** {email.get('department', 'Unknown')}")
                 st.write(f"**Business Unit:** {email.get('bunit', 'Unknown')}")
                 st.write(f"**Account Type:** {email.get('account_type', 'Unknown')}")
-                st.write(f"**Policy:** {email.get('policy_name', 'Unknown')}")</old_str>
+                st.write(f"**Policy:** {email.get('policy_name', 'Unknown')}")
     
     # Follow-up status tracking
     st.subheader("Follow-up Status")
@@ -4087,7 +4087,7 @@ def suspicious_email_analysis_page():
             📍 <strong>Note:</strong> Critical and High priority events are handled in the Security Operations Dashboard
         </p>
     </div>
-    """, unsafe_allow_html=True)</old_str>
+    """, unsafe_allow_html=True)
     
     # Check if medium/low/unclassified data is available from filtering
     if not hasattr(st.session_state, 'medium_low_unclassified_data') or not st.session_state.medium_low_unclassified_data:
@@ -4159,7 +4159,7 @@ def suspicious_email_analysis_page():
                 return
             
             # Run the suspicious email detection
-            suspicious_emails = detector.identify_suspicious_emails(filtered_data)</old_str>
+            suspicious_emails = detector.identify_suspicious_emails(filtered_data)
             
             # Filter by minimum suspicion score
             filtered_suspicious = [
@@ -5044,7 +5044,7 @@ def data_filtering_review_page():
             medium_low_count = len(st.session_state.get('medium_low_unclassified_data', []))
             st.metric("Medium/Low/Unclassified → Suspicious Analysis", f"{medium_low_count:,}")
         
-        with col4:</old_str>
+        with col4:
             # Save filtered data to JSON with persistence
             persistence = st.session_state.data_persistence
             
@@ -5108,7 +5108,7 @@ def data_filtering_review_page():
                 
                 if 'policy_filtered' in stats and stats['policy_filtered'] > 0:
                     st.markdown("**📋 Policy Filtering:**")
-                    st.write(f"• Excluded by policy filter: {stats['policy_filtered']:,}")</old_str>
+                    st.write(f"• Excluded by policy filter: {stats['policy_filtered']:,}")
         
         # Sample preview
         if st.checkbox("📋 Show Sample Preview"):
@@ -5436,7 +5436,7 @@ def main():
     
     active_reviews = max(0, critical_high_active + medium_low_active)
     completed_reviews = len(st.session_state.completed_reviews)
-    escalated_records = len(st.session_state.escalated_records)</old_str>
+    escalated_records = len(st.session_state.escalated_records)
     
     # Status metrics in compact cards
     st.sidebar.markdown(f"""
