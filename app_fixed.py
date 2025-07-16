@@ -2266,14 +2266,7 @@ def data_upload_page():
                 # Display whitelist filtering statistics
                 if hasattr(st.session_state, 'whitelisted_emails_count') and st.session_state.whitelisted_emails_count > 0:
                     total_whitelisted = st.session_state.whitelisted_emails_count
-                    critical_high_filtered = getattr(st.session_state, 'whitelisted_critical_high_count', 0)
-                    other_whitelisted = total_whitelisted - critical_high_filtered
-                    
-                    st.info(f"✅ Whitelist Processing: {total_whitelisted:,} emails to whitelisted domains found")
-                    if critical_high_filtered > 0:
-                        st.success(f"🔒 Auto-filtered {critical_high_filtered:,} Critical/High emails to whitelisted domains")
-                    if other_whitelisted > 0:
-                        st.info(f"📋 Kept {other_whitelisted:,} Medium/Low/Unclassified emails to whitelisted domains for review")
+                    st.success(f"🔒 Auto-filtered {total_whitelisted:,} emails to whitelisted domains (complete filtering enabled)")
                 
                 # Data is processed and ready for filtering
                 st.info("📊 Data processed successfully! Navigate to 'Data Filtering & Review' to filter and save your data.")
