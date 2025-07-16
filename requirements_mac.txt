@@ -1,3 +1,4 @@
+# ExfilEye DLP - macOS Requirements
 # Core Framework
 streamlit>=1.46.0
 
@@ -22,8 +23,8 @@ weasyprint>=60.0
 # AI/ML (Optional - for advanced features)
 openai>=1.0.0
 
-# Additional System Dependencies
-# Note: Some packages may require system-level dependencies
-# For Windows: Visual C++ Build Tools may be required
-# For macOS: Xcode Command Line Tools may be required
-# For Linux: python3-dev, gcc, g++ may be required
+# macOS-specific notes:
+# - Xcode Command Line Tools may be required
+# - Install with: xcode-select --install
+# - Consider using virtual environment: python -m venv venv
+# - For WeasyPrint: brew install cairo pango gdk-pixbuf libffi

@@ -107,24 +107,47 @@ Preferred communication style: Simple, everyday language.
 - **Memory**: Sufficient for processing 2GB CSV files
 - **Storage**: File system access for JSON configuration files
 
-### Local Development Setup (Windows)
-For running ExfilEye locally on Windows, install dependencies using:
+### Local Development Setup
+For running ExfilEye locally, use the appropriate requirements file for your system:
+
+#### Windows
 ```bash
 pip install -r requirements_windows.txt
 ```
 
-Required packages for Windows:
-- streamlit>=1.46.0
-- matplotlib>=3.7.0 (essential for chart generation)
-- networkx>=3.1
-- numpy>=1.24.0
-- pandas>=2.0.0
-- plotly>=5.15.0
-- reportlab>=4.0.0
-- scikit-learn>=1.3.0
-- scipy>=1.11.0
-- seaborn>=0.12.0
-- weasyprint>=60.0
+#### macOS
+```bash
+pip install -r requirements_mac.txt
+```
+
+#### Linux
+```bash
+pip install -r requirements_linux.txt
+```
+
+#### Cross-platform
+```bash
+pip install -r local_requirements.txt
+```
+
+#### Core Dependencies
+- streamlit>=1.46.0 (Web framework)
+- matplotlib>=3.7.0 (Chart generation)
+- networkx>=3.1 (Network analysis)
+- numpy>=1.24.0 (Numerical computing)
+- pandas>=2.0.0 (Data processing)
+- plotly>=5.15.0 (Interactive visualization)
+- reportlab>=4.0.0 (PDF generation)
+- scikit-learn>=1.3.0 (Machine learning)
+- scipy>=1.11.0 (Scientific computing)
+- seaborn>=0.12.0 (Statistical visualization)
+- weasyprint>=60.0 (PDF rendering)
+- openai>=1.0.0 (AI features - optional)
+
+#### Installation Scripts
+- `run_windows.py` / `run_windows.bat` - Windows launcher
+- `run_mac.py` / `run_mac.sh` - macOS launcher
+- `INSTALLATION_GUIDE.md` - Complete setup instructions
 
 ### Configuration Management
 - **Default Settings**: Preconfigured domain classifications and security policies

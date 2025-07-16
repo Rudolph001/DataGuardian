@@ -1,4 +1,4 @@
-# ExfilEye DLP - Windows Requirements
+# ExfilEye DLP - Linux Requirements
 # Core Framework
 streamlit>=1.46.0
 
@@ -12,7 +12,7 @@ scikit-learn>=1.3.0
 networkx>=3.1
 
 # Visualization
-plotly>=5.15.0
+plotly>=5.17.0
 matplotlib>=3.7.0
 seaborn>=0.12.0
 
@@ -23,7 +23,8 @@ weasyprint>=60.0
 # AI/ML (Optional - for advanced features)
 openai>=1.0.0
 
-# Windows-specific notes:
-# - Visual C++ Build Tools may be required for some packages
-# - Run as Administrator if installation fails
+# Linux-specific notes:
+# - System dependencies may be required
+# - Ubuntu/Debian: sudo apt-get install python3-dev gcc g++ libcairo2-dev libpango1.0-dev libgdk-pixbuf2.0-dev libffi-dev
+# - CentOS/RHEL: sudo yum install python3-devel gcc gcc-c++ cairo-devel pango-devel gdk-pixbuf2-devel libffi-devel
 # - Consider using virtual environment: python -m venv venv
