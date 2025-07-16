@@ -2389,24 +2389,28 @@ def security_operations_dashboard():
     <div class="data-container">
         <h2 style="color: #2c3e50; margin-bottom: 1rem;">🛡️ Security Operations Dashboard</h2>
         <p style="color: #7f8c8d; font-size: 1.1rem; margin-bottom: 0;">
-            Monitor, review, and manage email security events with AI-powered assistance
+            Monitor, review, and manage <strong>Critical and High Priority</strong> email security events with AI-powered assistance
+        </p>
+        <p style="color: #e74c3c; font-size: 1.0rem; margin-top: 0.5rem;">
+            📍 <strong>Note:</strong> Medium, Low, and Unclassified events are handled in the Suspicious Email Analysis section
         </p>
     </div>
-    """, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)</old_str>
     
     # Check if filtered data is available
     if not hasattr(st.session_state, 'filtered_data') or not st.session_state.filtered_data:
         st.markdown("""
         <div class="alert alert-warning">
-            <strong>🔍 No Filtered Data Available</strong><br>
+            <strong>🔍 No Critical/High Priority Data Available</strong><br>
             Please complete the Data Filtering & Review process first before accessing Security Operations.<br><br>
             <strong>Steps to get started:</strong><br>
             1. Upload your data in the "Data Upload & Preprocessing" section<br>
             2. Filter and prepare your data in the "Data Filtering & Review" section<br>
-            3. Send the filtered data to Security Operations<br>
-            4. Return here to begin security review operations
+            3. Critical/High priority events will be sent to Security Operations<br>
+            4. Medium/Low/Unclassified events will be sent to Suspicious Email Analysis<br>
+            5. Return here to begin security review operations for Critical/High events
         </div>
-        """, unsafe_allow_html=True)
+        """, unsafe_allow_html=True)</old_str>
         
         # Show helpful navigation
         col1, col2 = st.columns(2)
@@ -2888,10 +2892,24 @@ def email_check_completed_page():
     completed_reviews = st.session_state.completed_reviews
     
     if not completed_reviews:
-        st.info("No completed reviews yet. Complete some reviews in the Security Operations Dashboard.")
+        st.info("No completed reviews yet. Complete some reviews in the Security Operations Dashboard or Suspicious Email Analysis.")
         return
     
+    # Count reviews by source
+    security_ops_reviews = 0
+    suspicious_analysis_reviews = 0
+    
+    for review in completed_reviews.values():
+        email = review.get('email', {})
+        status = email.get('status', '').lower().strip()
+        if status in ['critical', 'high']:
+            security_ops_reviews += 1
+        elif status in ['medium', 'low', 'unclassified', 'unknown'] or not status:
+            suspicious_analysis_reviews += 1
+    
     st.markdown(f"**Total Completed Reviews:** {len(completed_reviews):,}")
+    st.markdown(f"- Security Operations (Critical/High): {security_ops_reviews:,}")
+    st.markdown(f"- Suspicious Email Analysis (Medium/Low/Unclassified): {suspicious_analysis_reviews:,}")</old_str>
     
     # Summary statistics
     st.subheader("Review Summary")
@@ -3091,10 +3109,24 @@ def followup_center_page():
     escalated_records = st.session_state.escalated_records
     
     if not escalated_records:
-        st.info("No escalated records yet. Escalate some records in the Security Operations Dashboard.")
+        st.info("No escalated records yet. Escalate some records in the Security Operations Dashboard or Suspicious Email Analysis.")
         return
     
+    # Count escalated records by source
+    security_ops_escalated = 0
+    suspicious_analysis_escalated = 0
+    
+    for record in escalated_records.values():
+        email = record.get('email', {})
+        status = email.get('status', '').lower().strip()
+        if status in ['critical', 'high']:
+            security_ops_escalated += 1
+        elif status in ['medium', 'low', 'unclassified', 'unknown'] or not status:
+            suspicious_analysis_escalated += 1
+    
     st.markdown(f"**Total Escalated Records:** {len(escalated_records):,}")
+    st.markdown(f"- From Security Operations (Critical/High): {security_ops_escalated:,}")
+    st.markdown(f"- From Suspicious Email Analysis (Medium/Low/Unclassified): {suspicious_analysis_escalated:,}")</old_str>
     
     # Follow-up status tracking
     st.subheader("Follow-up Status")
@@ -4000,19 +4032,29 @@ def suspicious_email_analysis_page():
     <div class="data-container">
         <h2 style="color: #2c3e50; margin-bottom: 1rem;">🔍 Suspicious Email Analysis</h2>
         <p style="color: #7f8c8d; font-size: 1.1rem; margin-bottom: 1.5rem;">
-            AI-powered analysis to identify suspicious patterns in Medium Low and unclassified emails. 
-            This tool filters through your data to show only the emails that need your attention.
+            AI-powered analysis to identify suspicious patterns in <strong>Medium, Low, and Unclassified</strong> emails. 
+            This tool automatically receives emails from the Data Filtering & Review process and uses ML to identify potentially suspicious communications.
+        </p>
+        <p style="color: #3498db; font-size: 1.0rem; margin-bottom: 1.5rem;">
+            📍 <strong>Note:</strong> Critical and High priority events are handled in the Security Operations Dashboard
         </p>
     </div>
-    """, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)</old_str>
     
-    if not st.session_state.data:
+    # Check if medium/low/unclassified data is available from filtering
+    if not hasattr(st.session_state, 'medium_low_unclassified_data') or not st.session_state.medium_low_unclassified_data:
         st.markdown("""
         <div class="alert-card">
             <div class="alert-icon">📤</div>
             <div class="alert-content">
-                <h3>No Data Available</h3>
-                <p>Please upload your email data first using the Data Upload & Preprocessing page.</p>
+                <h3>No Medium/Low/Unclassified Data Available</h3>
+                <p>Please complete the Data Filtering & Review process first. Medium, Low, and Unclassified events will be automatically sent here for suspicious pattern analysis.</p>
+                <p><strong>Steps:</strong></p>
+                <ol>
+                    <li>Upload your data in Data Upload & Preprocessing</li>
+                    <li>Filter your data in Data Filtering & Review</li>
+                    <li>Medium/Low/Unclassified events will appear here automatically</li>
+                </ol>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -4054,9 +4096,12 @@ def suspicious_email_analysis_page():
     # Run analysis button
     if st.button("🔍 Run Suspicious Email Analysis", use_container_width=True):
         with st.spinner("Analyzing emails for suspicious patterns..."):
+            # Use the medium/low/unclassified data from filtering
+            available_data = st.session_state.medium_low_unclassified_data
+            
             # Filter data based on status selection
             filtered_data = []
-            for email in st.session_state.data:
+            for email in available_data:
                 email_status = email.get('status', '').lower().strip()
                 if email_status in status_filter or (not email_status and 'unclassified' in status_filter):
                     filtered_data.append(email)
@@ -4066,7 +4111,7 @@ def suspicious_email_analysis_page():
                 return
             
             # Run the suspicious email detection
-            suspicious_emails = detector.identify_suspicious_emails(filtered_data)
+            suspicious_emails = detector.identify_suspicious_emails(filtered_data)</old_str>
             
             # Filter by minimum suspicion score
             filtered_suspicious = [
@@ -4914,7 +4959,20 @@ def data_filtering_review_page():
                 selected_policies
             )
             
-            st.session_state.filtered_data = filtered_data
+            # Separate Critical/High from Medium/Low/Unclassified
+            critical_high_data = []
+            medium_low_unclassified_data = []
+            
+            for email in filtered_data:
+                status = email.get('status', '').lower().strip()
+                if status in ['critical', 'high']:
+                    critical_high_data.append(email)
+                elif status in ['medium', 'low', 'unclassified', 'unknown'] or not status:
+                    medium_low_unclassified_data.append(email)
+            
+            # Store separated data
+            st.session_state.filtered_data = critical_high_data  # Security Operations gets Critical/High only
+            st.session_state.medium_low_unclassified_data = medium_low_unclassified_data  # For Suspicious Email Analysis
             st.session_state.filter_applied = True
     
     # Results Section
@@ -4931,13 +4989,14 @@ def data_filtering_review_page():
             st.metric("Original Records", f"{original_count:,}")
         
         with col2:
-            st.metric("After Filtering", f"{filtered_count:,}")
+            critical_high_count = len(st.session_state.filtered_data)
+            st.metric("Critical/High → Security Ops", f"{critical_high_count:,}")
         
         with col3:
-            reduction_pct = ((original_count - filtered_count) / original_count * 100) if original_count > 0 else 0
-            st.metric("Filtered Out", f"{reduction_pct:.1f}%")
+            medium_low_count = len(st.session_state.get('medium_low_unclassified_data', []))
+            st.metric("Medium/Low/Unclassified → Suspicious Analysis", f"{medium_low_count:,}")
         
-        with col4:
+        with col4:</old_str>
             # Save filtered data to JSON with persistence
             persistence = st.session_state.data_persistence
             
@@ -4963,6 +5022,18 @@ def data_filtering_review_page():
                 else:
                     st.error("Failed to save filtered data to JSON")
         
+        # Show data separation information
+        st.markdown("---")
+        st.markdown("### 📊 Data Separation")
+        
+        st.info("""
+        **🔄 Automatic Data Routing:**
+        - **Critical & High Priority** → Security Operations Dashboard (immediate attention)
+        - **Medium, Low & Unclassified** → Suspicious Email Analysis (ML-powered review)
+        
+        This separation ensures that high-priority threats get immediate attention while lower-priority events are analyzed using AI for suspicious patterns.
+        """)
+        
         # Show filtering breakdown
         if hasattr(st.session_state, 'filtering_stats'):
             stats = st.session_state.filtering_stats
@@ -4976,7 +5047,8 @@ def data_filtering_review_page():
                     status_stats = stats['status_breakdown']
                     st.markdown("**📊 By Priority Level:**")
                     for status, count in status_stats.items():
-                        st.write(f"• {status.title()}: {count:,}")
+                        destination = "Security Operations" if status.lower() in ['critical', 'high'] else "Suspicious Analysis"
+                        st.write(f"• {status.title()}: {count:,} → {destination}")
             
             with col2:
                 if 'whitelist_filtered' in stats:
@@ -4988,7 +5060,7 @@ def data_filtering_review_page():
                 
                 if 'policy_filtered' in stats and stats['policy_filtered'] > 0:
                     st.markdown("**📋 Policy Filtering:**")
-                    st.write(f"• Excluded by policy filter: {stats['policy_filtered']:,}")
+                    st.write(f"• Excluded by policy filter: {stats['policy_filtered']:,}")</old_str>
         
         # Sample preview
         if st.checkbox("📋 Show Sample Preview"):
@@ -5310,9 +5382,13 @@ def main():
     # Professional system status cards
     st.sidebar.markdown("### 🔍 Review Status")
     
-    active_reviews = len(st.session_state.data) - len(st.session_state.completed_reviews) - len(st.session_state.escalated_records) if st.session_state.data else 0
+    # Calculate active reviews from both Critical/High and Medium/Low/Unclassified
+    critical_high_active = len(st.session_state.get('filtered_data', [])) - len([r for r in st.session_state.completed_reviews.values() if r.get('email', {}).get('status', '').lower() in ['critical', 'high']]) - len([r for r in st.session_state.escalated_records.values() if r.get('email', {}).get('status', '').lower() in ['critical', 'high']])
+    medium_low_active = len(st.session_state.get('medium_low_unclassified_data', []))
+    
+    active_reviews = max(0, critical_high_active + medium_low_active)
     completed_reviews = len(st.session_state.completed_reviews)
-    escalated_records = len(st.session_state.escalated_records)
+    escalated_records = len(st.session_state.escalated_records)</old_str>
     
     # Status metrics in compact cards
     st.sidebar.markdown(f"""
