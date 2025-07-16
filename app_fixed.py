@@ -2398,6 +2398,43 @@ def security_operations_dashboard():
     </div>
     """, unsafe_allow_html=True)
     
+    # Check if filtered data is available
+    if not hasattr(st.session_state, 'filtered_data') or not st.session_state.filtered_data:
+        st.markdown("""
+        <div class="alert alert-warning">
+            <strong>🔍 No Filtered Data Available</strong><br>
+            Please complete the Data Filtering & Review process first before accessing Security Operations.<br><br>
+            <strong>Steps to get started:</strong><br>
+            1. Upload your data in the "Data Upload & Preprocessing" section<br>
+            2. Filter and prepare your data in the "Data Filtering & Review" section<br>
+            3. Send the filtered data to Security Operations<br>
+            4. Return here to begin security review operations
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Show helpful navigation
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if not st.session_state.data:
+                st.info("📁 **Step 1**: Upload your data first")
+                if st.button("🔄 Go to Data Upload", use_container_width=True):
+                    st.session_state.selected_page = "📁 Data Upload & Preprocessing"
+                    st.rerun()
+            else:
+                st.success("✅ **Step 1**: Data uploaded successfully")
+        
+        with col2:
+            if st.session_state.data:
+                st.info("🔍 **Step 2**: Filter your data for security operations")
+                if st.button("🔄 Go to Data Filtering & Review", use_container_width=True):
+                    st.session_state.selected_page = "🔍 Data Filtering & Review"
+                    st.rerun()
+            else:
+                st.warning("⚠️ **Step 2**: Complete Step 1 first")
+        
+        return
+    
     # Display Configuration Section
     with st.expander("⚙️ Configure Display Options", expanded=False):
         st.markdown("### 📋 Display Field Configuration")
@@ -2462,16 +2499,14 @@ def security_operations_dashboard():
             show_risk_indicators = prefs.get('show_risk_indicators', show_risk_indicators)
             compact_view = prefs.get('compact_view', compact_view)
     
-    if not st.session_state.data:
-        st.markdown("""
-        <div class="alert alert-warning">
-            <strong>⚠️ No Data Available</strong><br>
-            Please upload data first in the Data Upload & Preprocessing section to begin security operations.
-        </div>
-        """, unsafe_allow_html=True)
-        return
+    # Use filtered data instead of raw data
+    data = st.session_state.filtered_data
     
-    data = st.session_state.data
+    # Show filtering information
+    if hasattr(st.session_state, 'security_operations_data_timestamp'):
+        st.info(f"📊 **Filtered Data**: Ready for security operations (Last filtered: {st.session_state.security_operations_data_timestamp})")
+    else:
+        st.info("📊 **Filtered Data**: Ready for security operations")
     
     # Filter out completed and escalated records
     completed_ids = set(st.session_state.completed_reviews.keys())
@@ -4755,10 +4790,13 @@ def data_filtering_review_page():
         
         with col4:
             if st.button("🛡️ Send to Security Operations", type="primary"):
-                # Update the main data with filtered data
-                st.session_state.data = st.session_state.filtered_data
-                st.success("✅ Filtered data sent to Security Operations Dashboard!")
+                # Keep filtered data separate from original data
+                # Don't overwrite st.session_state.data - keep original for reference
+                st.success("✅ Filtered data ready for Security Operations Dashboard!")
                 st.info("🔄 Navigate to Security Operations Dashboard to review the filtered data.")
+                
+                # Add a timestamp for when data was sent to security operations
+                st.session_state.security_operations_data_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
         # Show filtering breakdown
         if hasattr(st.session_state, 'filtering_stats'):
