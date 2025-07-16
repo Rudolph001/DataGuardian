@@ -3994,6 +3994,8 @@ def network_analysis_page():
 
 def suspicious_email_analysis_page():
     """Suspicious Email Analysis page for Medium Low and unclassified emails"""
+    from datetime import datetime
+    
     st.markdown("""
     <div class="data-container">
         <h2 style="color: #2c3e50; margin-bottom: 1rem;">🔍 Suspicious Email Analysis</h2>
@@ -4140,31 +4142,51 @@ def suspicious_email_analysis_page():
                 card_color = "#f1c40f"  # Yellow
                 risk_level = "LOW RISK"
             
-            # Create a container for the email with consistent styling
+            # Create email display exactly like Security Operations Dashboard
             with st.container():
-                # Add visual styling similar to Security Operations Dashboard
+                # Get email details for display
+                email_status = email.get('status', 'unknown').lower()
+                risk_icon = get_risk_indicator(email_status)
+                
+                # Create professional email preview
+                subject_preview = email.get('subject', 'No Subject')[:60]
+                if len(email.get('subject', '')) > 60:
+                    subject_preview += "..."
+                
+                sender_name = email.get('sender', 'Unknown').split('@')[0]
+                recipient_domain = email.get('recipients_email_domain', 'Unknown')
+                time_sent = email.get('_time', 'Unknown')
+                
+                # Build display content like Security Operations Dashboard
+                display_content = []
+                display_content.append(f"<div style='font-weight: bold; color: #333;'>{risk_icon} {email_status.upper()} PRIORITY</div>")
+                display_content.append(f"<strong>From:</strong> {email.get('sender', 'Unknown')[:50]}")
+                display_content.append(f"<strong>Subject:</strong> {subject_preview}")
+                display_content.append(f"<strong>Domain:</strong> {recipient_domain}")
+                display_content.append(f"<strong>Suspicion Score:</strong> {score:.2f} ({risk_level})")
+                
+                # Format display
+                content_html = "<br/>".join(display_content)
+                
+                # Email card with exact same styling as Security Operations Dashboard
                 st.markdown(f"""
                 <div style="border-left: 4px solid {card_color}; padding: 12px; margin: 8px 0; background-color: #f8f9fa; border-radius: 4px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <div style="font-size: 0.9em; color: #666;">{email.get('_time', 'Unknown')}</div>
-                        <div style="font-size: 0.9em; color: #666;">{risk_level}</div>
+                        <div style="font-size: 0.9em; color: #666;">{time_sent}</div>
+                    </div>
+                    <div style="font-size: 1.0em;">
+                        {content_html}
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
                 
-                col1, col2, col3 = st.columns([3, 1, 1])
+                # Action buttons row exactly like Security Operations Dashboard
+                col1, col2, col3, col4 = st.columns([2, 1, 1, 1])
+                
+                # Create unique key using email index
+                unique_key = f"suspicious_{i}_{hash(str(email))}"
                 
                 with col1:
-                    st.markdown(f"**#{i} - {email.get('subject', 'No Subject')[:50]}...**")
-                    st.write(f"**From:** {email.get('sender', 'Unknown')}")
-                    st.write(f"**Domain:** {email.get('recipients_email_domain', 'Unknown')}")
-                
-                with col2:
-                    st.metric("Suspicion Score", f"{score:.2f}")
-                    st.markdown(f"**Risk:** {risk_level}")
-                
-                with col3:
-                    # View Details button with same modal as Security Operations Dashboard
                     with st.popover("📋 View Details", use_container_width=True):
                         # Add suspicion-specific information before showing standard modal
                         st.markdown("### 🔍 Suspicion Analysis")
@@ -4178,8 +4200,51 @@ def suspicious_email_analysis_page():
                         # Show standard email details modal
                         show_email_details_modal(email)
                 
-                # Add separator between emails
-                st.markdown("---")
+                with col2:
+                    # Status change dropdown
+                    current_status = email.get('status', 'unclassified')
+                    new_status = st.selectbox(
+                        "Status:",
+                        ["critical", "high", "medium", "low", "unclassified"],
+                        index=["critical", "high", "medium", "low", "unclassified"].index(current_status.lower() if current_status.lower() in ["critical", "high", "medium", "low", "unclassified"] else "unclassified"),
+                        key=f"sus_status_{unique_key}"
+                    )
+                    
+                    if new_status != current_status.lower():
+                        if st.button("Update", key=f"sus_update_{unique_key}", use_container_width=True):
+                            # Update the email status in the data
+                            for idx, data_email in enumerate(st.session_state.filtered_data):
+                                if str(hash(str(data_email))) == str(hash(str(email))):
+                                    st.session_state.filtered_data[idx]['status'] = new_status
+                                    st.success(f"Status updated to {new_status.title()}")
+                                    st.rerun()
+                                    break
+                
+                with col3:
+                    if st.button("✅ Mark as Safe", key=f"sus_clear_{unique_key}", type="secondary", use_container_width=True):
+                        email_id = str(hash(str(email)))
+                        if not hasattr(st.session_state, 'completed_reviews'):
+                            st.session_state.completed_reviews = {}
+                        st.session_state.completed_reviews[email_id] = {
+                            'email': email,
+                            'decision': 'clear',
+                            'timestamp': datetime.now()
+                        }
+                        st.success("Email marked as safe!")
+                        st.rerun()
+                
+                with col4:
+                    if st.button("🚨 Escalate", key=f"sus_escalate_{unique_key}", type="primary", use_container_width=True):
+                        email_id = str(hash(str(email)))
+                        if not hasattr(st.session_state, 'escalated_records'):
+                            st.session_state.escalated_records = {}
+                        st.session_state.escalated_records[email_id] = {
+                            'email': email,
+                            'decision': 'escalate',
+                            'timestamp': datetime.now()
+                        }
+                        st.success("Email escalated for follow-up!")
+                        st.rerun()
                 
                 # Action buttons
                 col1, col2, col3 = st.columns(3)
