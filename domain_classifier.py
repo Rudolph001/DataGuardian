@@ -67,7 +67,8 @@ class DomainClassifier:
             ],
             'Personal': [],
             'Unknown': [],
-            'Blocked': []
+            'Blocked': [],
+            'Whitelisted': []
         }
         
         self.load_domains()
@@ -246,6 +247,112 @@ class DomainClassifier:
             results[domain] = self.classify_domain(domain)
         
         return results
+    
+    def is_whitelisted(self, domain: str) -> bool:
+        """Check if a domain is whitelisted"""
+        if not domain:
+            return False
+        
+        domain = domain.lower().strip()
+        
+        # Check whitelisted domains
+        for whitelisted_domain in self.classifications.get('Whitelisted', []):
+            if isinstance(whitelisted_domain, dict):
+                whitelisted_domain = whitelisted_domain.get('domain', '')
+            
+            whitelisted_domain = str(whitelisted_domain).lower()
+            
+            # Exact match or subdomain match
+            if domain == whitelisted_domain or domain.endswith('.' + whitelisted_domain):
+                return True
+        
+        return False
+    
+    def add_to_whitelist(self, domain: str, reason: str = "User added"):
+        """Add a domain to the whitelist"""
+        if not domain:
+            return False
+        
+        domain = domain.lower().strip()
+        
+        # Remove from other categories first (except whitelisted)
+        for cat, domains in self.classifications.items():
+            if cat != 'Whitelisted':
+                self.classifications[cat] = [
+                    d for d in domains 
+                    if (isinstance(d, dict) and d.get('domain') != domain) or 
+                       (isinstance(d, str) and d != domain)
+                ]
+        
+        # Check if already whitelisted
+        if not self.is_whitelisted(domain):
+            domain_info = {
+                'domain': domain,
+                'added_date': datetime.now().isoformat(),
+                'added_by': 'user',
+                'reason': reason
+            }
+            
+            self.classifications['Whitelisted'].append(domain_info)
+            self.save_domains()
+        
+        return True
+    
+    def remove_from_whitelist(self, domain: str):
+        """Remove a domain from the whitelist"""
+        domain = domain.lower().strip()
+        
+        self.classifications['Whitelisted'] = [
+            d for d in self.classifications['Whitelisted']
+            if (isinstance(d, dict) and d.get('domain') != domain) or 
+               (isinstance(d, str) and d != domain)
+        ]
+        
+        self.save_domains()
+        return True
+    
+    def get_whitelisted_domains(self) -> List[Dict]:
+        """Get all whitelisted domains"""
+        return self.get_domains_by_category('Whitelisted')
+    
+    def bulk_whitelist_domains(self, domains: List[str], reason: str = "Bulk added") -> Dict[str, bool]:
+        """Add multiple domains to whitelist"""
+        results = {}
+        
+        for domain in domains:
+            results[domain] = self.add_to_whitelist(domain, reason)
+        
+        return results
+    
+    def export_whitelist(self) -> str:
+        """Export whitelist as JSON string"""
+        whitelist_data = {
+            'exported_date': datetime.now().isoformat(),
+            'domains': self.get_whitelisted_domains()
+        }
+        return json.dumps(whitelist_data, indent=2)
+    
+    def import_whitelist(self, json_data: str, merge: bool = True) -> bool:
+        """Import whitelist from JSON string"""
+        try:
+            data = json.loads(json_data)
+            domains = data.get('domains', [])
+            
+            if not merge:
+                # Clear existing whitelist
+                self.classifications['Whitelisted'] = []
+            
+            # Add imported domains
+            for domain_info in domains:
+                domain = domain_info.get('domain', '')
+                reason = domain_info.get('reason', 'Imported')
+                if domain:
+                    self.add_to_whitelist(domain, reason)
+            
+            return True
+        except Exception as e:
+            print(f"Error importing whitelist: {e}")
+            return False
     
     def get_change_log(self, days: int = 30) -> List[Dict]:
         """Get change log for domain classifications"""

@@ -363,6 +363,14 @@ class CSVProcessor:
             recipients_domain = self.extract_domain_from_email(row.get('recipients', ''))
             row['recipients_email_domain'] = recipients_domain
             
+            # Check if domain is whitelisted - filter out if it is
+            if hasattr(st.session_state, 'domain_classifier') and st.session_state.domain_classifier.is_whitelisted(recipients_domain):
+                # Track whitelisted emails for statistics
+                if not hasattr(st.session_state, 'whitelisted_emails_count'):
+                    st.session_state.whitelisted_emails_count = 0
+                st.session_state.whitelisted_emails_count += 1
+                return None  # Filter out whitelisted domains
+            
             # Normalize status field (keep original case but ensure valid values)
             status = row.get('status', '').lower().strip()
             valid_statuses = ['critical', 'high', 'medium', 'low']
@@ -2234,6 +2242,9 @@ def data_upload_page():
     
     if uploaded_file is not None:
         try:
+            # Reset whitelist filtering counter for this upload
+            st.session_state.whitelisted_emails_count = 0
+            
             # Read file content
             content = uploaded_file.read().decode('utf-8')
             
@@ -2245,6 +2256,10 @@ def data_upload_page():
             
             if processed_data:
                 st.session_state.data = processed_data
+                
+                # Display whitelist filtering statistics
+                if hasattr(st.session_state, 'whitelisted_emails_count') and st.session_state.whitelisted_emails_count > 0:
+                    st.info(f"✅ Filtered out {st.session_state.whitelisted_emails_count:,} emails from whitelisted domains")
                 
                 # Save to JSON with persistence
                 persistence = st.session_state.data_persistence
@@ -4099,7 +4114,7 @@ def domain_classification_page():
         st.metric("Suspicious Domains", classifications.get('suspicious', 0))
     
     with col3:
-        st.metric("Business Domains", classifications.get('business', 0))
+        st.metric("Whitelisted Domains", classifications.get('whitelisted', 0))
     
     # Classification distribution
     st.subheader("Classification Distribution")
@@ -4115,7 +4130,7 @@ def domain_classification_page():
     # Domain management
     st.subheader("Domain Management")
     
-    tab1, tab2, tab3 = st.tabs(["View Classifications", "Add Domain", "Bulk Operations"])
+    tab1, tab2, tab3, tab4 = st.tabs(["View Classifications", "Add Domain", "Bulk Operations", "Whitelist Management"])
     
     with tab1:
         # View existing classifications
@@ -4229,6 +4244,168 @@ def domain_classification_page():
                 st.rerun()
             else:
                 st.error("Please enter domains to add.")
+    
+    with tab4:
+        # Whitelist Management
+        st.write("**Domain Whitelist Management**")
+        st.markdown("""
+        Whitelisted domains are automatically filtered out during data upload.
+        Use this to exclude trusted domains from security analysis.
+        """)
+        
+        # Whitelist statistics
+        whitelisted_domains = domain_classifier.get_whitelisted_domains()
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.metric("Whitelisted Domains", len(whitelisted_domains))
+        
+        with col2:
+            if st.button("🔄 Refresh Whitelist"):
+                st.rerun()
+        
+        # Add to whitelist
+        st.subheader("Add to Whitelist")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            new_whitelist_domain = st.text_input(
+                "Domain to whitelist",
+                placeholder="example.com",
+                help="Enter domain without protocol (e.g., example.com)"
+            )
+        
+        with col2:
+            whitelist_reason = st.text_input(
+                "Reason",
+                placeholder="Trusted partner domain",
+                help="Reason for whitelisting this domain"
+            )
+        
+        if st.button("✅ Add to Whitelist", type="primary"):
+            if new_whitelist_domain:
+                if domain_classifier.add_to_whitelist(new_whitelist_domain, whitelist_reason or "User added"):
+                    st.success(f"Added {new_whitelist_domain} to whitelist!")
+                    st.rerun()
+                else:
+                    st.error("Failed to add domain to whitelist")
+            else:
+                st.error("Please enter a domain to whitelist")
+        
+        # Bulk whitelist
+        st.subheader("Bulk Whitelist")
+        
+        bulk_whitelist_text = st.text_area(
+            "Enter domains to whitelist (one per line)",
+            height=100,
+            placeholder="example.com\npartner.org\ntrusted.net"
+        )
+        
+        bulk_whitelist_reason = st.text_input(
+            "Reason for bulk whitelist",
+            placeholder="Trusted partner domains",
+            value="Bulk whitelisted"
+        )
+        
+        if st.button("✅ Bulk Add to Whitelist"):
+            if bulk_whitelist_text:
+                domains = [line.strip().lower() for line in bulk_whitelist_text.split('\n') if line.strip()]
+                results = domain_classifier.bulk_whitelist_domains(domains, bulk_whitelist_reason)
+                
+                success_count = sum(1 for success in results.values() if success)
+                st.success(f"Added {success_count} domains to whitelist!")
+                st.rerun()
+            else:
+                st.error("Please enter domains to whitelist")
+        
+        # Current whitelist
+        st.subheader("Current Whitelist")
+        
+        if whitelisted_domains:
+            # Search whitelist
+            whitelist_search = st.text_input("Search whitelisted domains:")
+            
+            filtered_whitelist = whitelisted_domains
+            if whitelist_search:
+                filtered_whitelist = [
+                    d for d in whitelisted_domains 
+                    if whitelist_search.lower() in d['domain'].lower()
+                ]
+            
+            # Display whitelisted domains
+            for domain_info in filtered_whitelist[:50]:  # Limit to first 50
+                with st.expander(f"✅ {domain_info['domain']}"):
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.write(f"**Domain:** {domain_info['domain']}")
+                        st.write(f"**Added:** {domain_info.get('added_date', 'Unknown')}")
+                        st.write(f"**Reason:** {domain_info.get('reason', 'No reason provided')}")
+                    
+                    with col2:
+                        if st.button("🗑️ Remove from Whitelist", key=f"remove_whitelist_{domain_info['domain']}"):
+                            domain_classifier.remove_from_whitelist(domain_info['domain'])
+                            st.success(f"Removed {domain_info['domain']} from whitelist!")
+                            st.rerun()
+                        
+                        # Add to different category
+                        move_to_category = st.selectbox(
+                            "Move to category:",
+                            ["Select category..."] + [cat for cat in domain_classifier.classifications.keys() if cat != 'Whitelisted'],
+                            key=f"move_cat_{domain_info['domain']}"
+                        )
+                        
+                        if move_to_category != "Select category..." and st.button("🔄 Move", key=f"move_{domain_info['domain']}"):
+                            domain_classifier.remove_from_whitelist(domain_info['domain'])
+                            domain_classifier.add_domain(domain_info['domain'], move_to_category)
+                            st.success(f"Moved {domain_info['domain']} to {move_to_category}!")
+                            st.rerun()
+            
+            if len(filtered_whitelist) > 50:
+                st.info(f"Showing first 50 of {len(filtered_whitelist)} whitelisted domains")
+        else:
+            st.info("No domains currently whitelisted")
+        
+        # Whitelist management tools
+        st.subheader("Whitelist Management Tools")
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            # Export whitelist
+            if st.button("📥 Export Whitelist"):
+                whitelist_json = domain_classifier.export_whitelist()
+                st.download_button(
+                    "📥 Download Whitelist",
+                    data=whitelist_json,
+                    file_name=f"whitelist_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                    mime="application/json"
+                )
+        
+        with col2:
+            # Import whitelist
+            uploaded_whitelist = st.file_uploader(
+                "Import Whitelist",
+                type="json",
+                help="Upload a previously exported whitelist file"
+            )
+            
+            if uploaded_whitelist is not None:
+                try:
+                    whitelist_data = uploaded_whitelist.read().decode('utf-8')
+                    
+                    merge_whitelist = st.checkbox("Merge with existing whitelist", value=True)
+                    
+                    if st.button("📤 Import Whitelist"):
+                        if domain_classifier.import_whitelist(whitelist_data, merge_whitelist):
+                            st.success("Whitelist imported successfully!")
+                            st.rerun()
+                        else:
+                            st.error("Failed to import whitelist")
+                except Exception as e:
+                    st.error(f"Error reading whitelist file: {str(e)}")
     
     # Domain analysis with uploaded data
     if st.session_state.data:

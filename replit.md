@@ -65,8 +65,9 @@ Preferred communication style: Simple, everyday language.
 
 ### 5. Domain Classification System
 - **Purpose**: Categorize recipient domains for security assessment
-- **Categories**: Suspicious, Free Email, Business, Government, Financial, Cloud Providers, Social Media, News Media, Educational, Healthcare, Legal, Technology, Non-Profit, Personal, Unknown, Blocked
+- **Categories**: Suspicious, Free Email, Business, Government, Financial, Cloud Providers, Social Media, News Media, Educational, Healthcare, Legal, Technology, Non-Profit, Personal, Unknown, Blocked, Whitelisted
 - **Features**: Auto-classification, manual overrides, bulk operations
+- **Whitelist Feature**: Automatically filters out whitelisted domains during data upload, with persistent storage and management interface
 
 ### 6. Follow-up Center
 - **Purpose**: Track escalated records and manage follow-up actions
