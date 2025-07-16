@@ -102,6 +102,26 @@ Preferred communication style: Simple, everyday language.
 - **Memory**: Sufficient for processing 2GB CSV files
 - **Storage**: File system access for JSON configuration files
 
+### Local Development Setup (Windows)
+For running ExfilEye locally on Windows, install dependencies using:
+```bash
+pip install -r requirements_windows.txt
+```
+
+Required packages for Windows:
+- streamlit>=1.46.0
+- matplotlib>=3.7.0 (essential for chart generation)
+- networkx>=3.1
+- numpy>=1.24.0
+- openai>=1.0.0
+- pandas>=2.0.0
+- plotly>=5.15.0
+- reportlab>=4.0.0
+- scikit-learn>=1.3.0
+- scipy>=1.11.0
+- seaborn>=0.12.0
+- weasyprint>=60.0
+
 ### Configuration Management
 - **Environment Variables**: OPENAI_API_KEY for AI functionality
 - **Default Settings**: Preconfigured domain classifications and security policies
