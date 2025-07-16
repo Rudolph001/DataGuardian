@@ -8,6 +8,15 @@ ExfilEye is a comprehensive Streamlit-based Data Loss Prevention (DLP) email mon
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### July 16, 2025
+- Enhanced Windows setup script (`run_windows.py`) with comprehensive package status checking
+- Added pre-installation and post-installation package verification
+- Implemented interactive installation options with user choice menu
+- Removed OpenAI dependency checks and updated environment validation
+- Package status checker shows version numbers and handles alternative import names
+
 ## System Architecture
 
 ### Frontend Architecture
@@ -102,12 +111,18 @@ Preferred communication style: Simple, everyday language.
 - **Storage**: File system access for JSON configuration files
 
 ### Local Development Setup (Windows)
-For running ExfilEye locally on Windows, install dependencies using:
+For running ExfilEye locally on Windows, use the enhanced setup script:
 ```bash
-pip install -r requirements_windows.txt
+python run_windows.py
 ```
 
-Required packages for Windows:
+The setup script provides:
+- **Package Status Checking**: Shows installation status of each requirement before and after installation
+- **Interactive Installation**: User can choose to install/update packages or skip installation
+- **Version Verification**: Displays version numbers for all installed packages
+- **Environment Validation**: Confirms all dependencies are properly installed
+
+Required packages for Windows (from `requirements_windows.txt`):
 - streamlit>=1.46.0
 - matplotlib>=3.7.0 (essential for chart generation)
 - networkx>=3.1
