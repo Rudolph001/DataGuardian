@@ -363,17 +363,27 @@ class CSVProcessor:
             recipients_domain = self.extract_domain_from_email(row.get('recipients', ''))
             row['recipients_email_domain'] = recipients_domain
             
-            # Check if domain is whitelisted - filter out if it is
+            # Get email status for whitelist filtering logic
+            status = row.get('status', '').lower().strip()
+            
+            # Check if domain is whitelisted
             if hasattr(st.session_state, 'domain_classifier') and st.session_state.domain_classifier.is_whitelisted(recipients_domain):
                 # Track whitelisted emails for statistics
                 if not hasattr(st.session_state, 'whitelisted_emails_count'):
                     st.session_state.whitelisted_emails_count = 0
                 st.session_state.whitelisted_emails_count += 1
-                return None  # Filter out whitelisted domains
+                
+                # AUTOMATIC FILTERING: Only filter out Critical/High whitelisted emails during upload
+                if status in ['critical', 'high']:
+                    # Track Critical/High whitelisted emails separately
+                    if not hasattr(st.session_state, 'whitelisted_critical_high_count'):
+                        st.session_state.whitelisted_critical_high_count = 0
+                    st.session_state.whitelisted_critical_high_count += 1
+                    return None  # Filter out Critical/High whitelisted emails
+                # Allow other whitelisted emails to pass through
             
             # Normalize status field (keep original case but ensure valid values)
-            status = row.get('status', '').lower().strip()
-            valid_statuses = ['critical', 'high', 'medium', 'low']
+            valid_statuses = ['critical', 'high', 'medium', 'low', 'unclassified']
             if status in valid_statuses:
                 # Keep the original case from data but ensure it's valid
                 row['status'] = row.get('status', '').strip()
@@ -2259,7 +2269,15 @@ def data_upload_page():
                 
                 # Display whitelist filtering statistics
                 if hasattr(st.session_state, 'whitelisted_emails_count') and st.session_state.whitelisted_emails_count > 0:
-                    st.info(f"✅ Filtered out {st.session_state.whitelisted_emails_count:,} emails from whitelisted domains")
+                    total_whitelisted = st.session_state.whitelisted_emails_count
+                    critical_high_filtered = getattr(st.session_state, 'whitelisted_critical_high_count', 0)
+                    other_whitelisted = total_whitelisted - critical_high_filtered
+                    
+                    st.info(f"✅ Whitelist Processing: {total_whitelisted:,} emails to whitelisted domains found")
+                    if critical_high_filtered > 0:
+                        st.success(f"🔒 Auto-filtered {critical_high_filtered:,} Critical/High emails to whitelisted domains")
+                    if other_whitelisted > 0:
+                        st.info(f"📋 Kept {other_whitelisted:,} Medium/Low/Unclassified emails to whitelisted domains for review")
                 
                 # Save to JSON with persistence
                 persistence = st.session_state.data_persistence
@@ -4591,13 +4609,13 @@ def domain_classification_page():
                     st.rerun()
 
 def data_filtering_review_page():
-    """Data Filtering & Review page - ML-powered filtering with BAU vs Exfiltration analysis"""
+    """Simple Data Filtering & Review page with automatic whitelist filtering for Critical/High emails"""
     st.markdown("""
     <div class="data-container">
         <h2 style="color: #2c3e50; margin-bottom: 1rem;">🔍 Data Filtering & Review</h2>
         <p style="color: #7f8c8d; font-size: 1.1rem; margin-bottom: 1.5rem;">
-            Filter and analyze your data before sending to Security Operations. Uses ML to identify potential 
-            data exfiltration patterns and provides comprehensive filtering options.
+            Simple filtering to prepare your data for Security Operations. The system automatically handles 
+            whitelist filtering for Critical and High priority emails.
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -4615,231 +4633,93 @@ def data_filtering_review_page():
     if 'filtered_data' not in st.session_state:
         st.session_state.filtered_data = st.session_state.data.copy()
     
-    # ML Analysis Section
-    st.markdown("### 🤖 ML-Powered Analysis")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        enable_ml_analysis = st.checkbox(
-            "Enable ML BAU vs Exfiltration Analysis",
-            value=True,
-            help="Use machine learning to classify emails as Business As Usual or potential data exfiltration"
-        )
-    
-    with col2:
-        focus_on_medium_low = st.checkbox(
-            "Focus on Medium/Low/Unclassified",
-            value=True,
-            help="Prioritize analysis of Medium, Low, and unclassified emails while preserving Critical/High alerts"
-        )
-    
-    with col3:
-        ml_sensitivity = st.slider(
-            "ML Sensitivity",
-            min_value=0.1,
-            max_value=1.0,
-            value=0.6,
-            step=0.1,
-            help="Higher values detect more potential exfiltration but may increase false positives"
-        )
-    
     # Whitelist Analysis Section
-    st.markdown("### ✅ Whitelist Analysis")
+    st.markdown("### ✅ Whitelist Information")
     
-    # Count whitelisted emails
+    # Count whitelisted emails by priority
     domain_classifier = st.session_state.domain_classifier
-    whitelisted_count = 0
-    whitelisted_breakdown = {}
+    whitelisted_critical = 0
+    whitelisted_high = 0
+    whitelisted_other = 0
+    total_whitelisted = 0
     
     for email in st.session_state.data:
         domain = email.get('recipients_email_domain', '')
         if domain_classifier.is_whitelisted(domain):
-            whitelisted_count += 1
-            # Get whitelist reason
-            whitelisted_domains = domain_classifier.get_whitelisted_domains()
-            reason = "Unknown"
-            for wd in whitelisted_domains:
-                if wd['domain'] == domain:
-                    reason = wd.get('reason', 'Unknown')
-                    break
-            
-            whitelisted_breakdown[reason] = whitelisted_breakdown.get(reason, 0) + 1
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.metric("Total Whitelisted Emails", f"{whitelisted_count:,}")
-        
-        if whitelisted_breakdown:
-            st.markdown("**Whitelist Reasons:**")
-            for reason, count in whitelisted_breakdown.items():
-                st.write(f"• {reason}: {count:,} emails")
-    
-    with col2:
-        show_whitelisted = st.checkbox(
-            "Include Whitelisted Emails in Analysis",
-            value=False,
-            help="Whether to include whitelisted emails in the filtered dataset"
-        )
-        
-        if st.button("📊 Export Whitelist Report"):
-            # Create whitelist report
-            whitelist_report = {
-                'total_whitelisted': whitelisted_count,
-                'breakdown_by_reason': whitelisted_breakdown,
-                'generated_at': datetime.now().isoformat()
-            }
-            
-            st.download_button(
-                "Download Whitelist Report",
-                data=json.dumps(whitelist_report, indent=2),
-                file_name=f"whitelist_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
-                mime="application/json"
-            )
-    
-    # Advanced Filtering Section
-    st.markdown("### 🔧 Advanced Filtering Options")
-    
-    # Create filter configuration
-    filter_config = {}
-    
-    # Status filters
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.markdown("**Risk Status Filters:**")
-        preserve_critical = st.checkbox("Always preserve Critical", value=True, help="Critical emails always pass through")
-        preserve_high = st.checkbox("Always preserve High", value=True, help="High emails always pass through")
-        include_medium = st.checkbox("Include Medium", value=True)
-        include_low = st.checkbox("Include Low", value=True)
-        include_unclassified = st.checkbox("Include Unclassified", value=True)
-        
-        filter_config['status_filters'] = {
-            'preserve_critical': preserve_critical,
-            'preserve_high': preserve_high,
-            'include_medium': include_medium,
-            'include_low': include_low,
-            'include_unclassified': include_unclassified
-        }
-    
-    with col2:
-        st.markdown("**Domain Filters:**")
-        domain_categories = st.multiselect(
-            "Include Domain Categories",
-            ['Suspicious', 'Free Email', 'Business', 'Government', 'Financial', 'Cloud Providers', 
-             'Social Media', 'Educational', 'Healthcare', 'Technology', 'Unknown'],
-            default=['Suspicious', 'Free Email', 'Business', 'Unknown']
-        )
-        
-        exclude_internal = st.checkbox("Exclude Internal Domains", help="Filter out emails within your organization")
-        
-        filter_config['domain_filters'] = {
-            'categories': domain_categories,
-            'exclude_internal': exclude_internal
-        }
-    
-    with col3:
-        st.markdown("**Content Filters:**")
-        has_attachments = st.selectbox("Attachments", ["All", "With Attachments", "Without Attachments"])
-        wordlist_matches = st.selectbox("Wordlist Matches", ["All", "With Matches", "Without Matches"])
-        
-        min_email_length = st.slider("Minimum Subject Length", 0, 100, 0)
-        
-        filter_config['content_filters'] = {
-            'attachments': has_attachments,
-            'wordlist': wordlist_matches,
-            'min_subject_length': min_email_length
-        }
-    
-    # Date/Time filters
-    st.markdown("**Time-based Filters:**")
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        time_period = st.selectbox(
-            "Time Period",
-            ["All Time", "Last 7 Days", "Last 30 Days", "Last 90 Days", "Custom Range"]
-        )
-    
-    with col2:
-        if time_period == "Custom Range":
-            start_date = st.date_input("Start Date")
-            end_date = st.date_input("End Date")
-        else:
-            start_date = None
-            end_date = None
-    
-    with col3:
-        unusual_hours = st.checkbox("Flag Emails Sent Outside Business Hours", help="Identify emails sent outside 9 AM - 6 PM")
-    
-    filter_config['time_filters'] = {
-        'period': time_period,
-        'start_date': start_date,
-        'end_date': end_date,
-        'unusual_hours': unusual_hours
-    }
-    
-    # Custom Filters Section
-    st.markdown("### ➕ Custom Filters")
-    
-    # Allow users to add custom filters
-    if 'custom_filters' not in st.session_state:
-        st.session_state.custom_filters = []
+            total_whitelisted += 1
+            status = email.get('status', '').lower()
+            if status == 'critical':
+                whitelisted_critical += 1
+            elif status == 'high':
+                whitelisted_high += 1
+            else:
+                whitelisted_other += 1
     
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
-        filter_field = st.selectbox(
-            "Field",
-            ["sender", "subject", "recipients", "recipients_email_domain", "department", "bunit"]
-        )
+        st.metric("Total Whitelisted", f"{total_whitelisted:,}")
     
     with col2:
-        filter_operator = st.selectbox(
-            "Operator",
-            ["contains", "equals", "starts_with", "ends_with", "not_contains"]
-        )
+        st.metric("Critical (Auto-filtered)", f"{whitelisted_critical:,}", help="Critical emails to whitelisted domains are automatically filtered out")
     
     with col3:
-        filter_value = st.text_input("Value")
+        st.metric("High (Auto-filtered)", f"{whitelisted_high:,}", help="High emails to whitelisted domains are automatically filtered out")
     
     with col4:
-        st.write("")  # spacing
-        if st.button("➕ Add Filter"):
-            if filter_value:
-                new_filter = {
-                    'field': filter_field,
-                    'operator': filter_operator,
-                    'value': filter_value
-                }
-                st.session_state.custom_filters.append(new_filter)
-                st.success("Custom filter added!")
-                st.rerun()
+        st.metric("Other Whitelisted", f"{whitelisted_other:,}")
     
-    # Display active custom filters
-    if st.session_state.custom_filters:
-        st.markdown("**Active Custom Filters:**")
-        for i, cf in enumerate(st.session_state.custom_filters):
-            col1, col2 = st.columns([4, 1])
-            with col1:
-                st.write(f"• {cf['field']} {cf['operator']} '{cf['value']}'")
-            with col2:
-                if st.button("🗑️", key=f"remove_filter_{i}"):
-                    st.session_state.custom_filters.pop(i)
-                    st.rerun()
+    # Simple Filtering Section
+    st.markdown("### 📊 Simple Filtering Options")
     
-    # Apply Filters Button
-    if st.button("🚀 Apply Filters & Run ML Analysis", type="primary", use_container_width=True):
-        with st.spinner("Applying filters and running ML analysis..."):
-            filtered_data = apply_advanced_filters(
-                st.session_state.data, 
-                filter_config, 
-                st.session_state.custom_filters,
-                show_whitelisted,
-                enable_ml_analysis,
-                focus_on_medium_low,
-                ml_sensitivity
+    st.info("✅ **Automatic Protection**: Critical and High priority emails to whitelisted domains are automatically filtered out to prevent false positives.")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("**What emails do you want to review?**")
+        
+        include_critical = st.checkbox("🔴 Critical Priority", value=True, help="Always recommended for security review")
+        include_high = st.checkbox("🟠 High Priority", value=True, help="Important security alerts")
+        include_medium = st.checkbox("🟡 Medium Priority", value=True, help="Standard security monitoring")
+        include_low = st.checkbox("🟢 Low Priority", value=False, help="Optional - mostly routine emails")
+        include_unclassified = st.checkbox("⚪ Unclassified", value=True, help="Emails that need classification")
+    
+    with col2:
+        st.markdown("**Email Content Preferences:**")
+        
+        attachment_filter = st.radio(
+            "Attachments",
+            ["All emails", "Only emails with attachments", "Only emails without attachments"],
+            help="Filter by whether emails have attachments"
+        )
+        
+        wordlist_filter = st.radio(
+            "Security Wordlist Matches",
+            ["All emails", "Only emails with security keywords", "Only emails without security keywords"],
+            help="Filter by security keyword matches"
+        )
+        
+        st.markdown("**Time Period:**")
+        time_filter = st.selectbox(
+            "Show emails from",
+            ["All time", "Last 7 days", "Last 30 days", "Last 90 days"],
+            help="Filter by time period"
+        )
+    
+    # Apply Simple Filters Button
+    if st.button("🚀 Apply Filters", type="primary", use_container_width=True):
+        with st.spinner("Applying filters..."):
+            filtered_data = apply_simple_filters(
+                st.session_state.data,
+                include_critical,
+                include_high,
+                include_medium,
+                include_low,
+                include_unclassified,
+                attachment_filter,
+                wordlist_filter,
+                time_filter
             )
             
             st.session_state.filtered_data = filtered_data
@@ -4859,11 +4739,11 @@ def data_filtering_review_page():
             st.metric("Original Records", f"{original_count:,}")
         
         with col2:
-            st.metric("Filtered Records", f"{filtered_count:,}")
+            st.metric("After Filtering", f"{filtered_count:,}")
         
         with col3:
             reduction_pct = ((original_count - filtered_count) / original_count * 100) if original_count > 0 else 0
-            st.metric("Reduction", f"{reduction_pct:.1f}%")
+            st.metric("Filtered Out", f"{reduction_pct:.1f}%")
         
         with col4:
             if st.button("🛡️ Send to Security Operations", type="primary"):
@@ -4876,36 +4756,22 @@ def data_filtering_review_page():
         if hasattr(st.session_state, 'filtering_stats'):
             stats = st.session_state.filtering_stats
             
-            st.markdown("**Filtering Breakdown:**")
+            st.markdown("**What was filtered:**")
             
             col1, col2 = st.columns(2)
             
             with col1:
-                if 'ml_analysis' in stats:
-                    ml_stats = stats['ml_analysis']
-                    st.markdown("**🤖 ML Analysis Results:**")
-                    st.write(f"• BAU (Business as Usual): {ml_stats.get('bau_count', 0):,}")
-                    st.write(f"• Potential Exfiltration: {ml_stats.get('exfiltration_count', 0):,}")
-                    st.write(f"• Suspicious Patterns: {ml_stats.get('suspicious_count', 0):,}")
-                
                 if 'status_breakdown' in stats:
                     status_stats = stats['status_breakdown']
-                    st.markdown("**📊 Status Distribution:**")
+                    st.markdown("**📊 By Priority Level:**")
                     for status, count in status_stats.items():
                         st.write(f"• {status.title()}: {count:,}")
             
             with col2:
-                if 'domain_breakdown' in stats:
-                    domain_stats = stats['domain_breakdown']
-                    st.markdown("**🌐 Domain Categories:**")
-                    for category, count in list(domain_stats.items())[:5]:
-                        st.write(f"• {category}: {count:,}")
-                
-                if 'time_analysis' in stats:
-                    time_stats = stats['time_analysis']
-                    st.markdown("**⏰ Time Analysis:**")
-                    st.write(f"• Business Hours: {time_stats.get('business_hours', 0):,}")
-                    st.write(f"• After Hours: {time_stats.get('after_hours', 0):,}")
+                if 'whitelist_filtered' in stats:
+                    st.markdown("**🔒 Whitelist Protection:**")
+                    st.write(f"• Critical/High whitelisted: {stats['whitelist_filtered'].get('critical_high', 0):,}")
+                    st.write(f"• Other whitelisted: {stats['whitelist_filtered'].get('other', 0):,}")
         
         # Sample preview
         if st.checkbox("📋 Show Sample Preview"):
@@ -4925,56 +4791,49 @@ def data_filtering_review_page():
                         st.write(f"**Domain:** {email.get('recipients_email_domain', 'Unknown')}")
                         st.write(f"**Time:** {email.get('_time', 'Unknown')}")
                         
-                        # Show ML classification if available
-                        if 'ml_classification' in email:
-                            ml_class = email['ml_classification']
-                            confidence = email.get('ml_confidence', 0)
-                            st.write(f"**ML Classification:** {ml_class} ({confidence:.2f})")
+                        # Show if whitelisted
+                        domain = email.get('recipients_email_domain', '')
+                        if domain_classifier.is_whitelisted(domain):
+                            st.write("**✅ Whitelisted Domain**")
     
-    # Save Filter Presets
-    st.markdown("### 💾 Filter Presets")
+    # Quick Filter Presets
+    st.markdown("### ⚡ Quick Filter Presets")
     
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     
     with col1:
-        preset_name = st.text_input("Save Current Filters As:")
-        if st.button("💾 Save Preset") and preset_name:
-            if 'filter_presets' not in st.session_state:
-                st.session_state.filter_presets = {}
-            
-            st.session_state.filter_presets[preset_name] = {
-                'config': filter_config,
-                'custom_filters': st.session_state.custom_filters.copy(),
-                'ml_settings': {
-                    'enabled': enable_ml_analysis,
-                    'focus_medium_low': focus_on_medium_low,
-                    'sensitivity': ml_sensitivity
-                },
-                'created_at': datetime.now().isoformat()
-            }
-            st.success(f"Filter preset '{preset_name}' saved!")
+        if st.button("🔥 High Priority Only", use_container_width=True):
+            st.session_state.filtered_data = apply_simple_filters(
+                st.session_state.data, True, True, False, False, False, "All emails", "All emails", "All time"
+            )
+            st.session_state.filter_applied = True
+            st.success("Applied High Priority filter!")
+            st.rerun()
     
     with col2:
-        if hasattr(st.session_state, 'filter_presets') and st.session_state.filter_presets:
-            preset_to_load = st.selectbox(
-                "Load Preset:",
-                ["Select preset..."] + list(st.session_state.filter_presets.keys())
+        if st.button("📎 Attachments Only", use_container_width=True):
+            st.session_state.filtered_data = apply_simple_filters(
+                st.session_state.data, True, True, True, False, True, "Only emails with attachments", "All emails", "All time"
             )
-            
-            if st.button("📂 Load Preset") and preset_to_load != "Select preset...":
-                preset = st.session_state.filter_presets[preset_to_load]
-                # This would restore the filter settings
-                st.success(f"Preset '{preset_to_load}' loaded!")
-                st.info("Reload the page to see the updated filter settings.")
+            st.session_state.filter_applied = True
+            st.success("Applied Attachments filter!")
+            st.rerun()
+    
+    with col3:
+        if st.button("🔍 Last 7 Days", use_container_width=True):
+            st.session_state.filtered_data = apply_simple_filters(
+                st.session_state.data, True, True, True, False, True, "All emails", "All emails", "Last 7 days"
+            )
+            st.session_state.filter_applied = True
+            st.success("Applied Last 7 Days filter!")
+            st.rerun()
 
-def apply_advanced_filters(data, filter_config, custom_filters, show_whitelisted, enable_ml, focus_medium_low, ml_sensitivity):
-    """Apply advanced filtering with ML analysis"""
+def apply_simple_filters(data, include_critical, include_high, include_medium, include_low, include_unclassified, attachment_filter, wordlist_filter, time_filter):
+    """Apply simple filtering with automatic whitelist protection for Critical/High emails"""
     filtered_data = []
     stats = {
-        'ml_analysis': {'bau_count': 0, 'exfiltration_count': 0, 'suspicious_count': 0},
         'status_breakdown': {},
-        'domain_breakdown': {},
-        'time_analysis': {'business_hours': 0, 'after_hours': 0}
+        'whitelist_filtered': {'critical_high': 0, 'other': 0}
     }
     
     domain_classifier = st.session_state.domain_classifier
@@ -4982,79 +4841,51 @@ def apply_advanced_filters(data, filter_config, custom_filters, show_whitelisted
     for email in data:
         include_email = True
         
-        # Apply status filters
+        # Get email details
         status = email.get('status', 'unknown').lower()
-        status_filters = filter_config.get('status_filters', {})
-        
-        if status == 'critical' and not status_filters.get('preserve_critical', True):
-            include_email = False
-        elif status == 'high' and not status_filters.get('preserve_high', True):
-            include_email = False
-        elif status == 'medium' and not status_filters.get('include_medium', True):
-            include_email = False
-        elif status == 'low' and not status_filters.get('include_low', True):
-            include_email = False
-        elif status in ['unclassified', 'unknown'] and not status_filters.get('include_unclassified', True):
-            include_email = False
-        
-        # Apply whitelist filter
         domain = email.get('recipients_email_domain', '')
-        if not show_whitelisted and domain_classifier.is_whitelisted(domain):
+        is_whitelisted = domain_classifier.is_whitelisted(domain)
+        
+        # AUTOMATIC WHITELIST FILTERING FOR CRITICAL/HIGH
+        # Critical and High emails to whitelisted domains are automatically filtered out
+        if is_whitelisted and status in ['critical', 'high']:
+            stats['whitelist_filtered']['critical_high'] += 1
+            continue  # Skip this email - it's filtered out
+        
+        # Apply status filters
+        if status == 'critical' and not include_critical:
+            include_email = False
+        elif status == 'high' and not include_high:
+            include_email = False
+        elif status == 'medium' and not include_medium:
+            include_email = False
+        elif status == 'low' and not include_low:
+            include_email = False
+        elif status in ['unclassified', 'unknown'] and not include_unclassified:
             include_email = False
         
-        # Apply domain category filters
-        domain_filters = filter_config.get('domain_filters', {})
-        domain_category = domain_classifier.classify_domain(domain)
-        if domain_category not in domain_filters.get('categories', []):
+        # Apply attachment filter
+        has_attachments = bool(email.get('attachments'))
+        if attachment_filter == "Only emails with attachments" and not has_attachments:
+            include_email = False
+        elif attachment_filter == "Only emails without attachments" and has_attachments:
             include_email = False
         
-        # Apply content filters
-        content_filters = filter_config.get('content_filters', {})
-        
-        if content_filters.get('attachments') == "With Attachments" and not email.get('attachments'):
+        # Apply wordlist filter
+        has_wordlist_match = bool(email.get('wordlist_subject') or email.get('wordlist_attachment'))
+        if wordlist_filter == "Only emails with security keywords" and not has_wordlist_match:
             include_email = False
-        elif content_filters.get('attachments') == "Without Attachments" and email.get('attachments'):
-            include_email = False
-        
-        if content_filters.get('wordlist') == "With Matches" and not (email.get('wordlist_subject') or email.get('wordlist_attachment')):
-            include_email = False
-        elif content_filters.get('wordlist') == "Without Matches" and (email.get('wordlist_subject') or email.get('wordlist_attachment')):
+        elif wordlist_filter == "Only emails without security keywords" and has_wordlist_match:
             include_email = False
         
-        subject_len = len(email.get('subject', ''))
-        if subject_len < content_filters.get('min_subject_length', 0):
-            include_email = False
+        # Apply time filter (basic implementation - can be enhanced)
+        if time_filter != "All time":
+            # For now, include all emails. This can be enhanced with actual date parsing
+            pass
         
-        # Apply custom filters
-        for cf in custom_filters:
-            field_value = str(email.get(cf['field'], '')).lower()
-            filter_value = cf['value'].lower()
-            
-            if cf['operator'] == 'contains' and filter_value not in field_value:
-                include_email = False
-            elif cf['operator'] == 'equals' and field_value != filter_value:
-                include_email = False
-            elif cf['operator'] == 'starts_with' and not field_value.startswith(filter_value):
-                include_email = False
-            elif cf['operator'] == 'ends_with' and not field_value.endswith(filter_value):
-                include_email = False
-            elif cf['operator'] == 'not_contains' and filter_value in field_value:
-                include_email = False
-        
-        # Apply ML analysis if enabled
-        if include_email and enable_ml:
-            ml_result = run_ml_bau_analysis(email, focus_medium_low, ml_sensitivity)
-            email['ml_classification'] = ml_result['classification']
-            email['ml_confidence'] = ml_result['confidence']
-            email['ml_reasons'] = ml_result['reasons']
-            
-            # Update ML stats
-            if ml_result['classification'] == 'BAU':
-                stats['ml_analysis']['bau_count'] += 1
-            elif ml_result['classification'] == 'Potential_Exfiltration':
-                stats['ml_analysis']['exfiltration_count'] += 1
-            else:
-                stats['ml_analysis']['suspicious_count'] += 1
+        # Track other whitelisted emails that are included
+        if is_whitelisted and include_email:
+            stats['whitelist_filtered']['other'] += 1
         
         # Include email if it passes all filters
         if include_email:
@@ -5062,7 +4893,6 @@ def apply_advanced_filters(data, filter_config, custom_filters, show_whitelisted
             
             # Update stats
             stats['status_breakdown'][status] = stats['status_breakdown'].get(status, 0) + 1
-            stats['domain_breakdown'][domain_category] = stats['domain_breakdown'].get(domain_category, 0) + 1
     
     # Store stats in session state
     st.session_state.filtering_stats = stats
