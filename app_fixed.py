@@ -2281,31 +2281,8 @@ def data_upload_page():
                     if other_whitelisted > 0:
                         st.info(f"📋 Kept {other_whitelisted:,} Medium/Low/Unclassified emails to whitelisted domains for review")
                 
-                # Save to JSON with persistence
-                persistence = st.session_state.data_persistence
-                
-                # Option to specify date
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    save_date = st.date_input(
-                        "Save Date",
-                        value=datetime.now().date(),
-                        help="Date to associate with this data"
-                    )
-                
-                with col2:
-                    st.write("") # spacing
-                    st.write("") # spacing
-                    if st.button("💾 Save to JSON", type="primary"):
-                        date_str = save_date.strftime("%Y-%m-%d")
-                        saved_path = persistence.save_daily_data(processed_data, date_str)
-                        
-                        if saved_path:
-                            st.success(f"✅ Data saved to JSON for {date_str}")
-                            st.info(f"📁 Saved to: {saved_path}")
-                        else:
-                            st.error("Failed to save data to JSON")
+                # Data is processed and ready for filtering
+                st.info("📊 Data processed successfully! Navigate to 'Data Filtering & Review' to filter and save your data.")
                 
                 st.success(f"Successfully processed {len(processed_data):,} records!")
                 
@@ -4824,14 +4801,30 @@ def data_filtering_review_page():
             st.metric("Filtered Out", f"{reduction_pct:.1f}%")
         
         with col4:
-            if st.button("🛡️ Send to Security Operations", type="primary"):
-                # Keep filtered data separate from original data
-                # Don't overwrite st.session_state.data - keep original for reference
-                st.success("✅ Filtered data ready for Security Operations Dashboard!")
-                st.info("🔄 Navigate to Security Operations Dashboard to review the filtered data.")
+            # Save filtered data to JSON with persistence
+            persistence = st.session_state.data_persistence
+            
+            # Option to specify date
+            save_date = st.date_input(
+                "Save Date",
+                value=datetime.now().date(),
+                help="Date to associate with this filtered data",
+                key="filter_save_date"
+            )
+            
+            if st.button("💾 Save Filtered Data", type="primary"):
+                date_str = save_date.strftime("%Y-%m-%d")
+                saved_path = persistence.save_daily_data(st.session_state.filtered_data, date_str)
                 
-                # Add a timestamp for when data was sent to security operations
-                st.session_state.security_operations_data_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                if saved_path:
+                    st.success(f"✅ Filtered data saved to JSON for {date_str}")
+                    st.info(f"📁 Saved to: {saved_path}")
+                    
+                    # Also make it available for Security Operations
+                    st.session_state.security_operations_data_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    st.info("🔄 Navigate to Security Operations Dashboard to review the saved data.")
+                else:
+                    st.error("Failed to save filtered data to JSON")
         
         # Show filtering breakdown
         if hasattr(st.session_state, 'filtering_stats'):
