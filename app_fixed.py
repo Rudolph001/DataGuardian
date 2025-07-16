@@ -4790,16 +4790,8 @@ def data_filtering_review_page():
             st.info("No policy names found in data")
             st.session_state.selected_policy_names = []
         
-        st.markdown("---")  # Visual separator
-        
-        # Whitelist Settings with enhanced styling
-        st.markdown("**✅ Whitelist Settings**")
-        show_whitelist_domains = st.checkbox(
-            "Show emails to whitelisted domains",
-            value=True,
-            help="Include emails sent to whitelisted domains in results",
-            key="whitelist_checkbox"
-        )
+        # Whitelist filtering is already handled during upload - no need for filter option
+        show_whitelist_domains = True  # Always show remaining whitelisted domains (Critical/High already filtered out)
     
     # Apply Simple Filters Button
     if st.button("🚀 Apply Filters", type="primary", use_container_width=True):
@@ -4965,7 +4957,6 @@ def apply_simple_filters(data, include_critical, include_high, include_medium, i
     filtered_data = []
     stats = {
         'status_breakdown': {},
-        'whitelist_filtered': {'critical_high': 0, 'other': 0, 'hidden_whitelist': 0},
         'policy_filtered': 0
     }
     
@@ -4983,17 +4974,9 @@ def apply_simple_filters(data, include_critical, include_high, include_medium, i
         domain = email.get('recipients_email_domain', '')
         is_whitelisted = domain_classifier.is_whitelisted(domain)
         
-        # AUTOMATIC WHITELIST FILTERING FOR CRITICAL/HIGH
-        # Critical and High emails to whitelisted domains are automatically filtered out
-        if is_whitelisted and status in ['critical', 'high']:
-            stats['whitelist_filtered']['critical_high'] += 1
-            continue  # Skip this email - it's filtered out
-        
-        # OPTIONAL WHITELIST FILTERING FOR OTHER PRIORITY LEVELS
-        # User can choose to hide all whitelisted emails regardless of priority
-        if is_whitelisted and not show_whitelist_domains:
-            stats['whitelist_filtered']['hidden_whitelist'] += 1
-            continue  # Skip this email - user chose to hide whitelisted emails
+        # Whitelist filtering is already handled during data upload
+        # Critical/High whitelisted emails are already filtered out
+        # Other whitelisted emails are included for review
         
         # Apply status filters
         if status == 'critical' and not include_critical:
@@ -5046,9 +5029,7 @@ def apply_simple_filters(data, include_critical, include_high, include_medium, i
                 include_email = False
                 stats['policy_filtered'] += 1
         
-        # Track other whitelisted emails that are included
-        if is_whitelisted and include_email:
-            stats['whitelist_filtered']['other'] += 1
+        # Whitelist tracking is handled during data upload
         
         # Include email if it passes all filters
         if include_email:
