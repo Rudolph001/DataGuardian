@@ -2569,7 +2569,7 @@ def security_operations_dashboard():
             primary_fields = st.multiselect(
                 "Always show these fields:",
                 available_fields,
-                default=['sender', 'recipients', 'subject', 'status', 'recipients_email_domain', 'policy_name'],
+                default=['sender', 'recipients', 'subject', 'status', 'recipients_email_domain', 'attachments', 'policy_name'],
                 key="primary_fields"
             )
         
@@ -2578,7 +2578,7 @@ def security_operations_dashboard():
             secondary_fields = st.multiselect(
                 "Show in expandable section:",
                 [f for f in available_fields if f not in primary_fields],
-                default=['_time', 'attachments', 'department', 'policy_name'] if 'policy_name' not in primary_fields else ['_time', 'attachments', 'department'],
+                default=['_time', 'department'] + ([f for f in ['tessian', 'wordlist_subject', 'wordlist_attachment'] if f not in primary_fields][:2]),
                 key="secondary_fields"
             )
         
@@ -2897,11 +2897,38 @@ def security_operations_dashboard():
                                 display_content.append(f"<strong>Domain:</strong> {str(value)}")
                             elif field == 'policy_name':
                                 display_content.append(f"<strong>Policy:</strong> {str(value)}")
+                            elif field == 'attachments':
+                                # Format attachment information
+                                attachment_value = email.get('attachments', '')
+                                if attachment_value and str(attachment_value).strip() and str(attachment_value).strip().lower() not in ['', 'null', 'none', 'false', '0', '-']:
+                                    if str(attachment_value).strip().lower() in ['true', '1']:
+                                        attachment_text = "📎 Yes"
+                                    else:
+                                        attachment_text = f"📎 {str(attachment_value)[:30]}"
+                                        if len(str(attachment_value)) > 30:
+                                            attachment_text += "..."
+                                else:
+                                    attachment_text = "📎 No"
+                                display_content.append(f"<strong>Attachments:</strong> {attachment_text}")
                             elif field == 'ml_classification' and show_ml_analysis:
                                 confidence = email.get('ml_confidence', 0)
                                 display_content.append(f"<strong>ML:</strong> {str(value)} ({confidence:.2f})")
-                            elif field not in ['sender', 'recipients', 'subject', 'recipients_email_domain', 'policy_name']:
+                            elif field not in ['sender', 'recipients', 'subject', 'recipients_email_domain', 'policy_name', 'attachments']:
                                 display_content.append(f"<strong>{field.replace('_', ' ').title()}:</strong> {str(value)}")
+                    
+                    # Always show attachments if not in primary fields
+                    if 'attachments' not in primary_fields:
+                        attachment_value = email.get('attachments', '')
+                        if attachment_value and str(attachment_value).strip() and str(attachment_value).strip().lower() not in ['', 'null', 'none', 'false', '0', '-']:
+                            if str(attachment_value).strip().lower() in ['true', '1']:
+                                attachment_text = "📎 Yes"
+                            else:
+                                attachment_text = f"📎 {str(attachment_value)[:30]}"
+                                if len(str(attachment_value)) > 30:
+                                    attachment_text += "..."
+                        else:
+                            attachment_text = "📎 No"
+                        display_content.append(f"<strong>Attachments:</strong> {attachment_text}")
                     
                     # Format display
                     if compact_view:
@@ -4379,6 +4406,20 @@ def suspicious_email_analysis_page():
                 display_content.append(f"<strong>From:</strong> {email.get('sender', 'Unknown')[:50]}")
                 display_content.append(f"<strong>Subject:</strong> {subject_preview}")
                 display_content.append(f"<strong>Domain:</strong> {recipient_domain}")
+                
+                # Add attachment information
+                attachment_value = email.get('attachments', '')
+                if attachment_value and str(attachment_value).strip() and str(attachment_value).strip().lower() not in ['', 'null', 'none', 'false', '0', '-']:
+                    if str(attachment_value).strip().lower() in ['true', '1']:
+                        attachment_text = "📎 Yes"
+                    else:
+                        attachment_text = f"📎 {str(attachment_value)[:30]}"
+                        if len(str(attachment_value)) > 30:
+                            attachment_text += "..."
+                else:
+                    attachment_text = "📎 No"
+                display_content.append(f"<strong>Attachments:</strong> {attachment_text}")
+                
                 display_content.append(f"<strong>Suspicion Score:</strong> {score:.2f} ({risk_level})")
                 
                 # Format display
