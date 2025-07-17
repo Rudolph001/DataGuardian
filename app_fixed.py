@@ -2661,9 +2661,17 @@ def security_operations_dashboard():
     st.markdown("""
     <div class="data-container">
         <h3 style="color: #2c3e50; margin-bottom: 1rem;">🔍 Filter Options</h3>
-        <p style="color: #7f8c8d; margin-bottom: 1rem;">Filter records by status, domain, or sender to focus your review</p>
+        <p style="color: #7f8c8d; margin-bottom: 1rem;">Filter records by status, domain, sender, or search for specific documents</p>
     </div>
     """, unsafe_allow_html=True)
+    
+    # Search box for document names
+    search_term = st.text_input(
+        "🔍 Search for Document Names",
+        placeholder="Enter document name or attachment keyword...",
+        help="Search within attachment names and content",
+        key="security_ops_search"
+    )
     
     col1, col2, col3 = st.columns(3)
     
@@ -2697,6 +2705,19 @@ def security_operations_dashboard():
     
     if sender_filter != "All":
         filtered_records = [email for email in filtered_records if email.get('sender', '') == sender_filter]
+    
+    # Apply search filter for document names
+    if search_term:
+        search_lower = search_term.lower()
+        filtered_records = [
+            email for email in filtered_records 
+            if (
+                search_lower in email.get('attachments', '').lower() or
+                search_lower in email.get('subject', '').lower() or
+                search_lower in email.get('sender', '').lower() or
+                search_lower in email.get('recipients', '').lower()
+            )
+        ]
     
     # Professional security review queue section
     st.markdown("---")
@@ -2926,8 +2947,8 @@ def security_operations_dashboard():
                             if str(attachment_value).strip().lower() in ['true', '1']:
                                 attachment_text = "📎 Yes"
                             else:
-                                attachment_text = f"📎 {str(attachment_value)[:30]}"
-                                if len(str(attachment_value)) > 30:
+                                attachment_text = f"📎 {str(attachment_value)[:50]}"
+                                if len(str(attachment_value)) > 50:
                                     attachment_text += "..."
                         else:
                             attachment_text = "📎 No"
@@ -4267,6 +4288,15 @@ def suspicious_email_analysis_page():
     
     # Analysis controls
     st.markdown("### 🎯 Analysis Controls")
+    
+    # Search box for document names
+    search_term_sus = st.text_input(
+        "🔍 Search for Document Names",
+        placeholder="Enter document name or attachment keyword...",
+        help="Search within attachment names and content",
+        key="suspicious_analysis_search"
+    )
+    
     col1, col2, col3 = st.columns([2, 2, 2])
     
     with col1:
@@ -4320,6 +4350,19 @@ def suspicious_email_analysis_page():
                 email for email in suspicious_emails 
                 if email['suspicion_score'] >= min_suspicion_score
             ]
+            
+            # Apply search filter for document names
+            if search_term_sus:
+                search_lower_sus = search_term_sus.lower()
+                filtered_suspicious = [
+                    result for result in filtered_suspicious 
+                    if (
+                        search_lower_sus in result['email'].get('attachments', '').lower() or
+                        search_lower_sus in result['email'].get('subject', '').lower() or
+                        search_lower_sus in result['email'].get('sender', '').lower() or
+                        search_lower_sus in result['email'].get('recipients', '').lower()
+                    )
+                ]
             
             # Limit results
             final_results = filtered_suspicious[:max_results]
@@ -4417,8 +4460,8 @@ def suspicious_email_analysis_page():
                     if str(attachment_value).strip().lower() in ['true', '1']:
                         attachment_text = "📎 Yes"
                     else:
-                        attachment_text = f"📎 {str(attachment_value)[:30]}"
-                        if len(str(attachment_value)) > 30:
+                        attachment_text = f"📎 {str(attachment_value)[:50]}"
+                        if len(str(attachment_value)) > 50:
                             attachment_text += "..."
                 else:
                     attachment_text = "📎 No"
