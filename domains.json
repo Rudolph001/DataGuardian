@@ -3,490 +3,489 @@
   "Free Email": [
     {
       "domain": "gmail.com",
-      "added_date": "2025-07-16T16:47:36.586708"
+      "added_date": "2025-07-17T09:17:27.689347"
     },
     {
       "domain": "yahoo.com",
-      "added_date": "2025-07-16T16:47:36.586712"
+      "added_date": "2025-07-17T09:17:27.689349"
     },
     {
       "domain": "hotmail.com",
-      "added_date": "2025-07-16T16:47:36.586714"
+      "added_date": "2025-07-17T09:17:27.689350"
     },
     {
       "domain": "outlook.com",
-      "added_date": "2025-07-16T16:47:36.586717"
+      "added_date": "2025-07-17T09:17:27.689352"
     },
     {
       "domain": "aol.com",
-      "added_date": "2025-07-16T16:47:36.586719"
+      "added_date": "2025-07-17T09:17:27.689353"
     },
     {
       "domain": "icloud.com",
-      "added_date": "2025-07-16T16:47:36.586721"
+      "added_date": "2025-07-17T09:17:27.689354"
     },
     {
       "domain": "protonmail.com",
-      "added_date": "2025-07-16T16:47:36.586725"
+      "added_date": "2025-07-17T09:17:27.689356"
     },
     {
       "domain": "tutanota.com",
-      "added_date": "2025-07-16T16:47:36.586727"
+      "added_date": "2025-07-17T09:17:27.689357"
     },
     {
       "domain": "yandex.com",
-      "added_date": "2025-07-16T16:47:36.586730"
+      "added_date": "2025-07-17T09:17:27.689358"
     },
     {
       "domain": "mail.com",
-      "added_date": "2025-07-16T16:47:36.586732"
+      "added_date": "2025-07-17T09:17:27.689359"
     },
     {
       "domain": "zoho.com",
-      "added_date": "2025-07-16T16:47:36.586734"
+      "added_date": "2025-07-17T09:17:27.689361"
     },
     {
       "domain": "gmx.com",
-      "added_date": "2025-07-16T16:47:36.586736"
+      "added_date": "2025-07-17T09:17:27.689362"
     }
   ],
   "Business": [
     {
       "domain": "partner.org",
-      "added_date": "2025-07-16T16:47:36.586691",
-      "added_by": "user"
+      "added_date": "2025-07-17T09:17:27.689363"
     }
   ],
   "Government": [
     {
       "domain": "gov",
-      "added_date": "2025-07-16T16:47:36.586740"
+      "added_date": "2025-07-17T09:17:27.689365"
     },
     {
       "domain": "mil",
-      "added_date": "2025-07-16T16:47:36.586742"
+      "added_date": "2025-07-17T09:17:27.689366"
     },
     {
       "domain": "edu",
-      "added_date": "2025-07-16T16:47:36.586744"
+      "added_date": "2025-07-17T09:17:27.689367"
     },
     {
       "domain": "state.gov",
-      "added_date": "2025-07-16T16:47:36.586746"
+      "added_date": "2025-07-17T09:17:27.689369"
     },
     {
       "domain": "usa.gov",
-      "added_date": "2025-07-16T16:47:36.586749"
+      "added_date": "2025-07-17T09:17:27.689370"
     },
     {
       "domain": "nih.gov",
-      "added_date": "2025-07-16T16:47:36.586752"
+      "added_date": "2025-07-17T09:17:27.689371"
     },
     {
       "domain": "fda.gov",
-      "added_date": "2025-07-16T16:47:36.586754"
+      "added_date": "2025-07-17T09:17:27.689372"
     },
     {
       "domain": "cdc.gov",
-      "added_date": "2025-07-16T16:47:36.586757"
+      "added_date": "2025-07-17T09:17:27.689373"
     },
     {
       "domain": "nist.gov",
-      "added_date": "2025-07-16T16:47:36.586759"
+      "added_date": "2025-07-17T09:17:27.689375"
     }
   ],
   "Financial": [
     {
       "domain": "jpmorgan.com",
-      "added_date": "2025-07-16T16:47:36.586762"
+      "added_date": "2025-07-17T09:17:27.689377"
     },
     {
       "domain": "bankofamerica.com",
-      "added_date": "2025-07-16T16:47:36.586764"
+      "added_date": "2025-07-17T09:17:27.689378"
     },
     {
       "domain": "wellsfargo.com",
-      "added_date": "2025-07-16T16:47:36.586766"
+      "added_date": "2025-07-17T09:17:27.689379"
     },
     {
       "domain": "citi.com",
-      "added_date": "2025-07-16T16:47:36.586769"
+      "added_date": "2025-07-17T09:17:27.689380"
     },
     {
       "domain": "goldmansachs.com",
-      "added_date": "2025-07-16T16:47:36.586772"
+      "added_date": "2025-07-17T09:17:27.689382"
     },
     {
       "domain": "morganstanley.com",
-      "added_date": "2025-07-16T16:47:36.586775"
+      "added_date": "2025-07-17T09:17:27.689383"
     },
     {
       "domain": "amex.com",
-      "added_date": "2025-07-16T16:47:36.586776"
+      "added_date": "2025-07-17T09:17:27.689384"
     },
     {
       "domain": "visa.com",
-      "added_date": "2025-07-16T16:47:36.586778"
+      "added_date": "2025-07-17T09:17:27.689385"
     },
     {
       "domain": "mastercard.com",
-      "added_date": "2025-07-16T16:47:36.586779"
+      "added_date": "2025-07-17T09:17:27.689387"
     },
     {
       "domain": "paypal.com",
-      "added_date": "2025-07-16T16:47:36.586780"
+      "added_date": "2025-07-17T09:17:27.689388"
     }
   ],
   "Cloud Providers": [
     {
       "domain": "amazon.com",
-      "added_date": "2025-07-16T16:47:36.586782"
+      "added_date": "2025-07-17T09:17:27.689390"
     },
     {
       "domain": "aws.com",
-      "added_date": "2025-07-16T16:47:36.586783"
+      "added_date": "2025-07-17T09:17:27.689391"
     },
     {
       "domain": "microsoft.com",
-      "added_date": "2025-07-16T16:47:36.586784"
+      "added_date": "2025-07-17T09:17:27.689393"
     },
     {
       "domain": "google.com",
-      "added_date": "2025-07-16T16:47:36.586786"
+      "added_date": "2025-07-17T09:17:27.689396"
     },
     {
       "domain": "azure.com",
-      "added_date": "2025-07-16T16:47:36.586787"
+      "added_date": "2025-07-17T09:17:27.689398"
     },
     {
       "domain": "salesforce.com",
-      "added_date": "2025-07-16T16:47:36.586788"
+      "added_date": "2025-07-17T09:17:27.689401"
     },
     {
       "domain": "dropbox.com",
-      "added_date": "2025-07-16T16:47:36.586789"
+      "added_date": "2025-07-17T09:17:27.689404"
     },
     {
       "domain": "box.com",
-      "added_date": "2025-07-16T16:47:36.586790"
+      "added_date": "2025-07-17T09:17:27.689406"
     },
     {
       "domain": "slack.com",
-      "added_date": "2025-07-16T16:47:36.586792"
+      "added_date": "2025-07-17T09:17:27.689409"
     },
     {
       "domain": "zoom.us",
-      "added_date": "2025-07-16T16:47:36.586793"
+      "added_date": "2025-07-17T09:17:27.689410"
     },
     {
       "domain": "atlassian.com",
-      "added_date": "2025-07-16T16:47:36.586794"
+      "added_date": "2025-07-17T09:17:27.689412"
     }
   ],
   "Social Media": [
     {
       "domain": "facebook.com",
-      "added_date": "2025-07-16T16:47:36.586796"
+      "added_date": "2025-07-17T09:17:27.689413"
     },
     {
       "domain": "twitter.com",
-      "added_date": "2025-07-16T16:47:36.586797"
+      "added_date": "2025-07-17T09:17:27.689415"
     },
     {
       "domain": "linkedin.com",
-      "added_date": "2025-07-16T16:47:36.586798"
+      "added_date": "2025-07-17T09:17:27.689416"
     },
     {
       "domain": "instagram.com",
-      "added_date": "2025-07-16T16:47:36.586800"
+      "added_date": "2025-07-17T09:17:27.689417"
     },
     {
       "domain": "tiktok.com",
-      "added_date": "2025-07-16T16:47:36.586801"
+      "added_date": "2025-07-17T09:17:27.689418"
     },
     {
       "domain": "snapchat.com",
-      "added_date": "2025-07-16T16:47:36.586802"
+      "added_date": "2025-07-17T09:17:27.689419"
     },
     {
       "domain": "reddit.com",
-      "added_date": "2025-07-16T16:47:36.586803"
+      "added_date": "2025-07-17T09:17:27.689421"
     },
     {
       "domain": "youtube.com",
-      "added_date": "2025-07-16T16:47:36.586804"
+      "added_date": "2025-07-17T09:17:27.689422"
     },
     {
       "domain": "discord.com",
-      "added_date": "2025-07-16T16:47:36.586806"
+      "added_date": "2025-07-17T09:17:27.689423"
     },
     {
       "domain": "telegram.org",
-      "added_date": "2025-07-16T16:47:36.586807"
+      "added_date": "2025-07-17T09:17:27.689425"
     },
     {
       "domain": "whatsapp.com",
-      "added_date": "2025-07-16T16:47:36.586808"
+      "added_date": "2025-07-17T09:17:27.689426"
     }
   ],
   "News Media": [
     {
       "domain": "cnn.com",
-      "added_date": "2025-07-16T16:47:36.586809"
+      "added_date": "2025-07-17T09:17:27.689429"
     },
     {
       "domain": "bbc.com",
-      "added_date": "2025-07-16T16:47:36.586811"
+      "added_date": "2025-07-17T09:17:27.689432"
     },
     {
       "domain": "reuters.com",
-      "added_date": "2025-07-16T16:47:36.586812"
+      "added_date": "2025-07-17T09:17:27.689435"
     },
     {
       "domain": "bloomberg.com",
-      "added_date": "2025-07-16T16:47:36.586813"
+      "added_date": "2025-07-17T09:17:27.689437"
     },
     {
       "domain": "wsj.com",
-      "added_date": "2025-07-16T16:47:36.586814"
+      "added_date": "2025-07-17T09:17:27.689440"
     },
     {
       "domain": "nytimes.com",
-      "added_date": "2025-07-16T16:47:36.586815"
+      "added_date": "2025-07-17T09:17:27.689441"
     },
     {
       "domain": "washingtonpost.com",
-      "added_date": "2025-07-16T16:47:36.586817"
+      "added_date": "2025-07-17T09:17:27.689443"
     },
     {
       "domain": "forbes.com",
-      "added_date": "2025-07-16T16:47:36.586818"
+      "added_date": "2025-07-17T09:17:27.689444"
     },
     {
       "domain": "techcrunch.com",
-      "added_date": "2025-07-16T16:47:36.586819"
+      "added_date": "2025-07-17T09:17:27.689445"
     },
     {
       "domain": "theverge.com",
-      "added_date": "2025-07-16T16:47:36.586820"
+      "added_date": "2025-07-17T09:17:27.689446"
     },
     {
       "domain": "wired.com",
-      "added_date": "2025-07-16T16:47:36.586821"
+      "added_date": "2025-07-17T09:17:27.689448"
     }
   ],
   "Educational": [
     {
       "domain": "harvard.edu",
-      "added_date": "2025-07-16T16:47:36.586823"
+      "added_date": "2025-07-17T09:17:27.689449"
     },
     {
       "domain": "mit.edu",
-      "added_date": "2025-07-16T16:47:36.586824"
+      "added_date": "2025-07-17T09:17:27.689450"
     },
     {
       "domain": "stanford.edu",
-      "added_date": "2025-07-16T16:47:36.586825"
+      "added_date": "2025-07-17T09:17:27.689452"
     },
     {
       "domain": "berkeley.edu",
-      "added_date": "2025-07-16T16:47:36.586826"
+      "added_date": "2025-07-17T09:17:27.689453"
     },
     {
       "domain": "oxford.ac.uk",
-      "added_date": "2025-07-16T16:47:36.586828"
+      "added_date": "2025-07-17T09:17:27.689454"
     },
     {
       "domain": "cambridge.ac.uk",
-      "added_date": "2025-07-16T16:47:36.586829"
+      "added_date": "2025-07-17T09:17:27.689456"
     },
     {
       "domain": "coursera.org",
-      "added_date": "2025-07-16T16:47:36.586830"
+      "added_date": "2025-07-17T09:17:27.689457"
     },
     {
       "domain": "edx.org",
-      "added_date": "2025-07-16T16:47:36.586831"
+      "added_date": "2025-07-17T09:17:27.689458"
     },
     {
       "domain": "udemy.com",
-      "added_date": "2025-07-16T16:47:36.586833"
+      "added_date": "2025-07-17T09:17:27.689459"
     },
     {
       "domain": "khanacademy.org",
-      "added_date": "2025-07-16T16:47:36.586848"
+      "added_date": "2025-07-17T09:17:27.689461"
     }
   ],
   "Healthcare": [
     {
       "domain": "mayo.edu",
-      "added_date": "2025-07-16T16:47:36.586852"
+      "added_date": "2025-07-17T09:17:27.689462"
     },
     {
       "domain": "clevelandclinic.org",
-      "added_date": "2025-07-16T16:47:36.586854"
+      "added_date": "2025-07-17T09:17:27.689463"
     },
     {
       "domain": "johnshopkins.edu",
-      "added_date": "2025-07-16T16:47:36.586856"
+      "added_date": "2025-07-17T09:17:27.689465"
     },
     {
       "domain": "cdc.gov",
-      "added_date": "2025-07-16T16:47:36.586858"
+      "added_date": "2025-07-17T09:17:27.689466"
     },
     {
       "domain": "who.int",
-      "added_date": "2025-07-16T16:47:36.586860"
+      "added_date": "2025-07-17T09:17:27.689467"
     },
     {
       "domain": "nih.gov",
-      "added_date": "2025-07-16T16:47:36.586863"
+      "added_date": "2025-07-17T09:17:27.689469"
     },
     {
       "domain": "fda.gov",
-      "added_date": "2025-07-16T16:47:36.586865"
+      "added_date": "2025-07-17T09:17:27.689470"
     },
     {
       "domain": "webmd.com",
-      "added_date": "2025-07-16T16:47:36.586867"
+      "added_date": "2025-07-17T09:17:27.689471"
     },
     {
       "domain": "healthline.com",
-      "added_date": "2025-07-16T16:47:36.586870"
+      "added_date": "2025-07-17T09:17:27.689472"
     },
     {
       "domain": "medlineplus.gov",
-      "added_date": "2025-07-16T16:47:36.586871"
+      "added_date": "2025-07-17T09:17:27.689474"
     }
   ],
   "Legal": [
     {
       "domain": "courts.gov",
-      "added_date": "2025-07-16T16:47:36.586873"
+      "added_date": "2025-07-17T09:17:27.689475"
     },
     {
       "domain": "justice.gov",
-      "added_date": "2025-07-16T16:47:36.586874"
+      "added_date": "2025-07-17T09:17:27.689477"
     },
     {
       "domain": "sec.gov",
-      "added_date": "2025-07-16T16:47:36.586875"
+      "added_date": "2025-07-17T09:17:27.689478"
     },
     {
       "domain": "irs.gov",
-      "added_date": "2025-07-16T16:47:36.586876"
+      "added_date": "2025-07-17T09:17:27.689479"
     },
     {
       "domain": "copyright.gov",
-      "added_date": "2025-07-16T16:47:36.586878"
+      "added_date": "2025-07-17T09:17:27.689481"
     },
     {
       "domain": "patent.gov",
-      "added_date": "2025-07-16T16:47:36.586879"
+      "added_date": "2025-07-17T09:17:27.689482"
     },
     {
       "domain": "ftc.gov",
-      "added_date": "2025-07-16T16:47:36.586880"
+      "added_date": "2025-07-17T09:17:27.689483"
     },
     {
       "domain": "aclu.org",
-      "added_date": "2025-07-16T16:47:36.586882"
+      "added_date": "2025-07-17T09:17:27.689484"
     },
     {
       "domain": "eff.org",
-      "added_date": "2025-07-16T16:47:36.586883"
+      "added_date": "2025-07-17T09:17:27.689486"
     },
     {
       "domain": "law.com",
-      "added_date": "2025-07-16T16:47:36.586884"
+      "added_date": "2025-07-17T09:17:27.689487"
     }
   ],
   "Technology": [
     {
       "domain": "apple.com",
-      "added_date": "2025-07-16T16:47:36.586885"
+      "added_date": "2025-07-17T09:17:27.689489"
     },
     {
       "domain": "microsoft.com",
-      "added_date": "2025-07-16T16:47:36.586887"
+      "added_date": "2025-07-17T09:17:27.689490"
     },
     {
       "domain": "google.com",
-      "added_date": "2025-07-16T16:47:36.586888"
+      "added_date": "2025-07-17T09:17:27.689492"
     },
     {
       "domain": "amazon.com",
-      "added_date": "2025-07-16T16:47:36.586889"
+      "added_date": "2025-07-17T09:17:27.689493"
     },
     {
       "domain": "meta.com",
-      "added_date": "2025-07-16T16:47:36.586890"
+      "added_date": "2025-07-17T09:17:27.689494"
     },
     {
       "domain": "tesla.com",
-      "added_date": "2025-07-16T16:47:36.586891"
+      "added_date": "2025-07-17T09:17:27.689496"
     },
     {
       "domain": "netflix.com",
-      "added_date": "2025-07-16T16:47:36.586893"
+      "added_date": "2025-07-17T09:17:27.689499"
     },
     {
       "domain": "uber.com",
-      "added_date": "2025-07-16T16:47:36.586894"
+      "added_date": "2025-07-17T09:17:27.689502"
     },
     {
       "domain": "airbnb.com",
-      "added_date": "2025-07-16T16:47:36.586895"
+      "added_date": "2025-07-17T09:17:27.689504"
     },
     {
       "domain": "github.com",
-      "added_date": "2025-07-16T16:47:36.586896"
+      "added_date": "2025-07-17T09:17:27.689507"
     },
     {
       "domain": "stackoverflow.com",
-      "added_date": "2025-07-16T16:47:36.586897"
+      "added_date": "2025-07-17T09:17:27.689510"
     }
   ],
   "Non-Profit": [
     {
       "domain": "redcross.org",
-      "added_date": "2025-07-16T16:47:36.586899"
+      "added_date": "2025-07-17T09:17:27.689513"
     },
     {
       "domain": "unicef.org",
-      "added_date": "2025-07-16T16:47:36.586900"
+      "added_date": "2025-07-17T09:17:27.689516"
     },
     {
       "domain": "oxfam.org",
-      "added_date": "2025-07-16T16:47:36.586901"
+      "added_date": "2025-07-17T09:17:27.689519"
     },
     {
       "domain": "savethechildren.org",
-      "added_date": "2025-07-16T16:47:36.586903"
+      "added_date": "2025-07-17T09:17:27.689521"
     },
     {
       "domain": "greenpeace.org",
-      "added_date": "2025-07-16T16:47:36.586904"
+      "added_date": "2025-07-17T09:17:27.689524"
     },
     {
       "domain": "amnesty.org",
-      "added_date": "2025-07-16T16:47:36.586905"
+      "added_date": "2025-07-17T09:17:27.689526"
     },
     {
       "domain": "doctors-without-borders.org",
-      "added_date": "2025-07-16T16:47:36.586906"
+      "added_date": "2025-07-17T09:17:27.689527"
     },
     {
       "domain": "habitat.org",
-      "added_date": "2025-07-16T16:47:36.586953"
+      "added_date": "2025-07-17T09:17:27.689528"
     },
     {
       "domain": "unitedway.org",
-      "added_date": "2025-07-16T16:47:36.586955"
+      "added_date": "2025-07-17T09:17:27.689530"
     },
     {
       "domain": "cancer.org",
-      "added_date": "2025-07-16T16:47:36.586956"
+      "added_date": "2025-07-17T09:17:27.689531"
     }
   ],
   "Personal": [],
@@ -494,8 +493,16 @@
   "Blocked": [],
   "Whitelisted": [
     {
-      "domain": "rdcomputers.co.za",
-      "added_date": "2025-07-16T16:47:36.586958"
+      "domain": "travelyst.co.za",
+      "added_date": "2025-07-17T09:17:11.356483",
+      "added_by": "user",
+      "reason": "BAU"
+    },
+    {
+      "domain": "brytesa.com",
+      "added_date": "2025-07-17T09:17:27.689330",
+      "added_by": "user",
+      "reason": "BAU"
     }
   ]
 }
