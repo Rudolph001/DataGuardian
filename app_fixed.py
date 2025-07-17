@@ -5042,7 +5042,7 @@ def data_filtering_review_page():
     </div>
     """, unsafe_allow_html=True)
     
-    if not st.session_state.data:
+    if not st.session_state.data or len(st.session_state.data) == 0:
         st.markdown("""
         <div class="alert alert-warning">
             <strong>⚠️ No Data Available</strong><br>
@@ -5234,8 +5234,8 @@ def data_filtering_review_page():
         st.markdown("---")
         st.markdown("### 📊 Filtering Results")
         
-        original_count = len(st.session_state.data)
-        filtered_count = len(st.session_state.filtered_data)
+        original_count = len(st.session_state.data) if st.session_state.data else 0
+        filtered_count = len(st.session_state.filtered_data) if st.session_state.filtered_data else 0
         
         col1, col2, col3, col4 = st.columns(4)
         
@@ -5243,7 +5243,7 @@ def data_filtering_review_page():
             st.metric("Original Records", f"{original_count:,}")
         
         with col2:
-            critical_high_count = len(st.session_state.filtered_data)
+            critical_high_count = len(st.session_state.filtered_data) if st.session_state.filtered_data else 0
             st.metric("Critical/High → Security Ops", f"{critical_high_count:,}")
         
         with col3:
