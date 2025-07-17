@@ -4293,14 +4293,37 @@ def suspicious_email_analysis_page():
     # Analysis controls
     st.markdown("### 🎯 Analysis Controls")
     
-    # Search box for document names
-    search_term_sus = st.text_input(
-        "🔍 Search for Document Names",
-        placeholder="Enter document name or attachment keyword...",
-        help="Search within attachment names and content",
-        key="suspicious_analysis_search"
-    )
+    # First row - Search filters
+    col1_search, col2_search, col3_search = st.columns([2, 2, 2])
     
+    with col1_search:
+        # Search box for document names
+        search_term_sus = st.text_input(
+            "🔍 Search Document Names",
+            placeholder="Enter document name or attachment keyword...",
+            help="Search within attachment names and content",
+            key="suspicious_analysis_search"
+        )
+    
+    with col2_search:
+        # Sender filter
+        sender_filter = st.text_input(
+            "👤 Filter by Sender",
+            placeholder="Enter sender email or name...",
+            help="Filter emails by sender address or name",
+            key="suspicious_sender_filter"
+        )
+    
+    with col3_search:
+        # Recipient filter
+        recipient_filter = st.text_input(
+            "📧 Filter by Recipients",
+            placeholder="Enter recipient email or domain...",
+            help="Filter emails by recipient address or domain",
+            key="suspicious_recipient_filter"
+        )
+    
+    # Second row - Analysis parameters
     col1, col2, col3 = st.columns([2, 2, 2])
     
     with col1:
@@ -4365,6 +4388,25 @@ def suspicious_email_analysis_page():
                         search_lower_sus in result['email'].get('subject', '').lower() or
                         search_lower_sus in result['email'].get('sender', '').lower() or
                         search_lower_sus in result['email'].get('recipients', '').lower()
+                    )
+                ]
+            
+            # Apply sender filter
+            if sender_filter:
+                sender_lower = sender_filter.lower()
+                filtered_suspicious = [
+                    result for result in filtered_suspicious 
+                    if sender_lower in result['email'].get('sender', '').lower()
+                ]
+            
+            # Apply recipient filter
+            if recipient_filter:
+                recipient_lower = recipient_filter.lower()
+                filtered_suspicious = [
+                    result for result in filtered_suspicious 
+                    if (
+                        recipient_lower in result['email'].get('recipients', '').lower() or
+                        recipient_lower in result['email'].get('recipients_email_domain', '').lower()
                     )
                 ]
             
