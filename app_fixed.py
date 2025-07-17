@@ -2129,16 +2129,44 @@ def data_upload_page():
         col1, col2 = st.columns(2)
         
         with col1:
-            selected_date = st.selectbox(
+            selected_date_session = st.selectbox(
                 "Load Previous Data",
                 ["None"] + available_dates,
-                help="Select a date to load previously uploaded data"
+                help="Select a date/session to load previously uploaded data"
             )
             
-            if selected_date != "None":
+            if selected_date_session != "None":
+                # Extract date from session string if it contains session info
+                if "Session" in selected_date_session:
+                    base_date = selected_date_session.split(" (")[0]
+                    # Parse session info to get exact filename
+                    session_part = selected_date_session.split("Session ")[1]
+                    session_num = session_part.split(" - ")[0]
+                    session_time = session_part.split(" - ")[1].replace(":", "")
+                    
+                    # Find the exact file
+                    target_filename = f"email_data_{base_date}_{session_num.zfill(2)}_{session_time}.json"
+                    selected_file_path = os.path.join(persistence.data_folder, target_filename)
+                else:
+                    # Legacy format or single session
+                    base_date = selected_date_session
+                    selected_file_path = None
+                
                 if st.button("📂 Load Data", type="primary"):
-                    loaded_data = persistence.load_daily_data(selected_date)
-                    loaded_work_state = persistence.load_work_state(selected_date)
+                    if selected_file_path and os.path.exists(selected_file_path):
+                        # Load specific session file
+                        try:
+                            with open(selected_file_path, 'r', encoding='utf-8') as f:
+                                data_with_metadata = json.load(f)
+                            loaded_data = data_with_metadata.get("email_data", [])
+                        except Exception as e:
+                            st.error(f"Error loading session data: {e}")
+                            loaded_data = None
+                    else:
+                        # Fallback to original method for legacy files
+                        loaded_data = persistence.load_daily_data(base_date)
+                    
+                    loaded_work_state = persistence.load_work_state(base_date)
                     
                     if loaded_data:
                         st.session_state.data = loaded_data
@@ -2204,20 +2232,45 @@ def data_upload_page():
         
         with col2:
             st.markdown("**📊 Available Data Summary:**")
-            for date in available_dates[:5]:  # Show first 5
-                summary = persistence.get_data_summary(date)
-                if summary:
-                    st.write(f"**{date}:** {summary['total_records']:,} records")
-                    
-                    # Show risk distribution
-                    risk_dist = summary['risk_distribution']
-                    risk_text = []
-                    for risk, count in risk_dist.items():
-                        if count > 0:
-                            risk_text.append(f"{risk}: {count}")
-                    
-                    if risk_text:
-                        st.caption(f"   Risk: {', '.join(risk_text)}")
+            
+            # Group by date and show sessions
+            date_groups = {}
+            for date_session in available_dates[:10]:  # Show first 10
+                if "Session" in date_session:
+                    base_date = date_session.split(" (")[0]
+                else:
+                    base_date = date_session
+                
+                if base_date not in date_groups:
+                    date_groups[base_date] = []
+                date_groups[base_date].append(date_session)
+            
+            for base_date, sessions in list(date_groups.items())[:5]:  # Show first 5 dates
+                if len(sessions) > 1:
+                    st.write(f"**📅 {base_date}** ({len(sessions)} sessions)")
+                    for session in sessions:
+                        if "Session" in session:
+                            session_info = session.split("Session ")[1]
+                            st.caption(f"   📂 Session {session_info}")
+                        else:
+                            summary = persistence.get_data_summary(session)
+                            if summary:
+                                st.caption(f"   📂 {summary['total_records']:,} records")
+                else:
+                    # Single session for this date
+                    summary = persistence.get_data_summary(base_date)
+                    if summary:
+                        st.write(f"**📅 {base_date}:** {summary['total_records']:,} records")
+                        
+                        # Show risk distribution
+                        risk_dist = summary['risk_distribution']
+                        risk_text = []
+                        for risk, count in risk_dist.items():
+                            if count > 0:
+                                risk_text.append(f"{risk}: {count}")
+                        
+                        if risk_text:
+                            st.caption(f"   Risk: {', '.join(risk_text)}")
         
         # Data management tools
         st.subheader("🔧 Data Management Tools")
@@ -5118,11 +5171,37 @@ def data_filtering_review_page():
             
             if st.button("💾 Save Filtered Data", type="primary"):
                 date_str = save_date.strftime("%Y-%m-%d")
-                saved_path = persistence.save_daily_data(st.session_state.filtered_data, date_str)
+                
+                # Generate unique upload ID for this session
+                upload_id = datetime.now().strftime("%H%M%S")
+                
+                saved_path = persistence.save_daily_data(
+                    st.session_state.filtered_data, 
+                    date_str, 
+                    upload_id
+                )
                 
                 if saved_path:
-                    st.success(f"✅ Filtered data saved to JSON for {date_str}")
+                    # Extract session info from filename
+                    filename = os.path.basename(saved_path)
+                    if "_" in filename:
+                        parts = filename.replace("email_data_", "").replace(".json", "").split("_")
+                        if len(parts) >= 3:
+                            session_num = parts[1]
+                            session_time = parts[2]
+                            session_display = f"Session {session_num} at {session_time[:2]}:{session_time[2:4]}:{session_time[4:6]}"
+                        else:
+                            session_display = "Session 1"
+                    else:
+                        session_display = "Session 1"
+                    
+                    st.success(f"✅ Filtered data saved as {session_display} for {date_str}")
                     st.info(f"📁 Saved to: {saved_path}")
+                    
+                    # Show info about multiple sessions
+                    sessions_today = persistence.get_upload_sessions_for_date(date_str)
+                    if len(sessions_today) > 1:
+                        st.info(f"📊 This is upload session #{len(sessions_today)} for today. You now have {len(sessions_today)} data uploads for {date_str}")
                     
                     # Also make it available for Security Operations
                     st.session_state.security_operations_data_timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')

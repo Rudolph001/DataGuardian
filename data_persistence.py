@@ -20,20 +20,39 @@ class DataPersistence:
         
         self.current_date = datetime.now().strftime("%Y-%m-%d")
     
-    def save_daily_data(self, data: List[Dict], upload_date: str = None) -> str:
-        """Save daily email data to JSON file"""
+    def save_daily_data(self, data: List[Dict], upload_date: str = None, upload_id: str = None) -> str:
+        """Save daily email data to JSON file with support for multiple uploads per day"""
         if not upload_date:
             upload_date = self.current_date
         
-        filename = f"email_data_{upload_date}.json"
+        # Generate unique upload ID if not provided
+        if not upload_id:
+            upload_id = datetime.now().strftime("%H%M%S")  # HHMMSS format
+        
+        # Check if file already exists and create unique filename
+        base_filename = f"email_data_{upload_date}"
+        counter = 1
+        
+        # If this is not the first upload of the day, add counter
+        existing_files = [f for f in os.listdir(self.data_folder) if f.startswith(base_filename)]
+        if existing_files:
+            counter = len(existing_files) + 1
+        
+        filename = f"{base_filename}_{counter:02d}_{upload_id}.json"
         filepath = os.path.join(self.data_folder, filename)
         
-        # Add metadata
+        # Add metadata with upload session info
         data_with_metadata = {
             "upload_date": upload_date,
             "upload_timestamp": datetime.now().isoformat(),
+            "upload_id": upload_id,
+            "upload_session": counter,
             "total_records": len(data),
             "data_hash": self._calculate_data_hash(data),
+            "file_info": {
+                "filename": filename,
+                "is_multiple_upload_day": counter > 1
+            },
             "email_data": data
         }
         
@@ -41,8 +60,8 @@ class DataPersistence:
             with open(filepath, 'w', encoding='utf-8') as f:
                 json.dump(data_with_metadata, f, indent=2, ensure_ascii=False)
             
-            # Create backup
-            self._create_backup(filepath, upload_date)
+            # Create backup with session info
+            self._create_backup(filepath, f"{upload_date}_{counter:02d}_{upload_id}")
             
             return filepath
         except Exception as e:
@@ -69,12 +88,23 @@ class DataPersistence:
             print(f"Error loading daily data: {e}")
             return None
     
-    def save_work_state(self, work_state: Dict, upload_date: str = None) -> str:
-        """Save work state (completed reviews, escalations, etc.) to JSON file"""
+    def save_work_state(self, work_state: Dict, upload_date: str = None, session_id: str = None) -> str:
+        """Save work state (completed reviews, escalations, etc.) to JSON file with session support"""
         if not upload_date:
             upload_date = self.current_date
         
-        filename = f"work_state_{upload_date}.json"
+        # Generate session ID if not provided
+        if not session_id:
+            session_id = datetime.now().strftime("%H%M%S")
+        
+        # Create filename with session support
+        base_filename = f"work_state_{upload_date}"
+        
+        # Check for existing work states and create versioned filename
+        existing_files = [f for f in os.listdir(self.work_state_folder) if f.startswith(base_filename)]
+        session_counter = len(existing_files) + 1
+        
+        filename = f"{base_filename}_session_{session_counter:02d}_{session_id}.json"
         filepath = os.path.join(self.work_state_folder, filename)
         
         # Helper function to make data JSON serializable
@@ -267,17 +297,61 @@ class DataPersistence:
             return None
     
     def get_available_dates(self) -> List[str]:
-        """Get list of available data dates"""
-        dates = []
+        """Get list of available data dates with session info"""
+        date_sessions = {}
         
         # Check data folder
         if os.path.exists(self.data_folder):
             for filename in os.listdir(self.data_folder):
                 if filename.startswith("email_data_") and filename.endswith(".json"):
-                    date_str = filename.replace("email_data_", "").replace(".json", "")
-                    dates.append(date_str)
+                    # Parse filename: email_data_YYYY-MM-DD_##_HHMMSS.json
+                    parts = filename.replace("email_data_", "").replace(".json", "").split("_")
+                    if len(parts) >= 1:
+                        date_str = parts[0]  # YYYY-MM-DD
+                        if len(parts) >= 3:
+                            session_num = parts[1]
+                            session_time = parts[2]
+                            session_key = f"{date_str} (Session {session_num} - {session_time[:2]}:{session_time[2:4]}:{session_time[4:6]})"
+                        else:
+                            # Legacy format
+                            session_key = date_str
+                        
+                        if date_str not in date_sessions:
+                            date_sessions[date_str] = []
+                        date_sessions[date_str].append(session_key)
         
-        return sorted(dates, reverse=True)  # Most recent first
+        # Flatten and sort
+        all_sessions = []
+        for date, sessions in date_sessions.items():
+            all_sessions.extend(sessions)
+        
+        return sorted(all_sessions, reverse=True)  # Most recent first
+    
+    def get_upload_sessions_for_date(self, upload_date: str) -> List[Dict]:
+        """Get all upload sessions for a specific date"""
+        sessions = []
+        
+        if os.path.exists(self.data_folder):
+            for filename in os.listdir(self.data_folder):
+                if filename.startswith(f"email_data_{upload_date}_") and filename.endswith(".json"):
+                    filepath = os.path.join(self.data_folder, filename)
+                    try:
+                        with open(filepath, 'r', encoding='utf-8') as f:
+                            metadata = json.load(f)
+                        
+                        sessions.append({
+                            "filename": filename,
+                            "upload_timestamp": metadata.get("upload_timestamp"),
+                            "upload_id": metadata.get("upload_id"),
+                            "session_number": metadata.get("upload_session", 1),
+                            "total_records": metadata.get("total_records", 0),
+                            "file_size": os.path.getsize(filepath)
+                        })
+                    except Exception as e:
+                        print(f"Error reading session file {filename}: {e}")
+        
+        # Sort by session number
+        return sorted(sessions, key=lambda x: x["session_number"])
     
     def get_data_summary(self, upload_date: str = None) -> Optional[Dict]:
         """Get summary of data for a specific date"""
