@@ -215,7 +215,7 @@ st.markdown("""
 def initialize_session_state():
     """Initialize all session state variables"""
     if 'data' not in st.session_state:
-        st.session_state.data = None
+        st.session_state.data = []
     
     # Security Operations Dashboard state
     if 'completed_reviews' not in st.session_state:
@@ -276,6 +276,12 @@ def initialize_session_state():
         st.session_state.user_preferences = {}
     if 'session_statistics' not in st.session_state:
         st.session_state.session_statistics = {}
+    
+    # Data filtering state
+    if 'filtered_data' not in st.session_state:
+        st.session_state.filtered_data = []
+    if 'medium_low_unclassified_data' not in st.session_state:
+        st.session_state.medium_low_unclassified_data = []
     
     # UI state
     if 'selected_filters' not in st.session_state:
@@ -5659,7 +5665,7 @@ def main():
     
     # Professional data status card
     st.sidebar.markdown("### 📊 Data Status")
-    if st.session_state.data:
+    if st.session_state.data and len(st.session_state.data) > 0:
         st.sidebar.markdown(f"""
         <div class="metric-card">
             <h3>📁 Data Loaded</h3>
