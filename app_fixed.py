@@ -5685,8 +5685,11 @@ def main():
     st.sidebar.markdown("### 🔍 Review Status")
     
     # Calculate active reviews from both Critical/High and Medium/Low/Unclassified
-    critical_high_active = len(st.session_state.get('filtered_data', [])) - len([r for r in st.session_state.completed_reviews.values() if r.get('email', {}).get('status', '').lower() in ['critical', 'high']]) - len([r for r in st.session_state.escalated_records.values() if r.get('email', {}).get('status', '').lower() in ['critical', 'high']])
-    medium_low_active = len(st.session_state.get('medium_low_unclassified_data', []))
+    filtered_data = st.session_state.get('filtered_data', []) or []
+    medium_low_data = st.session_state.get('medium_low_unclassified_data', []) or []
+    
+    critical_high_active = len(filtered_data) - len([r for r in st.session_state.completed_reviews.values() if r.get('email', {}).get('status', '').lower() in ['critical', 'high']]) - len([r for r in st.session_state.escalated_records.values() if r.get('email', {}).get('status', '').lower() in ['critical', 'high']])
+    medium_low_active = len(medium_low_data)
     
     active_reviews = max(0, critical_high_active + medium_low_active)
     completed_reviews = len(st.session_state.completed_reviews)
