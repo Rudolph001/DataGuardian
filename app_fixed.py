@@ -2470,6 +2470,9 @@ def security_operations_dashboard():
                 st.info("📁 **Step 1**: Upload your data first")
                 if st.button("🔄 Go to Data Upload", use_container_width=True):
                     st.session_state.selected_page = "📁 Data Upload & Preprocessing"
+                    # Clear modal states to avoid conflicts
+                    if 'show_modal' in st.session_state:
+                        st.session_state.show_modal = False
                     st.rerun()
             else:
                 st.success("✅ **Step 1**: Data uploaded successfully")
@@ -2479,6 +2482,9 @@ def security_operations_dashboard():
                 st.info("🔍 **Step 2**: Filter your data for security operations")
                 if st.button("🔄 Go to Data Filtering & Review", use_container_width=True):
                     st.session_state.selected_page = "🔍 Data Filtering & Review"
+                    # Clear modal states to avoid conflicts
+                    if 'show_modal' in st.session_state:
+                        st.session_state.show_modal = False
                     st.rerun()
             else:
                 st.warning("⚠️ **Step 2**: Complete Step 1 first")
@@ -2691,6 +2697,9 @@ def security_operations_dashboard():
         # Add button to navigate to Suspicious Email Analysis
         if st.button("🔍 Go to Suspicious Email Analysis", use_container_width=True):
             st.session_state.selected_page = "🔍 Suspicious Email Analysis"
+            # Clear modal states to avoid conflicts
+            if 'show_modal' in st.session_state:
+                st.session_state.show_modal = False
             st.rerun()
     
     # Professional timeline view section
@@ -5458,17 +5467,25 @@ def main():
         st.session_state.selected_page = list(pages.keys())[0]
         current_page_index = 0
     
+    # Use a unique key for the radio button to avoid conflicts
     selected_page = st.sidebar.radio(
         "Select page:", 
         list(pages.keys()), 
         index=current_page_index,
         label_visibility="collapsed",
-        key="page_selector"
+        key="main_page_selector"
     )
     
-    # Update session state when page changes and force rerun
+    # Always update session state immediately when page changes
     if selected_page != st.session_state.selected_page:
         st.session_state.selected_page = selected_page
+        # Clear any cached states that might interfere
+        if 'show_modal' in st.session_state:
+            st.session_state.show_modal = False
+        if 'show_followup_modal' in st.session_state:
+            st.session_state.show_followup_modal = False
+        if 'show_sus_modal' in st.session_state:
+            st.session_state.show_sus_modal = False
         st.rerun()
     
     # Professional data status card
