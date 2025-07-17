@@ -2269,15 +2269,42 @@ def data_upload_page():
     
     st.subheader("📤 Upload New Data")
     
-    # File upload
+    # File upload with change detection
     uploaded_file = st.file_uploader(
         "Choose a CSV file",
         type="csv",
-        help="Maximum file size: 2GB"
+        help="Maximum file size: 2GB",
+        key="csv_uploader"
     )
     
+    # Detect if this is a new file upload
     if uploaded_file is not None:
+        # Create a unique identifier for the uploaded file
+        file_id = f"{uploaded_file.name}_{uploaded_file.size}"
+        
+        # Check if this is a different file than previously uploaded
+        if 'last_uploaded_file_id' not in st.session_state or st.session_state.last_uploaded_file_id != file_id:
+            st.session_state.last_uploaded_file_id = file_id
+            st.session_state.new_file_uploaded = True
+        else:
+            # Same file, don't reprocess unless explicitly requested
+            if 'new_file_uploaded' not in st.session_state:
+                st.session_state.new_file_uploaded = False
+    
+    if uploaded_file is not None and st.session_state.get('new_file_uploaded', True):
         try:
+            # Clear all previous data and state when new file is uploaded
+            st.session_state.data = None
+            st.session_state.filtered_data = None
+            st.session_state.medium_low_unclassified_data = None
+            st.session_state.filter_applied = False
+            
+            # Reset any existing work state for new upload
+            if 'completed_reviews' in st.session_state:
+                st.session_state.completed_reviews = {}
+            if 'escalated_records' in st.session_state:
+                st.session_state.escalated_records = {}
+            
             # Reset whitelist filtering counter for this upload
             st.session_state.whitelisted_emails_count = 0
             
@@ -2287,8 +2314,13 @@ def data_upload_page():
             # Process CSV
             processor = CSVProcessor()
             
+            st.info(f"🔄 Processing new file: {uploaded_file.name} ({uploaded_file.size:,} bytes)")
+            
             with st.spinner("Processing CSV data..."):
                 processed_data = processor.process_csv_data(content)
+            
+            # Mark file as processed
+            st.session_state.new_file_uploaded = False
             
             if processed_data:
                 st.session_state.data = processed_data
@@ -2349,6 +2381,24 @@ def data_upload_page():
             
         except Exception as e:
             st.error(f"Error processing file: {str(e)}")
+    
+    # Option to reprocess the same file
+    elif uploaded_file is not None and not st.session_state.get('new_file_uploaded', True):
+        st.info(f"📄 File already processed: {uploaded_file.name}")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🔄 Reprocess This File", type="secondary"):
+                st.session_state.new_file_uploaded = True
+                st.rerun()
+        
+        with col2:
+            if st.button("📁 Upload Different File", type="primary"):
+                # Clear the file uploader by resetting its key
+                if 'csv_uploader' in st.session_state:
+                    del st.session_state['csv_uploader']
+                st.session_state.last_uploaded_file_id = None
+                st.rerun()
     
     # Data validation section
     if st.session_state.data:
