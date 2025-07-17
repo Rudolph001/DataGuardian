@@ -5042,7 +5042,7 @@ def data_filtering_review_page():
     </div>
     """, unsafe_allow_html=True)
     
-    if not st.session_state.data or len(st.session_state.data) == 0:
+    if not st.session_state.data or not isinstance(st.session_state.data, list) or len(st.session_state.data) == 0:
         st.markdown("""
         <div class="alert alert-warning">
             <strong>⚠️ No Data Available</strong><br>
