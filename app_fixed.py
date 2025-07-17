@@ -297,8 +297,6 @@ def initialize_session_state():
     if 'data_persistence' not in st.session_state:
         st.session_state.data_persistence = DataPersistence()
 
-initialize_session_state()
-
 class CSVProcessor:
     """Custom CSV processor for handling large files without pandas"""
     
@@ -5586,6 +5584,9 @@ def run_ml_bau_analysis(email, focus_medium_low, sensitivity):
 
 def main():
     """Main application function"""
+    # Initialize session state variables
+    initialize_session_state()
+    
     # Auto-save work state periodically
     auto_save_work_state()
     
