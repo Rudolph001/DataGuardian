@@ -308,7 +308,7 @@ class CSVProcessor:
             'recipients_email_domain', 'time_month', 'tessian', 'leaver', 
             'Termination', 'account_type', 'wordlist_attachment',
             'wordlist_subject', 'bunit', 'department', 'status',
-            'user_response', 'final_outcome', 'policy_name'
+            'user_response', 'final_outcome', 'policy_name', 'justifications'
         ]
     
     def process_csv_data(self, csv_content):
@@ -2071,7 +2071,7 @@ def show_email_details_modal(email):
         'recipients_email_domain', 'attachments', 'status',
         'tessian', 'wordlist_attachment', 'wordlist_subject', 'leaver', 
         'Termination', 'department', 'bunit', 'account_type', 
-        'user_response', 'final_outcome'
+        'user_response', 'final_outcome', 'justifications'
     }
     
     additional_fields = {k: v for k, v in email.items() if k not in displayed_fields}
@@ -2553,7 +2553,7 @@ def security_operations_dashboard():
             'sender', 'recipients', 'subject', 'recipients_email_domain', 
             '_time', 'status', 'attachments', 'department', 'bunit',
             'tessian', 'wordlist_subject', 'wordlist_attachment', 
-            'leaver', 'Termination', 'account_type', 'user_response', 'policy_name'
+            'leaver', 'Termination', 'account_type', 'user_response', 'policy_name', 'justifications'
         ]
         
         # ML analysis fields (if available)
@@ -2569,7 +2569,7 @@ def security_operations_dashboard():
             primary_fields = st.multiselect(
                 "Always show these fields:",
                 available_fields,
-                default=['sender', 'recipients', 'subject', 'status', 'recipients_email_domain', 'attachments', 'policy_name'],
+                default=['sender', 'recipients', 'subject', 'status', 'recipients_email_domain', 'attachments', 'policy_name', 'justifications'],
                 key="primary_fields"
             )
         
@@ -2897,6 +2897,9 @@ def security_operations_dashboard():
                                 display_content.append(f"<strong>Domain:</strong> {str(value)}")
                             elif field == 'policy_name':
                                 display_content.append(f"<strong>Policy:</strong> {str(value)}")
+                            elif field == 'justifications':
+                                justifications_display = str(value)[:60] + "..." if len(str(value)) > 60 else str(value)
+                                display_content.append(f"<strong>Justifications:</strong> {justifications_display}")
                             elif field == 'attachments':
                                 # Format attachment information
                                 attachment_value = email.get('attachments', '')
@@ -3244,6 +3247,7 @@ def email_check_completed_page():
                         'domain': review['email'].get('recipients_email_domain', ''),
                         'status': review['email'].get('status', ''),
                         'policy_name': review['email'].get('policy_name', ''),
+                        'justifications': review['email'].get('justifications', ''),
                         'decision': review['decision'],
                         'timestamp': review['timestamp'].isoformat()
                     })
@@ -4546,6 +4550,7 @@ def suspicious_email_analysis_page():
                         'Status': email.get('status', ''),
                         'Domain': email.get('recipients_email_domain', ''),
                         'Policy_Name': email.get('policy_name', ''),
+                        'Justifications': email.get('justifications', ''),
                         'Suspicion_Score': result['suspicion_score'],
                         'Reasons': '; '.join(result['reasons']),
                         'Time': email.get('_time', '')
