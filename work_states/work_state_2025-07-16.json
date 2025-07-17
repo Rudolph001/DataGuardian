@@ -1,0 +1,48 @@
+{
+  "save_date": "2025-07-16",
+  "save_timestamp": "2025-07-16T16:47:16.432320",
+  "version": "2.0",
+  "security_operations": {
+    "completed_reviews": {},
+    "escalated_records": {},
+    "active_filters": {},
+    "review_decisions": {},
+    "last_reviewed_email": "",
+    "review_session_start": "",
+    "total_reviews_this_session": 0
+  },
+  "email_check_completed": {
+    "completed_reviews": {},
+    "review_notes": {},
+    "reviewer_assignments": {},
+    "completion_timestamps": {},
+    "review_quality_scores": {},
+    "batch_review_sessions": []
+  },
+  "followup_center": {
+    "escalated_records": {},
+    "followup_status": {},
+    "followup_notes": {},
+    "email_templates": {},
+    "followup_assignments": {},
+    "escalation_reasons": {},
+    "followup_deadlines": {},
+    "email_sent_status": {},
+    "template_drafts": {}
+  },
+  "system_state": {
+    "follow_up_decisions": {},
+    "blocked_domains": [],
+    "sender_status": {},
+    "domain_classifications": {},
+    "user_preferences": {},
+    "session_statistics": {}
+  },
+  "ui_state": {
+    "selected_filters": {},
+    "sort_preferences": {},
+    "view_modes": {},
+    "expanded_sections": {},
+    "modal_states": {}
+  }
+}

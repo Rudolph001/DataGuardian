@@ -2829,8 +2829,19 @@ def security_operations_dashboard():
                 unique_key = f"{group_name}_{i}_{hash(str(email))}"
                 
                 with col1:
-                    with st.popover("📋 View Details", use_container_width=True):
-                        show_email_details_modal(email)
+                    if st.button("📋 View Details", key=f"details_{unique_key}", use_container_width=True):
+                        st.session_state.show_modal = True
+                        st.session_state.modal_email = email
+                        st.rerun()
+                    
+                    # Show modal dialog if triggered
+                    if st.session_state.get('show_modal', False) and st.session_state.get('modal_email') == email:
+                        with st.dialog("📧 Email Details", width="large"):
+                            show_email_details_modal(email)
+                            if st.button("Close", key=f"close_{unique_key}"):
+                                st.session_state.show_modal = False
+                                st.session_state.modal_email = None
+                                st.rerun()
                 
                 with col2:
                     # Status change dropdown
@@ -3170,191 +3181,180 @@ def followup_center_page():
         else:
             escalation_time_str = str(escalation_time)
         
-        with st.expander(f"📧 {email.get('subject', 'No Subject')[:50]}... - {followup_status.title()}"):
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.write(f"**From:** {email.get('sender', 'Unknown')}")
-                st.write(f"**To:** {email.get('recipients', 'Unknown')}")
-                st.write(f"**Domain:** {email.get('recipients_email_domain', 'Unknown')}")
-                st.write(f"**Status:** {get_risk_indicator(email.get('status', 'unknown'))} {email.get('status', 'Unknown').title()}")
-                st.write(f"**Escalated:** {escalation_time_str}")
-            
-            with col2:
-                st.write(f"**Follow-up Status:** {followup_status.title()}")
-                st.write(f"**Department:** {email.get('department', 'Unknown')}")
-                st.write(f"**Business Unit:** {email.get('bunit', 'Unknown')}")
-                st.write(f"**Account Type:** {email.get('account_type', 'Unknown')}")
-                st.write(f"**Policy:** {email.get('policy_name', 'Unknown')}")
-    
-    # Follow-up status tracking
-    st.subheader("Follow-up Status")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        pending_count = sum(1 for record in escalated_records.values() if record.get('followup_status', 'pending') == 'pending')
-        st.metric("🕐 Pending", f"{pending_count:,}")
-    
-    with col2:
-        in_progress_count = sum(1 for record in escalated_records.values() if record.get('followup_status', 'pending') == 'in_progress')
-        st.metric("⏳ In Progress", f"{in_progress_count:,}")
-    
-    with col3:
-        completed_count = sum(1 for record in escalated_records.values() if record.get('followup_status', 'pending') == 'completed')
-        st.metric("✅ Completed", f"{completed_count:,}")
-    
-    # Escalated records management
-    st.subheader("Escalated Records")
-    
-    for record_id, record in escalated_records.items():
-        email = record['email']
-        escalation_time = record['timestamp']
-        followup_status = record.get('followup_status', 'pending')
+        # Email card display
+        st.markdown(f"""
+        <div style="border-left: 4px solid #2196F3; padding: 12px; margin: 8px 0; background-color: #f8f9fa; border-radius: 4px;">
+            <div style="font-weight: bold; margin-bottom: 8px;">📧 {email.get('subject', 'No Subject')[:50]}...</div>
+            <div style="font-size: 0.9em; color: #666;">
+                <strong>From:</strong> {email.get('sender', 'Unknown')}<br/>
+                <strong>Status:</strong> {get_risk_indicator(email.get('status', 'unknown'))} {email.get('status', 'Unknown').title()}<br/>
+                <strong>Follow-up Status:</strong> {followup_status.title()}<br/>
+                <strong>Escalated:</strong> {escalation_time_str}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        # Handle both datetime objects and string timestamps
-        if hasattr(escalation_time, 'strftime'):
-            escalation_time_str = escalation_time.strftime('%Y-%m-%d %H:%M')
-        else:
-            escalation_time_str = str(escalation_time)
+        # Action buttons
+        col1, col2, col3 = st.columns([2, 1, 1])
         
-        with st.expander(f"📧 {email.get('subject', 'No Subject')[:50]}... - {followup_status.title()}"):
-            col1, col2 = st.columns(2)
+        with col1:
+            if st.button("📋 View Full Details", key=f"followup_details_{record_id}"):
+                st.session_state.show_followup_modal = True
+                st.session_state.followup_modal_email = email
+                st.session_state.followup_modal_record = record
+                st.rerun()
             
-            with col1:
-                st.write(f"**From:** {email.get('sender', 'Unknown')}")
-                st.write(f"**To:** {email.get('recipients', 'Unknown')}")
-                st.write(f"**Domain:** {email.get('recipients_email_domain', 'Unknown')}")
-                st.write(f"**Status:** {get_risk_indicator(email.get('status', 'unknown'))} {email.get('status', 'Unknown').title()}")
-                st.write(f"**Escalated:** {escalation_time_str}")
+            # Show modal dialog if triggered
+            if (st.session_state.get('show_followup_modal', False) and 
+                st.session_state.get('followup_modal_email') == email):
+                with st.dialog("📨 Follow-up Record Details", width="large"):
+                    st.markdown("### 📨 Follow-up Information")
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.info(f"""
+                        **Follow-up Status:** {followup_status.title()}
+                        **Escalated:** {escalation_time_str}
+                        """)
+                    
+                    with col2:
+                        st.info(f"""
+                        **Department:** {email.get('department', 'Unknown')}
+                        **Business Unit:** {email.get('bunit', 'Unknown')}
+                        **Account Type:** {email.get('account_type', 'Unknown')}
+                        **Policy:** {email.get('policy_name', 'Unknown')}
+                        """)
+                    
+                    st.markdown("---")
+                    
+                    # Show standard email details modal
+                    show_email_details_modal(email)
+                    
+                    if st.button("Close", key=f"followup_close_{record_id}"):
+                        st.session_state.show_followup_modal = False
+                        st.session_state.followup_modal_email = None
+                        st.rerun()
+        
+        # Follow-up actions
+        st.subheader("Follow-up Actions")
+        
+        # Add troubleshooting info
+        with st.expander("📧 Email Client Help"):
+            st.markdown("""
+            **Multiple ways to send the security alert:**
             
-            with col2:
-                st.write(f"**Follow-up Status:** {followup_status.title()}")
-                st.write(f"**Department:** {email.get('department', 'Unknown')}")
-                st.write(f"**Business Unit:** {email.get('bunit', 'Unknown')}")
-                st.write(f"**Account Type:** {email.get('account_type', 'Unknown')}")
-                st.write(f"**Policy:** {email.get('policy_name', 'Unknown')}")
+            1. **Click "Open in Email Client"** - Opens your default email program
+            2. **Use "Copy Template"** - Shows the full email to copy and paste
+            3. **Use "Download .txt"** - Downloads a text file you can open and copy from
             
-            # Follow-up actions
-            st.subheader("Follow-up Actions")
+            **Troubleshooting email links:**
             
-            # Add troubleshooting info
-            with st.expander("📧 Email Client Help"):
-                st.markdown("""
-                **Multiple ways to send the security alert:**
+            - **Chrome/Edge**: Right-click link → "Copy link address" → paste in browser
+            - **Outlook Web**: Make sure you're logged into Office 365 in your browser
+            - **Desktop Outlook**: Set as default email app in Windows settings
+            - **Gmail**: Use Gmail's compose window and paste the template
+            - **Mac Mail**: Set as default in System Preferences
+            
+            **Still not working?** Use the "Copy Template" button and manually paste into any email client.
+            """)
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            if st.button("Generate Email Template", key=f"email_{record_id}"):
+                # Store the generated template in session state for editing
+                if f"template_content_{record_id}" not in st.session_state:
+                    st.session_state[f"template_content_{record_id}"] = generate_followup_email(email)
                 
-                1. **Click "Open in Email Client"** - Opens your default email program
-                2. **Use "Copy Template"** - Shows the full email to copy and paste
-                3. **Use "Download .txt"** - Downloads a text file you can open and copy from
+                # Get current template content (editable)
+                template = st.session_state[f"template_content_{record_id}"]
                 
-                **Troubleshooting email links:**
+                # Email preview and editing section
+                st.subheader("📧 Email Preview & Editor")
                 
-                - **Chrome/Edge**: Right-click link → "Copy link address" → paste in browser
-                - **Outlook Web**: Make sure you're logged into Office 365 in your browser
-                - **Desktop Outlook**: Set as default email app in Windows settings
-                - **Gmail**: Use Gmail's compose window and paste the template
-                - **Mac Mail**: Set as default in System Preferences
+                # Email subject line (editable)
+                subject = st.text_input(
+                    "Subject Line:",
+                    value=f"Security Alert - {email.get('subject', 'Email Security Issue')}",
+                    key=f"subject_{record_id}"
+                )
                 
-                **Still not working?** Use the "Copy Template" button and manually paste into any email client.
-                """)
-            
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                if st.button("Generate Email Template", key=f"email_{record_id}"):
-                    # Store the generated template in session state for editing
-                    if f"template_content_{record_id}" not in st.session_state:
-                        st.session_state[f"template_content_{record_id}"] = generate_followup_email(email)
+                # Recipient (editable)
+                sender_email = st.text_input(
+                    "To:",
+                    value=email.get('sender', ''),
+                    key=f"recipient_{record_id}"
+                )
+                
+                # Email body (editable)
+                edited_template = st.text_area(
+                    "Email Content (Edit as needed):",
+                    value=template,
+                    height=300,
+                    key=f"template_{record_id}",
+                    help="You can modify the email content before sending"
+                )
+                
+                # Update session state with edited content
+                st.session_state[f"template_content_{record_id}"] = edited_template
+                
+                # Preview styled email
+                with st.expander("📋 Formatted Email Preview", expanded=False):
+                    st.markdown("**Preview of how the email will look:**")
+                    st.markdown(f"**To:** {sender_email}")
+                    st.markdown(f"**Subject:** {subject}")
+                    st.markdown("**Body:**")
+                    st.markdown(f"```\n{edited_template}\n```")
+                
+                # Validation
+                if not sender_email or not sender_email.strip():
+                    st.error("Please enter a recipient email address")
+                elif not subject or not subject.strip():
+                    st.error("Please enter a subject line")
+                elif not edited_template or not edited_template.strip():
+                    st.error("Please enter email content")
+                else:
+                    # Action buttons for the finalized email
+                    st.markdown("### 🚀 Send Email")
                     
-                    # Get current template content (editable)
-                    template = st.session_state[f"template_content_{record_id}"]
+                    col_send1, col_send2, col_send3 = st.columns([2, 1, 1])
                     
-                    # Email preview and editing section
-                    st.subheader("📧 Email Preview & Editor")
-                    
-                    # Email subject line (editable)
-                    subject = st.text_input(
-                        "Subject Line:",
-                        value=f"Security Alert - {email.get('subject', 'Email Security Issue')}",
-                        key=f"subject_{record_id}"
-                    )
-                    
-                    # Recipient (editable)
-                    sender_email = st.text_input(
-                        "To:",
-                        value=email.get('sender', ''),
-                        key=f"recipient_{record_id}"
-                    )
-                    
-                    # Email body (editable)
-                    edited_template = st.text_area(
-                        "Email Content (Edit as needed):",
-                        value=template,
-                        height=300,
-                        key=f"template_{record_id}",
-                        help="You can modify the email content before sending"
-                    )
-                    
-                    # Update session state with edited content
-                    st.session_state[f"template_content_{record_id}"] = edited_template
-                    
-                    # Preview styled email
-                    with st.expander("📋 Formatted Email Preview", expanded=False):
-                        st.markdown("**Preview of how the email will look:**")
-                        st.markdown(f"**To:** {sender_email}")
-                        st.markdown(f"**Subject:** {subject}")
-                        st.markdown("**Body:**")
-                        st.markdown(f"```\n{edited_template}\n```")
-                    
-                    # Validation
-                    if not sender_email or not sender_email.strip():
-                        st.error("Please enter a recipient email address")
-                    elif not subject or not subject.strip():
-                        st.error("Please enter a subject line")
-                    elif not edited_template or not edited_template.strip():
-                        st.error("Please enter email content")
-                    else:
-                        # Action buttons for the finalized email
-                        st.markdown("### 🚀 Send Email")
+                    with col_send1:
+                        # Use the new working mailto function
+                        mailto_link = create_outlook_mailto_link(email, edited_template, subject)
                         
-                        col_send1, col_send2, col_send3 = st.columns([2, 1, 1])
-                        
-                        with col_send1:
-                            # Use the new working mailto function
-                            mailto_link = create_outlook_mailto_link(email, edited_template, subject)
-                            
-                            # Better styled button with proper mailto link
-                            st.markdown(f"""
-                            <a href="{mailto_link}" target="_blank" style="
-                                display: inline-block;
-                                padding: 8px 16px;
-                                background-color: #0078d4;
-                                color: white;
-                                text-decoration: none;
-                                border-radius: 4px;
-                                font-weight: bold;
+                        # Better styled button with proper mailto link
+                        st.markdown(f"""
+                        <a href="{mailto_link}" target="_blank" style="
+                            display: inline-block;
+                            padding: 8px 16px;
+                            background-color: #0078d4;
+                            color: white;
+                            text-decoration: none;
+                            border-radius: 4px;
+                            font-weight: bold;
                                 width: 100%;
                                 text-align: center;
                                 margin-bottom: 8px;
                             ">🚀 Click to Open in Email Client</a>
                             """, unsafe_allow_html=True)
-                            
-                            st.success("✅ Email ready!")
-                            st.info("💡 Click the blue link above to open your email client.")
-                            
-                            # Fallback copy button
-                            if st.button("📋 Copy Email Template", key=f"copy_email_{record_id}", use_container_width=True):
-                                email_text = f"""To: {sender_email}
+                        
+                        st.success("✅ Email ready!")
+                        st.info("💡 Click the blue link above to open your email client.")
+                        
+                        # Fallback copy button
+                        if st.button("📋 Copy Email Template", key=f"copy_email_{record_id}", use_container_width=True):
+                            email_text = f"""To: {sender_email}
 Subject: {subject}
 
 {edited_template}"""
-                                st.text_area(
-                                    "Copy this email content:",
-                                    value=email_text,
-                                    height=200,
-                                    key=f"copyable_email_{record_id}"
-                                )
-                                st.info("Copy the above text and paste it into your email client manually.")
+                            st.text_area(
+                                "Copy this email content:",
+                                value=email_text,
+                                height=200,
+                                key=f"copyable_email_{record_id}"
+                            )
+                            st.info("Copy the above text and paste it into your email client manually.")
                         
                         with col_send2:
                             # Reset/regenerate template
@@ -4291,18 +4291,33 @@ def suspicious_email_analysis_page():
                 unique_key = f"suspicious_{i}_{hash(str(email))}"
                 
                 with col1:
-                    with st.popover("📋 View Details", use_container_width=True):
-                        # Add suspicion-specific information before showing standard modal
-                        st.markdown("### 🔍 Suspicion Analysis")
-                        st.metric("Suspicion Score", f"{score:.2f}")
-                        st.markdown("**Reasons for Suspicion:**")
-                        for reason in reasons:
-                            st.write(f"• {reason}")
-                        
-                        st.markdown("---")
-                        
-                        # Show standard email details modal
-                        show_email_details_modal(email)
+                    if st.button("📋 View Details", key=f"sus_details_{unique_key}", use_container_width=True):
+                        st.session_state.show_sus_modal = True
+                        st.session_state.sus_modal_email = email
+                        st.session_state.sus_modal_score = score
+                        st.session_state.sus_modal_reasons = reasons
+                        st.rerun()
+                    
+                    # Show modal dialog if triggered
+                    if (st.session_state.get('show_sus_modal', False) and 
+                        st.session_state.get('sus_modal_email') == email):
+                        with st.dialog("🔍 Suspicious Email Analysis", width="large"):
+                            # Add suspicion-specific information before showing standard modal
+                            st.markdown("### 🔍 Suspicion Analysis")
+                            st.metric("Suspicion Score", f"{score:.2f}")
+                            st.markdown("**Reasons for Suspicion:**")
+                            for reason in reasons:
+                                st.write(f"• {reason}")
+                            
+                            st.markdown("---")
+                            
+                            # Show standard email details modal
+                            show_email_details_modal(email)
+                            
+                            if st.button("Close", key=f"sus_close_{unique_key}"):
+                                st.session_state.show_sus_modal = False
+                                st.session_state.sus_modal_email = None
+                                st.rerun()
                 
                 with col2:
                     # Status change dropdown
